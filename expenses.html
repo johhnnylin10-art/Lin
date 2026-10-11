@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
+    <script type="module" src="auth-guard.js"></script>
     <title>AssetGuard Pro - Unified Expense Terminal & Analytics</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -404,7 +405,7 @@
             <div class="template-blocks-grid">
                 <div class="template-card">
                     <div class="template-card-top">
-                        <div class="template-icon">💡</div>
+                        <div class="template-icon">ð¡</div>
                         <span class="template-tag">Auditing</span>
                     </div>
                     <h5>Smart Trust Metrics</h5>
@@ -413,7 +414,7 @@
 
                 <div class="template-card">
                     <div class="template-card-top">
-                        <div class="template-icon">🛡️</div>
+                        <div class="template-icon">ð¡ï¸</div>
                         <span class="template-tag">Resilience</span>
                     </div>
                     <h5>Offline IndexedDB</h5>
@@ -453,7 +454,7 @@
             <div id="financialAdviceContainer"></div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
                 <div style="background:#f1f5f9; padding:15px; border-radius:10px; text-align:center;"><label>Avg Cost</label><div id="statAvg" style="font-weight:700; color:var(--dark);">0</div></div>
-                <div class="stat-card-interactive" onclick="openFreqPopup()"><label style="cursor:pointer; color:var(--primary);">Freq 🔍</label><div id="statFreq" style="font-weight:700; color:var(--dark);">0</div></div>
+                <div class="stat-card-interactive" onclick="openFreqPopup()"><label style="cursor:pointer; color:var(--primary);">Freq ð</label><div id="statFreq" style="font-weight:700; color:var(--dark);">0</div></div>
             </div>
             <button class="btn-submit" style="background:#64748b; margin-top:20px;" onclick="closeAnalysis()">Back to History</button>
         </div>
@@ -476,7 +477,7 @@
         <div class="modal-card">
             <h3 style="margin-top:0; border-bottom: 2px solid var(--dark); padding-bottom: 8px; color: var(--dark);">Expense Details</h3>
             <div id="detailContent"></div>
-            <button class="btn-submit" id="printReceiptBtn" style="margin-top:15px; background:var(--primary);">🖨️ Print Receipt Logs</button>
+            <button class="btn-submit" id="printReceiptBtn" style="margin-top:15px; background:var(--primary);">ð¨ï¸ Print Receipt Logs</button>
             <button class="btn-submit" id="detailTrendsBtn" style="margin-top:10px;">View Trends & Advice</button>
             <button class="btn-submit" style="background:#64748b; margin-top:10px;" onclick="closeModal('detailModal')">Close</button>
         </div>
@@ -541,142 +542,141 @@
     <div id="printArea"></div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getFirebaseApp } from "./ag-firebase.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
         import { getDatabase, ref, onValue, update, remove } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
-        const app = initializeApp({ databaseURL: "https://assetguard-c8c8c-default-rtdb.firebaseio.com" });
+        const app = getFirebaseApp();
+        const auth = getAuth(app);
         const db = getDatabase(app);
-        const currentUID = localStorage.getItem("ag_active_uid") || "global_user";
-        const cloudPath = `users/${currentUID}/expenses`;
+        let currentUID = null;
+        let cloudPath = null;
+        let idbRequest = null;
+        let stopCloudListener = null;
 
         let ledgerCache = {};
         let pendingDeleteId = null;
         let drillChart = null;
         let activeAnalysisId = null;
 
-        // --- PER-USER OFFLINE STORAGE (IndexedDB) ---
-        const idbRequest = indexedDB.open(`AssetGuard_Expenses_${currentUID}`, 1);
-        idbRequest.onupgradeneeded = e => e.target.result.createObjectStore("expenses", { keyPath: "id" });
+        // Browser storage is only an offline cache. Firebase is the durable source of truth.
+        const readAllLocalExpenses = () => new Promise((resolve, reject) => {
+            if (!idbRequest?.result) return resolve([]);
+            const request = idbRequest.result.transaction("expenses", "readonly").objectStore("expenses").getAll();
+            request.onsuccess = () => resolve(request.result || []);
+            request.onerror = () => reject(request.error);
+        });
 
-        const localSaveSingle = (expense) => {
-            return new Promise((resolve) => {
-                if (!idbRequest.result) return resolve();
-                const tx = idbRequest.result.transaction("expenses", "readwrite");
-                const store = tx.objectStore("expenses");
-                store.put(expense);
-                tx.oncomplete = () => resolve();
-            });
-        };
+        const localSaveSingle = (expense) => new Promise((resolve, reject) => {
+            if (!idbRequest?.result) return reject(new Error("Expense cache is not ready."));
+            const tx = idbRequest.result.transaction("expenses", "readwrite");
+            tx.objectStore("expenses").put(expense);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error || new Error("Could not save the offline cache."));
+            tx.onabort = () => reject(tx.error || new Error("Offline cache write was aborted."));
+        });
 
-        const loadAndRenderLocal = () => {
-            return new Promise((resolve) => {
-                if (!idbRequest.result) return resolve();
-                const tx = idbRequest.result.transaction("expenses", "readonly");
-                tx.objectStore("expenses").getAll().onsuccess = e => {
-                    const list = e.target.result;
-                    ledgerCache = {};
-                    list.forEach(item => {
-                        ledgerCache[item.id] = item;
-                    });
-                    renderTable();
-                    resolve();
-                };
-            });
+        const loadAndRenderLocal = async () => {
+            const list = await readAllLocalExpenses();
+            ledgerCache = {};
+            list.forEach(item => { ledgerCache[item.id] = item; });
+            renderTable();
         };
 
         async function syncUnsyncedExpenses() {
-            if (!idbRequest.result) return;
+            if (!idbRequest?.result || !currentUID || !cloudPath) return;
+            const allItems = await readAllLocalExpenses();
+            const unsynced = allItems.filter(item => item.synced === false && !item.deleted);
+            const toDelete = allItems.filter(item => item.deleted === true);
 
-            const tx = idbRequest.result.transaction("expenses", "readonly");
-            tx.objectStore("expenses").getAll().onsuccess = async (e) => {
-                const allItems = e.target.result;
-                const unsynced = allItems.filter(item => item.synced === false && !item.deleted);
-                const toDelete = allItems.filter(item => item.deleted === true);
+            for (const item of unsynced) {
+                try {
+                    await update(ref(db, cloudPath + "/" + item.id), {
+                        id: item.id, expense_date: item.expense_date, expense_name: item.expense_name,
+                        category: item.category, amount: item.amount, payment_method: item.payment_method,
+                        mpesa_ref: item.mpesa_ref, bank_ref: item.bank_ref, creditor_name: item.creditor_name,
+                        debtor_phone: item.debtor_phone, debt_reason: item.debt_reason,
+                        interest_rate: item.interest_rate, timestamp: item.timestamp
+                    });
+                    item.synced = true;
+                    await localSaveSingle(item);
+                } catch (err) {
+                    console.error("Expense cloud sync failed:", item.id, err);
+                }
+            }
 
-                for (const item of unsynced) {
-                    try {
-                        await update(ref(db, `${cloudPath}/${item.id}`), {
-                            id: item.id,
-                            expense_name: item.expense_name,
-                            category: item.category,
-                            amount: item.amount,
-                            expense_date: item.expense_date,
-                            payment_method: item.payment_method,
-                            mpesa_ref: item.mpesa_ref,
-                            bank_ref: item.bank_ref,
-                            creditor_name: item.creditor_name,
-                            debtor_phone: item.debtor_phone,
-                            debt_reason: item.debt_reason,
-                            interest_rate: item.interest_rate,
-                            timestamp: item.timestamp
+            for (const item of toDelete) {
+                try {
+                    await remove(ref(db, cloudPath + "/" + item.id));
+                    const tx = idbRequest.result.transaction("expenses", "readwrite");
+                    tx.objectStore("expenses").delete(item.id);
+                } catch (err) {
+                    console.error("Expense delete sync failed:", item.id, err);
+                }
+            }
+            await loadAndRenderLocal();
+            const pending = await readAllLocalExpenses();
+            if (pending.some(item => item.synced === false && !item.deleted)) {
+                showToast("Some expenses are only stored in this browser. Connect to sync before clearing browser data.");
+            }
+        }
+
+        function startUserStorage(user) {
+            if (!user?.uid || (currentUID === user.uid && idbRequest)) return;
+            if (stopCloudListener) stopCloudListener();
+            currentUID = user.uid;
+            cloudPath = "users/" + user.uid + "/expenses";
+            idbRequest = indexedDB.open("AssetGuard_Expenses_" + user.uid, 1);
+            idbRequest.onupgradeneeded = event => event.target.result.createObjectStore("expenses", { keyPath: "id" });
+            idbRequest.onerror = event => {
+                console.error("Expense database could not be opened:", event.target.error);
+                showToast("Expense storage is unavailable. Do not close this page until it is fixed.");
+            };
+            idbRequest.onsuccess = async () => {
+                try {
+                    await loadAndRenderLocal();
+                    await syncUnsyncedExpenses();
+                    stopCloudListener = onValue(ref(db, cloudPath), async snapshot => {
+                        const serverData = snapshot.val() || {};
+                        const localList = await readAllLocalExpenses();
+                        const unsyncedItems = localList.filter(item => item.synced === false && !item.deleted);
+                        const deletedItems = localList.filter(item => item.deleted === true);
+                        const tx = idbRequest.result.transaction("expenses", "readwrite");
+                        const store = tx.objectStore("expenses");
+                        store.clear();
+                        Object.entries(serverData).forEach(([id, value]) => {
+                            if (!deletedItems.some(item => item.id === id)) store.put({ id, ...value, synced: true, deleted: false });
                         });
-                        item.synced = true;
-                        await localSaveSingle(item);
-                    } catch (err) {
-                        console.log("Sync skipped/failed for expense ID: ", item.id, err);
-                    }
-                }
-
-                for (const item of toDelete) {
-                    try {
-                        await remove(ref(db, `${cloudPath}/${item.id}`));
-                        if (idbRequest.result) {
-                            const delTx = idbRequest.result.transaction("expenses", "readwrite");
-                            delTx.objectStore("expenses").delete(item.id);
-                        }
-                    } catch (err) {
-                        console.log("Sync delete failed for expense ID: ", item.id, err);
-                    }
-                }
-
-                if (unsynced.length > 0 || toDelete.length > 0) {
-                    loadAndRenderLocal();
+                        unsyncedItems.forEach(item => store.put(item));
+                        deletedItems.forEach(item => store.put(item));
+                        tx.oncomplete = () => loadAndRenderLocal();
+                        tx.onerror = () => console.error("Could not refresh the local expense cache:", tx.error);
+                    }, error => {
+                        console.error("Firebase expense sync failed:", error);
+                        showToast("Cloud sync failed. Keep this browser data until expenses are backed up.");
+                    });
+                } catch (error) {
+                    console.error("Expense storage initialization failed:", error);
+                    showToast("Could not load expenses. Please retry before adding records.");
                 }
             };
         }
 
-        idbRequest.onsuccess = () => {
-            loadAndRenderLocal();
-            syncUnsyncedExpenses();
-
-            onValue(ref(db, cloudPath), (snap) => {
-                const serverData = snap.val() || {};
-                if (!idbRequest.result) return;
-
-                const tx = idbRequest.result.transaction("expenses", "readwrite");
-                const store = tx.objectStore("expenses");
-
-                store.getAll().onsuccess = (e) => {
-                    const localList = e.target.result;
-                    const unsyncedItems = localList.filter(item => item.synced === false);
-                    const deletedItems = localList.filter(item => item.deleted === true);
-
-                    const clearTx = idbRequest.result.transaction("expenses", "readwrite");
-                    const clearStore = clearTx.objectStore("expenses");
-                    clearStore.clear();
-
-                    Object.entries(serverData).forEach(([id, val]) => {
-                        if (!deletedItems.some(di => di.id === id)) {
-                            clearStore.put({ id, ...val, synced: true, deleted: false });
-                        }
-                    });
-
-                    unsyncedItems.forEach(item => {
-                        clearStore.put(item);
-                    });
-
-                    deletedItems.forEach(item => {
-                        clearStore.put(item);
-                    });
-
-                    clearTx.oncomplete = () => {
-                        loadAndRenderLocal();
-                    };
-                };
-            });
-        };
-
-        window.showToast = () => { const t = document.getElementById('toast'); t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2000); };
+        onAuthStateChanged(auth, user => {
+            if (!user) {
+                if (stopCloudListener) stopCloudListener();
+                stopCloudListener = null;
+                currentUID = null;
+                cloudPath = null;
+                idbRequest = null;
+                return;
+            }
+            startUserStorage(user);
+        }, error => {
+            console.error("Expense authentication check failed:", error);
+            showToast("Sign-in could not be verified. Expenses were not loaded.");
+        });
+        window.showToast = (message = 'Expense saved to cloud.') => { const t = document.getElementById('toast'); t.innerText = message; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 5000); };
         
         window.toggleView = () => {
             const isEntryActive = document.getElementById('view-entry').classList.contains('active');
@@ -773,22 +773,22 @@
                 badge.style.background = '#f1f5f9';
                 badge.style.color = '#475569';
                 badge.style.border = '1px solid #cbd5e1';
-                badge.innerHTML = `⚖️ TRUST METRIC: New Number Lookup<br><span style="font-weight:500; color:#64748b;">No active exposure matches found for number ${queryPhone}. Clean internal record.</span>`;
+                badge.innerHTML = `âï¸ TRUST METRIC: New Number Lookup<br><span style="font-weight:500; color:#64748b;">No active exposure matches found for number ${queryPhone}. Clean internal record.</span>`;
             } else if (totalDebt <= 15000) {
                 badge.style.background = '#f0fdf4';
                 badge.style.color = '#166534';
                 badge.style.border = '1px solid #bbf7d0';
-                badge.innerHTML = `🟢 TRUST METRIC: Low Local Risk (${debtCount} Active Logs)<br><span style="font-weight:500; color:#15803d;">Active phone ledger exposure: KES ${totalDebt.toLocaleString()}. Normal bounds.</span>`;
+                badge.innerHTML = `ð¢ TRUST METRIC: Low Local Risk (${debtCount} Active Logs)<br><span style="font-weight:500; color:#15803d;">Active phone ledger exposure: KES ${totalDebt.toLocaleString()}. Normal bounds.</span>`;
             } else if (totalDebt <= 50000) {
                 badge.style.background = '#fffbeb';
                 badge.style.color = '#92400e';
                 badge.style.border = '1px solid #fde68a';
-                badge.innerHTML = `🟡 TRUST METRIC: Moderate Risk Exposure<br><span style="font-weight:500; color:#b45309;">Total risk pool for this number: KES ${totalDebt.toLocaleString()}. Exercise budgeting care.</span>`;
+                badge.innerHTML = `ð¡ TRUST METRIC: Moderate Risk Exposure<br><span style="font-weight:500; color:#b45309;">Total risk pool for this number: KES ${totalDebt.toLocaleString()}. Exercise budgeting care.</span>`;
             } else {
                 badge.style.background = '#fef2f2';
                 badge.style.color = '#991b1b';
                 badge.style.border = '1px solid #fecaca';
-                badge.innerHTML = `🔴 TRUST METRIC: RECORD EXPOSURE ALERT<br><span style="font-weight:500; color:#b91c1c;">Risk ceiling threshold broken! Total Due KES ${totalDebt.toLocaleString()} across ${debtCount} logs.</span>`;
+                badge.innerHTML = `ð´ TRUST METRIC: RECORD EXPOSURE ALERT<br><span style="font-weight:500; color:#b91c1c;">Risk ceiling threshold broken! Total Due KES ${totalDebt.toLocaleString()} across ${debtCount} logs.</span>`;
             }
         };
 
@@ -951,6 +951,10 @@
 
         document.getElementById('expenseForm').onsubmit = async (e) => {
             e.preventDefault();
+            if (!currentUID || !idbRequest?.result) {
+                showToast("Sign in and wait for expense storage before saving.");
+                return;
+            }
             const id = document.getElementById('editId').value || `exp_${Date.now()}`;
             const entry = {
                 id,
@@ -972,16 +976,13 @@
 
             await localSaveSingle(entry);
             await loadAndRenderLocal();
-            
             document.getElementById('expenseForm').reset();
             document.getElementById('payment_extra_container').style.display = 'none';
             const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             document.getElementById('expense_date').value = now.toISOString().slice(0, 16);
-            
-            showToast();
-            
+
             try {
-                await update(ref(db, `${cloudPath}/${id}`), {
+                await update(ref(db, cloudPath + "/" + id), {
                     id: entry.id,
                     expense_name: entry.expense_name,
                     category: entry.category,
@@ -999,8 +1000,10 @@
                 entry.synced = true;
                 await localSaveSingle(entry);
                 await loadAndRenderLocal();
+                showToast("Expense saved to your cloud account.");
             } catch(err) {
-                console.log("Offline: Expense saved locally. Will sync when connection is restored.");
+                console.error("Expense is waiting for cloud sync:", err);
+                showToast("Saved on this device only. Reconnect and sync before clearing browser data.");
             }
         };
 
@@ -1022,12 +1025,12 @@
                     total += parseFloat(item.amount || 0);
                     body.innerHTML += `<tr>
                         <td class="date-cell" onclick="openDetail('${key}')" style="cursor:pointer;">${d}</td>
-                        <td class="item-cell" onclick="openDetail('${key}')" style="cursor:pointer;">${item.expense_name}<br><small style="font-weight:400; color:#94a3b8;">${item.category} • ${item.payment_method || 'Cash'}</small></td>
+                        <td class="item-cell" onclick="openDetail('${key}')" style="cursor:pointer;">${item.expense_name}<br><small style="font-weight:400; color:#94a3b8;">${item.category} â¢ ${item.payment_method || 'Cash'}</small></td>
                         <td style="text-align:right; cursor:pointer; font-weight:700; color:var(--primary);" onclick="openDetail('${key}')">KES ${parseFloat(item.amount).toLocaleString()}</td>
                         <td class="admin-actions">
-                            <button class="btn-action" onclick="openAnalysis('${key}')">📊</button>
-                            <button class="btn-action" onclick="openEdit('${key}')">✏️</button>
-                            <button class="btn-action" onclick="promptDelete('${key}')">🗑️</button>
+                            <button class="btn-action" onclick="openAnalysis('${key}')">ð</button>
+                            <button class="btn-action" onclick="openEdit('${key}')">âï¸</button>
+                            <button class="btn-action" onclick="promptDelete('${key}')">ðï¸</button>
                         </td>
                     </tr>`;
                 }
@@ -1190,7 +1193,7 @@
                     <div class="freq-item-row ${methodClass} ${isSelected}" onclick="switchContext('${m.id}')">
                         <div>
                             <div style="font-weight:700; font-size:14px; color:var(--dark);">${m.expense_name}</div>
-                            <div style="font-size:11px; color:#64748b; margin-top:2px;">${cleanDate} • ${m.payment_method || 'Cash'}</div>
+                            <div style="font-size:11px; color:#64748b; margin-top:2px;">${cleanDate} â¢ ${m.payment_method || 'Cash'}</div>
                         </div>
                         <div style="font-weight:800; font-size:14px; color:var(--primary);">
                             KES ${parseFloat(m.amount).toLocaleString()}
