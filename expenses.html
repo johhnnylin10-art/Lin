@@ -29,7 +29,7 @@
         .brand span { color: var(--primary); }
         .view-container { display: none; padding: 20px 15px; max-width: 800px; margin: 0 auto; box-sizing: border-box; }
         .view-container.active { display: block; }
-        .toggle-btn { background: var(--dark); color: white; padding: 10px 16px; border-radius: 10px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; text-transform: uppercase; transition: 0.3s; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+        .toggle-btn { background: var(--dark); color: white; padding: 10px 16px; border-radius: 10px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; text-transform: uppercase; transition: 0.3s; }
         .toggle-btn:hover { background: var(--primary); }
 
         /* Cards */
@@ -301,7 +301,7 @@
 
     <div class="navbar">
         <div class="brand">AssetGuard <span>Expense Terminal</span></div>
-        <a id="toggleViewBtn" class="toggle-btn" href="expenses_history.html">History Ledger</a>
+        <button id="toggleViewBtn" class="toggle-btn" onclick="toggleView()">History Ledger</button>
     </div>
 
     <!-- ENTRY VIEW + DARK/BLUISH/ORANGE GRAPH & TEMPLATE BLOCKS -->
@@ -405,7 +405,7 @@
             <div class="template-blocks-grid">
                 <div class="template-card">
                     <div class="template-card-top">
-                        <div class="template-icon">💡</div>
+                        <div class="template-icon">ð¡</div>
                         <span class="template-tag">Auditing</span>
                     </div>
                     <h5>Smart Trust Metrics</h5>
@@ -414,12 +414,34 @@
 
                 <div class="template-card">
                     <div class="template-card-top">
-                        <div class="template-icon">🛡️</div>
+                        <div class="template-icon">ð¡ï¸</div>
                         <span class="template-tag">Resilience</span>
                     </div>
                     <h5>Offline IndexedDB</h5>
                     <p>Complete multi-tier cache synchronization with auto-background Firebase upload upon connection recovery.</p>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HISTORY VIEW -->
+    <div id="view-history" class="view-container">
+        <div class="security-bar" id="lockBar">
+            <span style="color:white; font-size:11px; font-weight:800;" id="lockLabel">LOCKED ADMIN</span>
+            <input type="password" id="masterPin" class="pin-input" maxlength="4" placeholder="PIN" oninput="handleSecurity()">
+        </div>
+        <div class="ledger-card">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                <input type="text" id="searchInput" placeholder="Search expense or category..." oninput="renderTable()">
+                <input type="date" id="dateFilter" oninput="renderTable()">
+            </div>
+            <table>
+                <thead><tr><th>Date</th><th>Item</th><th style="text-align:right">Amt</th><th class="admin-actions"></th></tr></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+            <div class="total-box" id="totalDisplay">
+                <span style="font-size: 11px; opacity: 0.8; text-transform: uppercase;">Total Outflow</span>
+                <span id="totalDisplayVal">KES 0.00</span>
             </div>
         </div>
     </div>
@@ -432,9 +454,9 @@
             <div id="financialAdviceContainer"></div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
                 <div style="background:#f1f5f9; padding:15px; border-radius:10px; text-align:center;"><label>Avg Cost</label><div id="statAvg" style="font-weight:700; color:var(--dark);">0</div></div>
-                <div class="stat-card-interactive" onclick="openFreqPopup()"><label style="cursor:pointer; color:var(--primary);">Freq 🔍</label><div id="statFreq" style="font-weight:700; color:var(--dark);">0</div></div>
+                <div class="stat-card-interactive" onclick="openFreqPopup()"><label style="cursor:pointer; color:var(--primary);">Freq ð</label><div id="statFreq" style="font-weight:700; color:var(--dark);">0</div></div>
             </div>
-            <a class="btn-submit" style="background:#64748b; margin-top:20px; text-align:center; text-decoration:none; display:block; box-sizing:border-box;" href="expenses_history.html">Back to History</a>
+            <button class="btn-submit" style="background:#64748b; margin-top:20px;" onclick="closeAnalysis()">Back to History</button>
         </div>
     </div>
 
@@ -455,7 +477,7 @@
         <div class="modal-card">
             <h3 style="margin-top:0; border-bottom: 2px solid var(--dark); padding-bottom: 8px; color: var(--dark);">Expense Details</h3>
             <div id="detailContent"></div>
-            <button class="btn-submit" id="printReceiptBtn" style="margin-top:15px; background:var(--primary);">🖨️ Print Receipt Logs</button>
+            <button class="btn-submit" id="printReceiptBtn" style="margin-top:15px; background:var(--primary);">ð¨ï¸ Print Receipt Logs</button>
             <button class="btn-submit" id="detailTrendsBtn" style="margin-top:10px;">View Trends & Advice</button>
             <button class="btn-submit" style="background:#64748b; margin-top:10px;" onclick="closeModal('detailModal')">Close</button>
         </div>
@@ -558,6 +580,7 @@
             const list = await readAllLocalExpenses();
             ledgerCache = {};
             list.forEach(item => { ledgerCache[item.id] = item; });
+            renderTable();
         };
 
         async function syncUnsyncedExpenses() {
@@ -654,6 +677,20 @@
             showToast("Sign-in could not be verified. Expenses were not loaded.");
         });
         window.showToast = (message = 'Expense saved to cloud.') => { const t = document.getElementById('toast'); t.innerText = message; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 5000); };
+        
+        window.toggleView = () => {
+            const isEntryActive = document.getElementById('view-entry').classList.contains('active');
+            document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+            
+            if (isEntryActive) {
+                document.getElementById('view-history').classList.add('active');
+                document.getElementById('toggleViewBtn').innerText = "New Expense";
+            } else {
+                document.getElementById('view-entry').classList.add('active');
+                document.getElementById('toggleViewBtn').innerText = "History Ledger";
+            }
+            renderTable();
+        };
 
         window.calculateTotalPayable = (isEdit = false) => {
             const prefix = isEdit ? 'edit_' : '';
@@ -736,23 +773,180 @@
                 badge.style.background = '#f1f5f9';
                 badge.style.color = '#475569';
                 badge.style.border = '1px solid #cbd5e1';
-                badge.innerHTML = `⚖️ TRUST METRIC: New Number Lookup<br><span style="font-weight:500; color:#64748b;">No active exposure matches found for number ${queryPhone}. Clean internal record.</span>`;
+                badge.innerHTML = `âï¸ TRUST METRIC: New Number Lookup<br><span style="font-weight:500; color:#64748b;">No active exposure matches found for number ${queryPhone}. Clean internal record.</span>`;
             } else if (totalDebt <= 15000) {
                 badge.style.background = '#f0fdf4';
                 badge.style.color = '#166534';
                 badge.style.border = '1px solid #bbf7d0';
-                badge.innerHTML = `🟢 TRUST METRIC: Low Local Risk (${debtCount} Active Logs)<br><span style="font-weight:500; color:#15803d;">Active phone ledger exposure: KES ${totalDebt.toLocaleString()}. Normal bounds.</span>`;
+                badge.innerHTML = `ð¢ TRUST METRIC: Low Local Risk (${debtCount} Active Logs)<br><span style="font-weight:500; color:#15803d;">Active phone ledger exposure: KES ${totalDebt.toLocaleString()}. Normal bounds.</span>`;
             } else if (totalDebt <= 50000) {
                 badge.style.background = '#fffbeb';
                 badge.style.color = '#92400e';
                 badge.style.border = '1px solid #fde68a';
-                badge.innerHTML = `🟡 TRUST METRIC: Moderate Risk Exposure<br><span style="font-weight:500; color:#b45309;">Total risk pool for this number: KES ${totalDebt.toLocaleString()}. Exercise budgeting care.</span>`;
+                badge.innerHTML = `ð¡ TRUST METRIC: Moderate Risk Exposure<br><span style="font-weight:500; color:#b45309;">Total risk pool for this number: KES ${totalDebt.toLocaleString()}. Exercise budgeting care.</span>`;
             } else {
                 badge.style.background = '#fef2f2';
                 badge.style.color = '#991b1b';
                 badge.style.border = '1px solid #fecaca';
-                badge.innerHTML = `🔴 TRUST METRIC: RECORD EXPOSURE ALERT<br><span style="font-weight:500; color:#b91c1c;">Risk ceiling threshold broken! Total Due KES ${totalDebt.toLocaleString()} across ${debtCount} logs.</span>`;
+                badge.innerHTML = `ð´ TRUST METRIC: RECORD EXPOSURE ALERT<br><span style="font-weight:500; color:#b91c1c;">Risk ceiling threshold broken! Total Due KES ${totalDebt.toLocaleString()} across ${debtCount} logs.</span>`;
             }
+        };
+
+        window.printReceipt = (id) => {
+            const item = ledgerCache[id];
+            if (!item) return;
+
+            const printArea = document.getElementById('printArea');
+            const cleanDate = new Date(item.expense_date).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).replace(',', '');
+            const principal = parseFloat(item.amount || 0);
+
+            let receiptHTML = '';
+
+            if (item.payment_method === 'Debt') {
+                const rate = parseFloat(item.interest_rate || 0);
+                const calculatedProfit = principal * (rate / 100);
+                const finalPayable = principal + calculatedProfit;
+                
+                receiptHTML = `
+                <div class="modern-receipt">
+                    <div class="modern-header">
+                        <div class="modern-brand">
+                            <h1>ASSETGUARD PRO</h1>
+                            <p>Internal Ledger & Fund Disbursement</p>
+                            <p>Nakuru, Kenya</p>
+                        </div>
+                        <div class="modern-details">
+                            <h2>DEBTOR RECEIPT</h2>
+                            <div style="font-size: 13px;">
+                                <strong>Receipt No:</strong> #${item.id.substring(4, 12).toUpperCase()}<br>
+                                <strong>Date Issued:</strong> ${cleanDate}<br>
+                            </div>
+                            <div class="modern-badge badge-debt">Outstanding Balance</div>
+                        </div>
+                    </div>
+                    <div class="modern-grid">
+                        <div class="modern-box">
+                            <div class="modern-box-title">Creditor / Issuer</div>
+                            <div class="modern-box-name">AssetGuard Ledger</div>
+                            <div class="modern-box-info">Authorized System Agent</div>
+                        </div>
+                        <div class="modern-box">
+                            <div class="modern-box-title">Debtor / Borrower</div>
+                            <div class="modern-box-name">${item.creditor_name || 'N/A'}</div>
+                            <div class="modern-box-info">
+                                Phone: ${item.debtor_phone || 'N/A'}<br>
+                                Risk Assessment: Logged
+                            </div>
+                        </div>
+                    </div>
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Description & Reason</th>
+                                <th class="right">Rate</th>
+                                <th class="right">Principal (KES)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <span class="modern-desc">${item.expense_name}</span>
+                                    <span class="modern-sub">Category: ${item.category}</span>
+                                    <span class="modern-sub">Reason: ${item.debt_reason || 'Capital Advance'}</span>
+                                </td>
+                                <td class="right">${rate}%</td>
+                                <td class="right" style="font-weight: 600;">${principal.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="modern-summary">
+                        <div class="modern-summary-box">
+                            <div class="modern-summary-row"><span>Principal Amount:</span><span>${principal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
+                            <div class="modern-summary-row"><span>Interest Applied:</span><span>${calculatedProfit.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
+                            <div class="modern-summary-row total"><span>Total Payable:</span><span>KES ${finalPayable.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
+                        </div>
+                    </div>
+                    <div class="modern-terms debt-terms">
+                        <strong>Terms & Conditions of Debt:</strong><br>
+                        By signing below, the Debtor acknowledges receipt of the Principal Amount and agrees to repay the Total Payable. Failure to settle the balance may result in penalties. Document verified by AssetGuard Offline Engine.
+                    </div>
+                    <div class="modern-sigs">
+                        <div><div class="modern-sig-line"></div><div class="modern-sig-label">Creditor Signature</div></div>
+                        <div><div class="modern-sig-line"></div><div class="modern-sig-label">Debtor Acknowledgment</div></div>
+                    </div>
+                    <div class="modern-footer">Legally binding record of debt. ID: ${item.id}</div>
+                </div>`;
+            } else {
+                let refText = "";
+                if (item.payment_method === 'Mpesa') refText = `<span class="modern-sub">M-Pesa Ref: ${item.mpesa_ref || 'N/A'}</span>`;
+                if (item.payment_method === 'Bank') refText = `<span class="modern-sub">Bank Ref: ${item.bank_ref || 'N/A'}</span>`;
+
+                receiptHTML = `
+                <div class="modern-receipt">
+                    <div class="modern-header">
+                        <div class="modern-brand">
+                            <h1>ASSETGUARD PRO</h1>
+                            <p>Expense & Reimbursement Tracker</p>
+                            <p>Nakuru, Kenya</p>
+                        </div>
+                        <div class="modern-details">
+                            <h2>EXPENSE VOUCHER</h2>
+                            <div style="font-size: 13px;">
+                                <strong>Voucher No:</strong> #${item.id.substring(4, 12).toUpperCase()}<br>
+                                <strong>Date Filed:</strong> ${cleanDate}<br>
+                            </div>
+                            <div class="modern-badge badge-paid">Approved & Paid</div>
+                        </div>
+                    </div>
+                    <div class="modern-grid">
+                        <div class="modern-box">
+                            <div class="modern-box-title">Billed To / Company</div>
+                            <div class="modern-box-name">AssetGuard Operations</div>
+                            <div class="modern-box-info">Account: Main Operating Fund</div>
+                        </div>
+                        <div class="modern-box">
+                            <div class="modern-box-title">Claimant / Payee</div>
+                            <div class="modern-box-name">Internal Expense</div>
+                            <div class="modern-box-info">Payment Method: ${item.payment_method || 'Cash'}</div>
+                        </div>
+                    </div>
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Category & Description</th>
+                                <th class="right">Amount (KES)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <span class="modern-desc">${item.expense_name}</span>
+                                    <span class="modern-sub">Category: ${item.category}</span>
+                                    ${refText}
+                                </td>
+                                <td class="right" style="font-weight: 600;">${principal.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="modern-summary">
+                        <div class="modern-summary-box">
+                            <div class="modern-summary-row total"><span>Net Reimbursement:</span><span>KES ${principal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
+                        </div>
+                    </div>
+                    <div class="modern-terms">
+                        <strong>Corporate Expense Policy Acknowledgment:</strong><br>
+                        By signing below, the claimant certifies that the expenses listed above were incurred on behalf of the company for official business purposes and comply with current expense policies.
+                    </div>
+                    <div class="modern-sigs">
+                        <div><div class="modern-sig-line"></div><div class="modern-sig-label">Claimant Signature</div></div>
+                        <div><div class="modern-sig-line"></div><div class="modern-sig-label">Approving Manager</div></div>
+                    </div>
+                    <div class="modern-footer">Internally generated financial voucher. ID: ${item.id}</div>
+                </div>`;
+            }
+
+            printArea.innerHTML = receiptHTML;
+            window.print();
         };
 
         document.getElementById('expenseForm').onsubmit = async (e) => {
@@ -811,6 +1005,103 @@
                 console.error("Expense is waiting for cloud sync:", err);
                 showToast("Saved on this device only. Reconnect and sync before clearing browser data.");
             }
+        };
+
+        window.renderTable = () => {
+            const body = document.getElementById('tableBody');
+            const searchField = document.getElementById('searchInput');
+            const search = searchField ? searchField.value.toLowerCase() : "";
+            const filterDate = document.getElementById('dateFilter').value;
+            let total = 0;
+            body.innerHTML = "";
+            const sortedKeys = Object.keys(ledgerCache).sort((a,b) => (ledgerCache[b].timestamp || 0) - (ledgerCache[a].timestamp || 0));
+            
+            sortedKeys.forEach(key => {
+                const item = ledgerCache[key];
+                if (!item || item.deleted) return;
+                const d = new Date(item.expense_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
+                
+                if((item.expense_name.toLowerCase().includes(search) || item.category.toLowerCase().includes(search)) && (!filterDate || item.expense_date.includes(filterDate))) {
+                    total += parseFloat(item.amount || 0);
+                    body.innerHTML += `<tr>
+                        <td class="date-cell" onclick="openDetail('${key}')" style="cursor:pointer;">${d}</td>
+                        <td class="item-cell" onclick="openDetail('${key}')" style="cursor:pointer;">${item.expense_name}<br><small style="font-weight:400; color:#94a3b8;">${item.category} â¢ ${item.payment_method || 'Cash'}</small></td>
+                        <td style="text-align:right; cursor:pointer; font-weight:700; color:var(--primary);" onclick="openDetail('${key}')">KES ${parseFloat(item.amount).toLocaleString()}</td>
+                        <td class="admin-actions">
+                            <button class="btn-action" onclick="openAnalysis('${key}')">ð</button>
+                            <button class="btn-action" onclick="openEdit('${key}')">âï¸</button>
+                            <button class="btn-action" onclick="promptDelete('${key}')">ðï¸</button>
+                        </td>
+                    </tr>`;
+                }
+            });
+            const totalValEl = document.getElementById('totalDisplayVal');
+            if(totalValEl) totalValEl.innerText = `KES ${total.toLocaleString()}`;
+        };
+
+        window.openDetail = (id) => {
+            const item = ledgerCache[id];
+            if (!item) return;
+            
+            let rows = [
+                { label: "Date & Time", val: new Date(item.expense_date).toLocaleString('en-GB').replace(',', '') },
+                { label: "Item Name", val: item.expense_name },
+                { label: "Category", val: item.category },
+                { label: "Payment Method", val: item.payment_method || 'Cash' }
+            ];
+
+            if (item.payment_method === 'Mpesa') rows.push({ label: "M-Pesa Ref", val: item.mpesa_ref || "None" });
+            if (item.payment_method === 'Bank') rows.push({ label: "Bank Ref", val: item.bank_ref || "None" });
+            if (item.payment_method === 'Debt') {
+                const p = parseFloat(item.amount || 0);
+                const r = parseFloat(item.interest_rate || 0);
+                const tot = p + (p * (r / 100));
+                rows.push({ label: "Debtor Name", val: item.creditor_name || "None" });
+                rows.push({ label: "Debtor Phone", val: item.debtor_phone || "None" });
+                rows.push({ label: "Reason", val: item.debt_reason || "None" });
+                rows.push({ label: "Interest Rate", val: `${r}%` });
+                rows.push({ label: "Total Payable Balance", val: `KES ${tot.toLocaleString()}` });
+            } else {
+                rows.push({ label: "Amount", val: `KES ${parseFloat(item.amount).toLocaleString()}` });
+            }
+
+            document.getElementById('detailContent').innerHTML = rows.map(r => `
+                <div class="detail-row">
+                    <div class="detail-label">${r.label}</div>
+                    <div class="detail-value">${r.val}</div>
+                </div>
+            `).join('');
+
+            document.getElementById('printReceiptBtn').onclick = () => {
+                printReceipt(id);
+            };
+
+            document.getElementById('detailTrendsBtn').onclick = () => {
+                closeModal('detailModal');
+                openAnalysis(id);
+            };
+
+            document.getElementById('detailModal').style.display = 'flex';
+        };
+
+        window.generateSpecificAdvice = (item, matches) => {
+            const container = document.getElementById('financialAdviceContainer');
+            const avg = matches.reduce((acc, curr) => acc + parseFloat(curr.amount), 0) / matches.length;
+            const deviation = ((item.amount - avg) / avg) * 100;
+            let insight = "";
+
+            if (item.payment_method === 'Debt') {
+                const r = parseFloat(item.interest_rate || 0);
+                insight = `<strong>Liability Analysis:</strong> This profile tracks phone metric verification entries. Interest yield is set at ${r}%, tracking local margin changes inside your cache pool logs automatically.`;
+            } else if (item.payment_method === 'Mpesa') {
+                insight = `<strong>Liquidity Check:</strong> This M-Pesa transaction is ${deviation > 0 ? 'above' : 'below'} your category average by ${Math.abs(deviation).toFixed(1)}%. Monitor your M-Pesa burn rate to ensure operational capital isn't depleted prematurely.`;
+            } else if (item.payment_method === 'Bank') {
+                insight = `<strong>Capital Allocation:</strong> Bank reference validation confirms this outflow. At KES ${parseFloat(item.amount).toLocaleString()}, it is ${deviation > 5 ? 'significantly higher' : 'within normal variance'} for your '${item.category}' category.`;
+            } else {
+                insight = `<strong>Operational Review:</strong> Cash expense detected. Without digital traceability, ensure this transaction is balanced against your petty cash reserves to prevent variance in your monthly reconciliation.`;
+            }
+            
+            container.innerHTML = `<div class="insight-card">${insight}</div>`;
         };
 
         window.openAnalysis = (id) => {
@@ -880,6 +1171,7 @@
             
             document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
             document.getElementById('view-analysis').classList.add('active');
+            document.getElementById('toggleViewBtn').innerText = "New Expense";
         };
 
         window.openFreqPopup = () => {
@@ -901,7 +1193,7 @@
                     <div class="freq-item-row ${methodClass} ${isSelected}" onclick="switchContext('${m.id}')">
                         <div>
                             <div style="font-weight:700; font-size:14px; color:var(--dark);">${m.expense_name}</div>
-                            <div style="font-size:11px; color:#64748b; margin-top:2px;">${cleanDate} • ${m.payment_method || 'Cash'}</div>
+                            <div style="font-size:11px; color:#64748b; margin-top:2px;">${cleanDate} â¢ ${m.payment_method || 'Cash'}</div>
                         </div>
                         <div style="font-weight:800; font-size:14px; color:var(--primary);">
                             KES ${parseFloat(m.amount).toLocaleString()}
@@ -919,9 +1211,110 @@
         };
 
         window.closeAnalysis = () => {
-            window.location.href = "expenses_history.html";
+            document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-history').classList.add('active');
         };
 
+        window.openEdit = (id) => {
+            const item = ledgerCache[id];
+            document.getElementById('editId').value = id;
+            document.getElementById('edit_date').value = item.expense_date;
+            document.getElementById('edit_name').value = item.expense_name;
+            document.getElementById('edit_category').value = item.category;
+            document.getElementById('edit_amount').value = item.amount;
+            
+            document.getElementById('edit_payment_method').value = item.payment_method || 'Cash';
+            document.getElementById('edit_mpesa_ref').value = item.mpesa_ref || '';
+            document.getElementById('edit_bank_ref').value = item.bank_ref || '';
+            document.getElementById('edit_creditor_name').value = item.creditor_name || '';
+            document.getElementById('edit_debtor_phone').value = item.debtor_phone || '';
+            document.getElementById('edit_debt_reason').value = item.debt_reason || '';
+            document.getElementById('edit_interest_rate').value = item.interest_rate || '0';
+            
+            togglePaymentExtra(true);
+            calculateTotalPayable(true);
+            document.getElementById('editModal').style.display = 'flex';
+        };
+
+        window.confirmEdit = async () => {
+            const id = document.getElementById('editId').value;
+            const updated = { 
+                id, 
+                expense_date: document.getElementById('edit_date').value, 
+                expense_name: document.getElementById('edit_name').value, 
+                category: document.getElementById('edit_category').value, 
+                amount: document.getElementById('edit_amount').value,
+                payment_method: document.getElementById('edit_payment_method').value,
+                mpesa_ref: document.getElementById('edit_mpesa_ref').value,
+                bank_ref: document.getElementById('edit_bank_ref').value,
+                creditor_name: document.getElementById('edit_creditor_name').value,
+                debtor_phone: document.getElementById('edit_debtor_phone').value,
+                debt_reason: document.getElementById('edit_debt_reason').value,
+                interest_rate: document.getElementById('edit_interest_rate').value || "0",
+                timestamp: Date.now(),
+                synced: false,
+                deleted: false
+            };
+
+            await localSaveSingle(updated);
+            await loadAndRenderLocal();
+            document.getElementById('editModal').style.display = 'none';
+
+            try {
+                await update(ref(db, `${cloudPath}/${id}`), {
+                    id: updated.id,
+                    expense_date: updated.expense_date,
+                    expense_name: updated.expense_name,
+                    category: updated.category,
+                    amount: updated.amount,
+                    payment_method: updated.payment_method,
+                    mpesa_ref: updated.mpesa_ref,
+                    bank_ref: updated.bank_ref,
+                    creditor_name: updated.creditor_name,
+                    debtor_phone: updated.debtor_phone,
+                    debt_reason: updated.debt_reason,
+                    interest_rate: updated.interest_rate,
+                    timestamp: updated.timestamp
+                });
+                updated.synced = true;
+                await localSaveSingle(updated);
+                await loadAndRenderLocal();
+            } catch(err) {
+                console.log("Offline: Modification stored locally. Queue active.");
+            }
+        };
+
+        window.promptDelete = (id) => { pendingDeleteId = id; document.getElementById('deleteModal').style.display = 'flex'; };
+        
+        window.executeDelete = async () => {
+            const item = ledgerCache[pendingDeleteId];
+            if (!item) return;
+
+            item.deleted = true;
+            item.synced = false;
+            
+            await localSaveSingle(item);
+            await loadAndRenderLocal();
+            document.getElementById('deleteModal').style.display = 'none';
+
+            try {
+                await remove(ref(db, `${cloudPath}/${pendingDeleteId}`));
+                if (idbRequest.result) {
+                    const tx = idbRequest.result.transaction("expenses", "readwrite");
+                    tx.objectStore("expenses").delete(pendingDeleteId);
+                }
+            } catch (e) {
+                console.log("Offline: Local soft deletion logged. Synchronization pending online state.");
+            }
+        };
+
+        window.handleSecurity = () => {
+            const isUnlocked = (document.getElementById('masterPin').value === "0000" || document.getElementById('masterPin').value === "1234");
+            document.getElementById('mainBody').classList.toggle('unlocked', isUnlocked);
+            document.getElementById('lockLabel').innerText = isUnlocked ? "UNLOCKED" : "LOCKED ADMIN";
+            document.getElementById('lockBar').style.background = isUnlocked ? "var(--success)" : "var(--dark)";
+        };
+        
         window.closeModal = (id) => document.getElementById(id).style.display = 'none';
         
         const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
