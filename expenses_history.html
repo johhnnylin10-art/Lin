@@ -78,7 +78,7 @@
 
 <div class="modal-overlay" id="deleteModal">
     <div class="modal-card">
-        <div style="font-size: 40px; text-align: center; margin-bottom: 10px;">🗑️</div>
+        <div style="font-size: 40px; text-align: center; margin-bottom: 10px;">ðï¸</div>
         <h3>Delete Record?</h3>
         <p>This will remove the entry from the cloud database permanently.</p>
         <div class="modal-btns">
@@ -92,7 +92,7 @@
     <h2>Expense History</h2>
     <div class="security-bar" id="lockBar">
         <span style="color:white; font-size:11px; font-weight:800; letter-spacing: 0.5px;" id="lockLabel">LOCKED (ADMIN)</span>
-        <input type="password" id="masterPin" class="pin-input" maxlength="4" placeholder="••••" oninput="handleSecurity()">
+        <input type="password" id="masterPin" class="pin-input" maxlength="4" placeholder="â¢â¢â¢â¢" oninput="handleSecurity()">
     </div>
 
     <div class="card">
@@ -124,30 +124,37 @@
 </div>
 
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getFirebaseApp } from "./ag-firebase.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
     import { getDatabase, ref, onValue, remove, update } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
-    const db = getDatabase(initializeApp({ databaseURL: "https://assetguard-c8c8c-default-rtdb.firebaseio.com" }));
-
-    // Direct root path mapping identical to stock modules
-    const cloudPath = "expenses";
+    const app = getFirebaseApp();
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+    let cloudPath = null;
+    let stopCloudListener = null;
     let remoteDataMap = new Map();
     let activeId = null;
 
-    // --- DIRECT REAL-TIME CLOUD BINDING (Bypasses local cache wipe issues) ---
-    onValue(ref(db, cloudPath), (snap) => {
-        const cloudData = snap.val() || {};
-        remoteDataMap.clear();
-        
-        Object.entries(cloudData).forEach(([id, val]) => {
-            if (val && !val.deleted) {
-                remoteDataMap.set(id, { id, ...val });
-            }
+    // Read the same authenticated per-user Firebase node used by the entry screen.
+    onAuthStateChanged(auth, user => {
+        if (!user) return;
+        if (stopCloudListener) stopCloudListener();
+        cloudPath = "users/" + user.uid + "/expenses";
+        stopCloudListener = onValue(ref(db, cloudPath), (snap) => {
+            const cloudData = snap.val() || {};
+            remoteDataMap.clear();
+            Object.entries(cloudData).forEach(([id, val]) => {
+                if (val && !val.deleted) remoteDataMap.set(id, { id, ...val });
+            });
+            renderTable();
+        }, (error) => {
+            console.error("Firebase expense history sync error:", error);
+            document.getElementById('syncStatus').innerText = "CLOUD SYNC ERROR — sign in again or check your connection";
         });
-        
-        renderTable();
-    }, (error) => {
-        console.error("Firebase sync error:", error);
+    }, error => {
+        console.error("Expense history authentication check failed:", error);
+        document.getElementById('syncStatus').innerText = "SIGN-IN CHECK FAILED — expense history was not loaded";
     });
 
     window.handleSecurity = () => {
@@ -234,8 +241,8 @@
                         <td><span class="category-tag">${(item.category || 'N/A').substring(0,8)}</span></td>
                         <td class="amount-cell">${itemAmount.toLocaleString()}</td>
                         <td class="admin-actions">
-                            <button class="btn-action" onclick="openEdit('${item.id}')">✏️</button>
-                            <button class="btn-action" style="color:var(--danger)" onclick="openDelete('${item.id}')">🗑️</button>
+                            <button class="btn-action" onclick="openEdit('${item.id}')">âï¸</button>
+                            <button class="btn-action" style="color:var(--danger)" onclick="openDelete('${item.id}')">ðï¸</button>
                         </td>
                     </tr>`;
             }
