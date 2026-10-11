@@ -54,3 +54,25 @@ describe("realtime database rules", () => {
     expect(rules.support_tickets[".indexOn"]).toBe("uid");
   });
 });
+
+
+describe("expense cloud persistence", () => {
+  const entryPage = readFileSync(path.join(repoRoot, "expenses.html"), "utf8");
+  const historyPage = readFileSync(path.join(repoRoot, "expenses_history.html"), "utf8");
+
+  it("requires the shared Firebase auth guard on the expense entry page", () => {
+    expect(entryPage).toContain('<script type="module" src="auth-guard.js"></script>');
+  });
+
+  it("uses the signed-in user's cloud expense path on both screens", () => {
+    expect(entryPage).toContain('cloudPath = "users/" + user.uid + "/expenses"');
+    expect(historyPage).toContain('cloudPath = "users/" + user.uid + "/expenses"');
+    expect(historyPage).not.toContain('const cloudPath = "expenses"');
+  });
+
+  it("warns when a save is local-only and has not reached Firebase", () => {
+    expect(entryPage).toContain("Saved on this device only. Reconnect and sync before clearing browser data.");
+    expect(entryPage).toContain("Expense saved to your cloud account.");
+    expect(entryPage).toContain("Some expenses are only stored in this browser.");
+  });
+});
