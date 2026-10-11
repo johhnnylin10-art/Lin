@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="error-utils.js"></script>
+<script src="ag-utils.js"></script>
+<script src="ag-context-guard.js"></script>
+<script type="module" src="auth-guard.js"></script>
+    <meta charset="utf-8">
+    <title>Bank Audit Ledger - AssetGuard Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Courier+Prime:wght@700&display=swap" rel="stylesheet">
+    <style>
+        /* CSS remains exactly as your original professional styling */
+        :root { --bank: #004a99; --dark: #001A35; --bg: #f4f6f9; --error: #ef4444; --primary: #0072CE; --success: #10b981; --pending: #f59e0b; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 0; color: #1f2937; overflow-x: hidden; }
+        .sticky-nav { position: sticky; top: 0; z-index: 1000; background: var(--bank); color: white; padding: 12px 18px; border-bottom: 4px solid var(--primary); display: grid; grid-template-columns: 50px 1fr 1fr; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .menu-spacer { width: 50px; } 
+        .header-brand { text-align: center; }
+        .header-brand small { font-size: 8px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; font-weight: 700; display: block; line-height: 1; }
+        .header-brand span { font-size: 14px; font-weight: 800; letter-spacing: -0.5px; white-space: nowrap; }
+        .header-stats { text-align: right; }
+        .header-stats small { font-size: 7px; opacity: 0.8; font-weight: 800; text-transform: uppercase; display: block; }
+        .header-stats div { font-size: 17px; font-weight: 800; line-height: 1; color: #fff; }
+        .controls { padding: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: white; border-bottom: 1px solid #e2e8f0; }
+        select { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; font-family: inherit; font-size: 13px; font-weight: 700; background: #f8fafc; outline: none; appearance: none; text-align: center; color: var(--dark); }
+        .list-container { padding: 12px; padding-bottom: 100px; display: flex; flex-direction: column; gap: 10px; }
+        .audit-card { background: white; border-radius: 16px; padding: 16px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; position: relative; border-left: 6px solid var(--bank); }
+        .audit-card.is-pending { border-left-color: var(--pending); border-left-style: dashed; background: #fffcf5; }
+        .audit-info { flex: 1; min-width: 0; }
+        .audit-info b { font-size: 13px; color: var(--dark); display: block; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .audit-info code { font-family: 'Courier Prime', monospace; font-size: 10px; color: var(--primary); display: block; margin: 3px 0; font-weight: 700; }
+        .audit-amt { text-align: right; margin-right: 10px; }
+        .audit-amt span { font-size: 15px; font-weight: 800; color: var(--dark); display: block; }
+        .audit-amt small { font-size: 8px; color: var(--success); font-weight: 800; text-transform: uppercase; }
+        .btn-lock { background: #f1f5f9; border: none; width: 40px; height: 40px; border-radius: 12px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .modal { display:none; position:fixed; inset:0; background:rgba(0,26,53,0.9); backdrop-filter: blur(10px); z-index:2000; align-items:center; justify-content:center; padding:20px; }
+        .modal-box { background:white; width:100%; max-width:340px; border-radius:28px; padding:30px; box-sizing: border-box; text-align: center; animation: slideUp 0.3s cubic-bezier(0.2, 1, 0.3, 1); }
+        @keyframes slideUp { from { transform: translateY(40px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+        .pin-input { width: 100%; padding: 15px; border: 2px solid var(--bank); border-radius: 14px; text-align: center; font-size: 28px; letter-spacing: 12px; margin: 15px 0; outline: none; background: #f0f7ff; color: var(--bank); }
+        .edit-field { width: 100%; padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px; font-family: inherit; margin-bottom: 12px; font-weight: 600; outline: none; }
+        .btn-action { width: 100%; border: none; padding: 16px; border-radius: 14px; font-weight: 800; font-size: 13px; margin-top: 8px; cursor: pointer; transition: 0.2s; }
+        .btn-save { background: var(--bank); color: white; }
+        .btn-delete { background: #fff1f2; color: var(--error); }
+        .btn-cancel { background: #f1f5f9; color: #64748b; }
+        .btn-verify { background: var(--dark); color: white; }
+        .btn-danger { background: var(--error); color: white; }
+        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--dark); color: white; padding: 12px 24px; border-radius: 50px; font-size: 11px; font-weight: 800; z-index: 5000; display: none; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+    </style>
+</head>
+<body>
+
+<div id="toast">Updating Cloud...</div>
+
+<div class="sticky-nav">
+    <div class="menu-spacer"></div>
+    <div class="header-brand"><small>Bank Ledger</small><span>AssetGuard Pro</span></div>
+    <div class="header-stats" id="stat-box"><small>REVENUE</small><div id="bank-total">0.00</div></div>
+</div>
+
+<div class="controls">
+    <select id="fMonth" onchange="render()"><option value="all">Full Period</option></select>
+    <select id="fYear" onchange="render()"><option value="2026">2026</option><option value="2025">2025</option></select>
+</div>
+
+<div class="list-container" id="ledger-list"></div>
+
+<div id="adminModal" class="modal"><div class="modal-box" id="modal-content"></div></div>
+
+<script type="module">
+    import { getDb } from "./ag-firebase.js";
+    import { ref, onValue, update, remove } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+    import AGPasscode from "./ag-passcode.js";
+    const db = getDb();
+
+    // --- USER ISOLATION ---
+    const currentUID = AGUtils.getActiveUID();
+    const userSalesPath = AGUtils.userPath(currentUID, "sales");
+
+    let cloudSales = [];
+    let combinedSales = [];
+    let activeID = null;
+
+    if (!currentUID) {
+        document.body.innerHTML = "<h2 style='padding:50px; text-align:center;'>Access Denied. Please Login.</h2>";
+    }
+
+    const calcTotal = (s) => {
+        if (s.total && parseFloat(s.total) > 0) return parseFloat(s.total);
+        if (s.items) return s.items.reduce((sum, i) => sum + parseFloat(i.total || 0), 0);
+        return 0;
+    };
+
+    // Listen only to THIS user's sales
+    onValue(ref(db, userSalesPath), snap => {
+        const data = snap.val() || {};
+        cloudSales = Object.entries(data)
+            .map(([id, val]) => ({ id, ...val, finalAmount: calcTotal(val) }))
+            .filter(s => s.payment === 'Bank Transfer' && s.finalAmount > 0);
+        
+        // Merge with local pending queue for THIS user
+        const localQueue = AGUtils.readJSON(AGUtils.uidKey("ag_sales_queue", currentUID), []);
+        const pending = localQueue
+            .filter(q => q.payment === 'Bank Transfer')
+            .map(q => ({ id: q.saleId, ...q, isPending: true, finalAmount: calcTotal(q) }))
+            .filter(x => x.finalAmount > 0);
+
+        combinedSales = AGUtils.mergePendingWithCloud(cloudSales, pending);
+        render();
+    }, error => AGErrors.report("bank sales live data", error, showToast));
+
+    window.render = () => {
+        const container = document.getElementById('ledger-list');
+        const month = document.getElementById('fMonth').value;
+        const year = document.getElementById('fYear').value;
+        let total = 0;
+        container.innerHTML = "";
+
+        combinedSales.forEach(d => {
+            const date = new Date(d.timestamp);
+            if ((month !== 'all' && date.getMonth().toString() !== month) || (date.getFullYear().toString() !== year)) return;
+            total += d.finalAmount;
+            container.insertAdjacentHTML('beforeend', `
+            <div class="audit-card ${d.isPending ? 'is-pending' : ''}">
+                <div class="audit-info">
+                    <b>${d.customer || 'Standard Client'}</b>
+                    <code>REF: ${d.bank || 'No Ref'}</code>
+                    <small>${date.toLocaleDateString('en-GB')}</small>
+                </div>
+                <div class="audit-amt"><span>${AGUtils.formatAmount(d.finalAmount, { minDecimals: 2 })}</span><small>KES</small></div>
+                ${!d.isPending ? `<button class="btn-lock" onclick="gatekeeper('${d.id}')">⚙️</button>` : ''}
+            </div>`);
+        });
+        document.getElementById('bank-total').innerText = AGUtils.formatAmount(total, { minDecimals: 2 });
+    };
+
+    window.gatekeeper = (id) => {
+        activeID = id;
+        document.getElementById('modal-content').innerHTML = `
+            <div style="font-size:32px; margin-bottom:10px;">🔐</div>
+            <h3 style="margin:0;">Admin Unlock</h3>
+            <p style="font-size:11px; color:#94a3b8; margin-bottom:10px;">Enter PIN for record management</p>
+            <input type="password" id="pinField" class="pin-input" maxlength="32" placeholder="••••" inputmode="numeric">
+            <button class="btn-action btn-verify" onclick="verifyPin()">UNLOCK TOOLS</button>
+            <button class="btn-action btn-cancel" onclick="closeGate()">DISMISS</button>`;
+        document.getElementById('adminModal').style.display = 'flex';
+        setTimeout(() => document.getElementById('pinField').focus(), 150);
+    };
+
+    window.verifyPin = async () => {
+        const field = document.getElementById('pinField');
+        const result = await AGPasscode.verify(field.value);
+        if (result.ok) {
+            openEditor();
+        } else {
+            alert(`❌ Denied: ${result.message}`);
+            field.value = "";
+        }
+    };
+
+    window.openEditor = () => {
+        const d = combinedSales.find(x => x.id === activeID);
+        document.getElementById('modal-content').innerHTML = `
+            <h3 style="margin-top:0;">Manage Record</h3>
+            <label style="font-size:10px; font-weight:800; color:var(--bank); display:block; text-align:left; margin-bottom:4px;">CUSTOMER</label>
+            <input type="text" id="edtCust" class="edit-field" value="${d.customer || ''}">
+            <label style="font-size:10px; font-weight:800; color:var(--bank); display:block; text-align:left; margin-bottom:4px;">BANK REFERENCE</label>
+            <input type="text" id="edtBank" class="edit-field" value="${d.bank || ''}">
+            <button class="btn-action btn-save" onclick="syncUpdate()">SAVE CHANGES</button>
+            <button class="btn-action btn-delete" onclick="confirmDelete()">DELETE ENTRY</button>
+            <button class="btn-action btn-cancel" onclick="closeGate()">CLOSE</button>`;
+    };
+
+    window.confirmDelete = () => {
+        document.getElementById('modal-content').innerHTML = `
+            <div style="font-size:40px; margin-bottom:10px;">⚠️</div>
+            <h3 style="margin:0; color:var(--error);">Confirm Delete?</h3>
+            <p style="font-size:12px; color:#64748b; margin-top:10px; line-height:1.5;">This action will permanently remove this record from your account cloud.</p>
+            <button class="btn-action btn-danger" onclick="executeDelete()">YES, DELETE NOW</button>
+            <button class="btn-action btn-cancel" onclick="openEditor()">NO, GO BACK</button>`;
+    };
+
+    window.executeDelete = async () => {
+        try {
+            await remove(ref(db, `${userSalesPath}/${activeID}`));
+            closeGate();
+            showToast("Record Deleted 🗑️");
+        } catch (error) {
+            AGErrors.report("bank sales deletion", error, message => showToast(`Delete failed: ${message}`));
+        }
+    };
+
+    window.syncUpdate = async () => {
+        try {
+            await update(ref(db, `${userSalesPath}/${activeID}`), {
+                customer: document.getElementById('edtCust').value,
+                bank: document.getElementById('edtBank').value
+            });
+            closeGate();
+            showToast("Changes Applied ✅");
+        } catch (error) {
+            AGErrors.report("bank sales update", error, message => showToast(`Update failed: ${message}`));
+        }
+    };
+
+    window.closeGate = () => document.getElementById('adminModal').style.display = 'none';
+
+    function showToast(message) {
+        AGUtils.showToast(message, { elementId: "toast", duration: 2500 });
+    }
+
+    // Init Filters
+    const mSelect = document.getElementById('fMonth');
+    ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].forEach((m, i) => {
+        const opt = document.createElement('option'); opt.value = i; opt.innerText = m;
+        if(i === new Date().getMonth()) opt.selected = true;
+        mSelect.appendChild(opt);
+    });
+</script>
+</body>
+</html>

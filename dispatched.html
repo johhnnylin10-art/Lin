@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="error-utils.js"></script>
+<script src="ag-context-guard.js"></script>
+<script type="module" src="auth-guard.js"></script>
+<meta charset="utf-8">
+<title>Master Tracker Pro | Signal Turbo V5.1 (Secure Edition)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
+
+<style>
+:root { 
+    --saxo-navy: #001e3c; --saxo-blue: #00a3e0; --saxo-slate: #1c2b39;
+    --saxo-green: #00c07d; --saxo-red: #ff5a5f; 
+    --map-bright: 100%; --panel-bg: rgba(255,255,255,0.96); --panel-text: #1c2b39;
+    --input-bg: #ffffff; --input-text: #000000; --input-border: #cccccc;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;height:100%;font-family:'Segoe UI',sans-serif;background:#111;overflow:hidden;}
+
+#statusToast { 
+    position: absolute; top: -100px; left: 50%; transform: translateX(-50%); 
+    background: rgba(0,30,60,0.95); color: #fff; padding: 14px 28px; 
+    border-radius: 50px; z-index: 10005; font-size: 13px; font-weight: 700;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+    border: 2px solid var(--saxo-blue); text-align: center; min-width: 260px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: blur(5px);
+}
+#statusToast.show { top: 25px; }
+
+.tactical-modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85); z-index: 20000; display: none;
+    align-items: center; justify-content: center; backdrop-filter: blur(10px);
+}
+.modal-box {
+    background: var(--saxo-navy); color: white; padding: 30px; 
+    border-radius: 20px; width: 90%; max-width: 350px; text-align: center;
+    border: 1px solid var(--saxo-blue); box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
+
+#map { height:100%; z-index:1; filter:brightness(var(--map-bright)); transition: 0.4s; background:#1a1a1a; }
+
+#panel {
+    position:absolute; top:10px; left:10px; background: var(--panel-bg); color: var(--panel-text); 
+    padding:15px; font-size:12px; border-radius:15px; z-index:1000; width:300px;
+    max-height:94vh; overflow-y:auto; box-shadow:0 10px 40px rgba(0,0,0,0.4); 
+    transition: transform 0.3s ease-out;
+}
+#panel.hidden { transform: translateX(-330px); }
+
+#statusHeader { font-weight:800; padding:10px; border-radius:8px; text-align:center; margin-bottom:12px; color:#fff; font-size:11px; text-transform:uppercase; letter-spacing: 1.1px; }
+.online { background:var(--saxo-green); box-shadow: 0 0 15px var(--saxo-green); }
+.offline { background:var(--saxo-red); }
+
+.stat-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+.stat-row b { color: var(--saxo-blue); }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+
+.control-group { background: rgba(0,0,0,0.04); padding: 8px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.05); }
+.control-label { font-size: 8.5px; font-weight: 800; color: var(--saxo-blue); margin-bottom: 4px; display: block; text-transform: uppercase; }
+
+button { padding:10px; font-size:11px; width:100%; border-radius:8px; border:none; cursor:pointer; font-weight:700; background:var(--saxo-slate); color:#fff; transition: 0.2s; }
+button:active { transform: scale(0.95); }
+.btn-primary { background:var(--saxo-blue); }
+.btn-green { background:var(--saxo-green); }
+.btn-purple { background:#6c5ce7; }
+.btn-orange { background:#fd7e14; }
+.btn-red { background:var(--saxo-red); }
+
+input, select { 
+    padding:10px; width:100%; border-radius:6px; border: 2px solid var(--input-border); 
+    font-size:13px; font-weight: 700; background: var(--input-bg); 
+    color: var(--input-text) !important; outline: none; transition: 0.2s;
+}
+input:disabled { background: #e0e0e0; opacity: 0.5; color: #666 !important; }
+
+#speedHud { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: #fff; padding: 10px 25px; border-radius: 50px; font-size: 24px; font-weight: 900; z-index: 1000; border: 2px solid var(--saxo-blue); pointer-events: none; }
+.blinking { animation: pulse 0.8s infinite; color: var(--saxo-red) !important; border-color: var(--saxo-red) !important; }
+
+#hoverBtn { position:absolute; top:10px; right:10px; width:50px; height:50px; border-radius:50%; background:var(--saxo-navy); color:#fff; text-align:center; line-height:50px; font-size:26px; cursor:pointer; z-index:1000; border: 2px solid var(--saxo-blue); }
+#logDisplay { font-family: 'Consolas', monospace; font-size: 9px; background: rgba(0,0,0,0.05); padding: 8px; border-radius: 6px; margin-top: 10px; max-height: 80px; overflow-y: auto; color: #666; border: 1px inset rgba(0,0,0,0.05); }
+</style>
+</head>
+<body>
+
+<div id="statusToast">SYSTEM ACTIVE</div>
+
+<div id="adminModal" class="tactical-modal">
+    <div class="modal-box">
+        <h3 id="modalTitle" style="margin:0 0 10px 0; color:var(--saxo-red);">SECURITY CLEARANCE</h3>
+        <p id="modalDesc" style="font-size:11px; opacity:0.8; margin-bottom:20px;">Verification Required</p>
+        <input type="password" id="adminPass" placeholder="Internal Passcode" style="margin-bottom:15px; text-align:center;">
+        <div class="grid-2">
+            <button id="modalConfirmBtn" class="btn-red">CONFIRM</button>
+            <button onclick="window.closeAdmin()" style="background:#444;">CANCEL</button>
+        </div>
+    </div>
+</div>
+
+<div id="fenceModal" class="tactical-modal">
+    <div class="modal-box" style="border-color: var(--saxo-green);">
+        <h3 style="margin:0 0 5px 0; color:var(--saxo-green);">GEOFENCE ENGINE</h3>
+        <p style="font-size:10px; opacity:0.8; margin-bottom:15px;">RADIUS (Meters)</p>
+        <input type="number" id="fenceInput" value="300" style="text-align:center; font-size:22px; color:#fff !important; background:rgba(0,0,0,0.3); border-color:var(--saxo-green); margin-bottom:10px;">
+        <div class="grid-2">
+            <button onclick="window.confirmFence()" class="btn-green">ACTIVATE</button>
+            <button onclick="document.getElementById('fenceModal').style.display='none'" style="background:#444;">CANCEL</button>
+        </div>
+    </div>
+</div>
+
+<div id="map"></div>
+<div id="hoverBtn">≡</div>
+<div id="speedHud">0 KM/H</div>
+
+<div id="panel">
+  <div id="statusHeader" class="offline">GPS: SEARCHING</div>
+  <div class="stat-row"><span>Velocity:</span> <b id="spdVal">0 km/h</b></div>
+  <div class="stat-row"><span>Area Speed:</span> <b id="areaLimit" style="color:var(--saxo-red)">-- km/h</b></div>
+  <div class="stat-row"><span>Route ETA:</span> <b id="etaDist">-- / --</b></div>
+
+  <hr style="border:0; border-top:1px solid #eee; margin:12px 0;">
+
+  <div class="control-group" style="margin-bottom:8px;">
+    <span class="control-label">Tactical Orientation</span>
+    <div class="grid-2">
+        <button id="rotateBtn" onclick="window.toggleRotation()" style="background:var(--saxo-navy)">MAP: FIXED</button>
+        <button onclick="window.resetNorth()" style="background:#444">RESET NORTH</button>
+    </div>
+  </div>
+
+  <div class="control-group" style="margin-bottom:8px;">
+    <span class="control-label">Speed Governance</span>
+    <div style="display:flex; gap:4px; height:38px;">
+        <input type="number" id="maxSpeedLimit" placeholder="KM/H" style="flex:2; height:100%;">
+        <button id="speedSetBtn" onclick="window.secureSpeedSet()" style="flex:1; background:var(--saxo-navy); height:100%;">SET</button>
+        <button onclick="window.openSpeedClear()" class="btn-red" style="width:50px; font-size:9px;">CLR</button>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <button onclick="window.secureAddFence()" style="background:var(--saxo-slate)">+ FENCE</button>
+    <button onclick="window.clearGeofence()" style="background:#444">CLR FENCE</button>
+  </div>
+
+  <div class="control-group" style="margin-bottom:8px;">
+    <span class="control-label">History Archive</span>
+    <input type="date" id="historyDate" style="margin-bottom:5px;">
+    <div class="grid-2">
+        <button id="historyBtn" class="btn-purple">RENDER</button>
+        <button onclick="window.clearHistoryMap()" style="background:#444">CLEAR</button>
+    </div>
+  </div>
+
+  <div class="control-group" style="margin-bottom:10px;">
+    <span class="control-label">Tactical Layers</span>
+    <select id="mapStyle" onchange="window.switchMap(this.value)">
+      <option value="googleTraffic" selected>Standard Traffic</option>
+      <option value="esriWorld">Live Terrain</option>
+      <option value="dark">Stealth Night</option>
+      <option value="googleSat">Satellite Alpha</option>
+    </select>
+  </div>
+
+  <div class="grid-2">
+    <button onclick="window.goToCar()" style="background:var(--saxo-navy)">CAR</button>
+    <button onclick="window.centerDestination()" class="btn-green">DEST</button>
+  </div>
+
+  <div class="grid-2">
+    <button id="followBtn" class="btn-primary">FOLLOW: ON</button>
+    <button id="lockRouteBtn" class="btn-orange">LOCK: OFF</button>
+  </div>
+  
+  <hr style="border:0; border-top:1px solid #eee; margin:12px 0;">
+  
+  <input id="search" placeholder="Search Destination..." style="margin-bottom:5px;">
+  <button onclick="window.searchPlace()" class="btn-primary" style="margin-bottom:5px;">INITIATE ROUTE</button>
+  <button onclick="window.openSystemReset()" style="background:var(--saxo-red); font-size:9px; opacity:0.6;">SYSTEM RESET</button>
+  
+  <div id="logDisplay">System Ready.</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, set, update, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import AGPasscode from "./ag-passcode.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC3zyNPQibIk-XTrUcKGfQOfu0-td55SSM",
+  databaseURL: "https://cartracker-cd47c-default-rtdb.firebaseio.com",
+  projectId: "cartracker-cd47c"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const carRef = ref(db,'cars/car_01');
+
+const layers = {
+  googleTraffic: L.tileLayer('https://{s}.google.com/vt/lyrs=m,traffic&x={x}&y={y}&z={z}',{subdomains:['mt0','mt1','mt2','mt3']}),
+  googleSat: L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{subdomains:['mt0','mt1','mt2','mt3']}),
+  dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'),
+  esriWorld: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}')
+};
+
+const map = L.map('map',{
+    layers:[layers.googleTraffic],
+    center:[0,0],
+    zoom:15,
+    zoomControl:false,
+    rotate: true,
+    touchRotate: true,
+    bearing: 0
+});
+
+const carIcon = L.icon({iconUrl:'https://cdn-icons-png.flaticon.com/512/744/744465.png', iconSize:[40,40], iconAnchor:[20,20]});
+const carMarker = L.marker([0,0],{icon:carIcon}).addTo(map);
+const historyLayer = L.layerGroup().addTo(map);
+
+let lastPos=null, follow=true, routeLocked=false, activeLimit=null, mapRotationActive = false;
+let routeLine=null, destMarker=null, fenceCircle=null, lastPushTime = 0;
+
+window.sendPush = (msg) => {
+    const now = Date.now();
+    if (now - lastPushTime > 15000) {
+        lastPushTime = now;
+        const toast = document.getElementById('statusToast');
+        toast.innerText = msg.toUpperCase();
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 4000);
+    }
+};
+
+// --- NATIVE POPUP RESTORE ---
+if ("geolocation" in navigator) {
+    navigator.geolocation.watchPosition(
+        (p) => {
+            const dateKey = new Date().toISOString().split('T')[0];
+            const coords = { lat: p.coords.latitude, lng: p.coords.longitude, ts: Date.now() };
+            const speed = (p.coords.speed * 3.6 || 0).toFixed(1);
+            update(carRef, { ...coords, speed: speed })
+                .catch(error => AGErrors.report("dispatch vehicle location update", error));
+            push(ref(db, `cars/car_01/history/${dateKey}`), coords)
+                .catch(error => AGErrors.report("dispatch vehicle history write", error));
+        },
+        (err) => console.error("GPS Error:", err),
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+    );
+}
+
+// --- ROTATION ---
+window.toggleRotation = () => {
+    mapRotationActive = !mapRotationActive;
+    const btn = document.getElementById('rotateBtn');
+    btn.innerText = mapRotationActive ? "MAP: AUTO-ROTATE" : "MAP: FIXED";
+    btn.style.background = mapRotationActive ? "var(--saxo-blue)" : "var(--saxo-navy)";
+    if(!mapRotationActive) map.setBearing(0);
+};
+
+window.resetNorth = () => { mapRotationActive = false; map.setBearing(0); document.getElementById('rotateBtn').innerText = "MAP: FIXED"; };
+
+// --- SPEED ENGINE ---
+async function updateAreaSpeed(lat, lng) {
+    try {
+        const query = `[out:json];way(around:35, ${lat}, ${lng})[highway];out tags;`;
+        const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        let speed = "50";
+        if (data.elements?.length > 0) {
+            const way = data.elements.find(el => el.tags && el.tags.maxspeed);
+            if (way) speed = way.tags.maxspeed;
+            else {
+                const h = data.elements[0].tags.highway;
+                const m = {motorway:110, trunk:90, primary:70, secondary:50, residential:30};
+                speed = m[h] || "50";
+            }
+        }
+        document.getElementById('areaLimit').innerText = speed.replace(/\D/g,'') + " km/h";
+    } catch(e) {
+        AGErrors.report("dispatch area speed lookup", e);
+        document.getElementById('areaLimit').innerText = "50 km/h";
+    }
+}
+
+// --- HISTORY ---
+document.getElementById('historyBtn').onclick = () => {
+    const d = document.getElementById('historyDate').value;
+    if(!d) return;
+    onValue(ref(db, `cars/car_01/history/${d}`), (snap) => {
+        const val = snap.val();
+        if(!val) return;
+        historyLayer.clearLayers();
+        const pts = Object.values(val).sort((a,b)=>a.ts-b.ts).map(p=>[p.lat, p.lng]);
+        if(pts.length > 1){
+            const poly = L.polyline(pts, {color:'#6c5ce7', weight:4, dashArray:'5,10'}).addTo(historyLayer);
+            map.fitBounds(poly.getBounds(), {padding:[50,50]});
+        }
+    }, error => AGErrors.report("dispatch history live data", error, message => window.sendPush(`History unavailable: ${message}`)), {onlyOnce: true});
+};
+window.clearHistoryMap = () => { historyLayer.clearLayers(); };
+
+// --- ADMIN HUB ---
+window.openAdminModal = (t, d, cb) => {
+    document.getElementById('modalTitle').innerText = t;
+    document.getElementById('modalDesc').innerText = d;
+    document.getElementById('adminModal').style.display = 'flex';
+    document.getElementById('modalConfirmBtn').onclick = async () => {
+        const attempt = await AGPasscode.verify(document.getElementById('adminPass').value);
+        if(attempt.ok) { cb(); window.closeAdmin(); }
+        else { window.sendPush(attempt.message); }
+    };
+};
+window.closeAdmin = () => { document.getElementById('adminModal').style.display='none'; document.getElementById('adminPass').value=''; };
+
+// --- MAIN LISTENER ---
+onValue(carRef, snap => {
+    const data = snap.val(); if(!data) return;
+    const pos = [data.lat, data.lng];
+
+    if(mapRotationActive && lastPos) {
+        const bearing = (Math.atan2(pos[1] - lastPos[1], pos[0] - lastPos[0]) * 180 / Math.PI);
+        map.setBearing(bearing);
+    }
+
+    carMarker.setLatLng(pos);
+    const spd = parseFloat(data.speed)||0;
+    document.getElementById('spdVal').innerText = spd + " km/h";
+    document.getElementById('speedHud').innerText = spd + " KM/H";
+    
+    if(activeLimit && spd > activeLimit) {
+        document.getElementById('speedHud').classList.add("blinking");
+        window.sendPush("SPEED BREACH");
+    } else { document.getElementById('speedHud').classList.remove("blinking"); }
+
+    if(data.geofence) {
+        if(!fenceCircle) fenceCircle = L.circle([data.geofence.lat, data.geofence.lng], {radius: data.geofence.radius, color: '#00a3e0', fillOpacity: 0.1}).addTo(map);
+        else { fenceCircle.setLatLng([data.geofence.lat, data.geofence.lng]); fenceCircle.setRadius(data.geofence.radius); }
+        const d = L.latLng(pos).distanceTo(L.latLng(data.geofence.lat, data.geofence.lng));
+        fenceCircle.setStyle({color: d > data.geofence.radius ? 'red' : '#00c07d'});
+        if(d > data.geofence.radius) window.sendPush("GEOFENCE BREACH");
+    }
+
+    const online = (Date.now() - data.ts) < 15000;
+    document.getElementById('statusHeader').className = online ? "online" : "offline";
+    document.getElementById('statusHeader').innerText = online ? "SIGNAL: LIVE" : "SIGNAL: LOST";
+
+    if(follow) map.panTo(pos);
+    
+    if(data.destination){
+        const dPos = [data.destination.lat, data.destination.lng];
+        if(!destMarker) destMarker = L.marker(dPos).addTo(map);
+        destMarker.setLatLng(dPos);
+        drawRoute(pos, dPos).catch(error => AGErrors.report("dispatch route drawing", error));
+        if(routeLocked) { 
+            follow = false;
+            document.getElementById('followBtn').innerText = "FOLLOW: OFF";
+            map.fitBounds(L.latLngBounds([pos, dPos]), {padding: [70, 70]}); 
+        }
+    }
+    if(!lastPos || L.latLng(lastPos).distanceTo(pos) > 50) updateAreaSpeed(pos[0], pos[1]);
+    lastPos = pos;
+}, error => AGErrors.report("dispatch vehicle live data", error, message => window.sendPush(`Live vehicle data unavailable: ${message}`)));
+
+// --- UI UTILS ---
+window.switchMap = v => { Object.values(layers).forEach(l=>map.removeLayer(l)); layers[v].addTo(map); };
+window.goToCar = () => { if(lastPos) { map.setView(lastPos, 18); follow = true; document.getElementById('followBtn').innerText="FOLLOW: ON"; } };
+window.centerDestination = () => { if(destMarker) { map.setView(destMarker.getLatLng(), 16); follow = false; document.getElementById('followBtn').innerText="FOLLOW: OFF"; } };
+window.searchPlace = () => {
+    const q = document.getElementById('search').value;
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`).then(r=>r.json()).then(res=>{
+        if(res.length) update(carRef,{destination:{lat:parseFloat(res[0].lat),lng:parseFloat(res[0].lon)}})
+            .catch(error => AGErrors.report("dispatch destination update", error));
+    }).catch(error => AGErrors.report("dispatch place search", error));
+};
+async function drawRoute(car,dest){
+    const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${car[1]},${car[0]};${dest[1]},${dest[0]}?overview=full&geometries=geojson`);
+    const d = await r.json();
+    if(d.routes && d.routes[0]){
+        if(routeLine) map.removeLayer(routeLine);
+        routeLine = L.polyline(d.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]),{color:'#00a3e0',weight:5}).addTo(map);
+        document.getElementById('etaDist').innerText = Math.round(d.routes[0].duration/60) + "m / " + (d.routes[0].distance/1000).toFixed(1) + "km";
+    }
+}
+window.secureSpeedSet = () => {
+    const i = document.getElementById('maxSpeedLimit');
+    if (i.disabled) window.openAdminModal("OVERRIDE", "Change limit?", () => { i.disabled = false; document.getElementById('speedSetBtn').innerText = "SET"; });
+    else { if (i.value) window.openAdminModal("LOCK", `Limit ${i.value}?`, () => { i.disabled = true; document.getElementById('speedSetBtn').innerText = "EDIT"; activeLimit = parseFloat(i.value); }); }
+};
+window.openSpeedClear = () => { window.openAdminModal("BYPASS", "Unlock?", () => { const i = document.getElementById('maxSpeedLimit'); i.disabled = false; i.value = ""; activeLimit = null; }); };
+window.secureAddFence = () => { if(lastPos) window.openAdminModal("FENCE", "Deploy?", () => { document.getElementById('fenceModal').style.display='flex'; }); };
+window.confirmFence = () => {
+    update(carRef, {geofence:{lat:lastPos[0], lng:lastPos[1], radius:parseInt(document.getElementById('fenceInput').value)}})
+        .then(() => { document.getElementById('fenceModal').style.display='none'; })
+        .catch(error => AGErrors.report("dispatch geofence update", error));
+};
+window.clearGeofence = () => { window.openAdminModal("REMOVE", "Kill fence?", () => {
+    update(carRef, {geofence:null}).catch(error => AGErrors.report("dispatch geofence removal", error));
+    if(fenceCircle) map.removeLayer(fenceCircle);
+}); };
+window.openSystemReset = () => { window.openAdminModal("PURGE", "Clear data?", () => {
+    set(ref(db, 'cars/car_01'), {lat:0, lng:0, speed:0, ts:Date.now()})
+        .then(() => location.reload())
+        .catch(error => AGErrors.report("dispatch system reset", error));
+}); };
+
+document.getElementById('hoverBtn').onclick = () => document.getElementById('panel').classList.toggle('hidden');
+document.getElementById('followBtn').onclick = function() { follow = !follow; this.innerText = `FOLLOW: ${follow?'ON':'OFF'}`; };
+document.getElementById('lockRouteBtn').onclick = function() {
+    routeLocked = !routeLocked; this.innerText = `LOCK: ${routeLocked?'ON':'OFF'}`;
+    if(routeLocked && lastPos && destMarker) { follow = false; document.getElementById('followBtn').innerText = "FOLLOW: OFF"; map.fitBounds(L.latLngBounds([lastPos, destMarker.getLatLng()]), {padding: [70, 70]}); }
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="error-utils.js"></script>
+<script src="ag-utils.js"></script>
+<script src="ag-context-guard.js"></script>
+<script type="module" src="auth-guard.js"></script>
+<meta charset="utf-8">
+<title>AssetGuard Pro - Unified Purchase Terminal & Analytics</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+    :root { --primary: #0072CE; --dark: #001A35; --accent: #ff6b00; --edit: #f59e0b; --light: #f8faff; --locked: #e2e8f0; --error: #ef4444; --success: #22c55e; --bg: #f4f6f9; --danger:#ef4444; --muted:#64748b; --warning: #f59e0b; }
+    body { font-family: 'Poppins', sans-serif; background-color: var(--bg); color: #1f2937; margin: 0; padding: 0; }
+    
+    /* Desktop Scaling */
+    @media (min-width: 768px) {
+        body { font-size: 1.5rem; }
+        .container { max-width: 1200px !important; }
+        .sales-analytics-panel { max-width: 1200px !important; }
+        .brand { font-size: 2rem !important; }
+        h2 { font-size: 2.5rem !important; }
+        label { font-size: 1.2rem !important; }
+        input, select { font-size: 1.5rem !important; padding: 20px !important; }
+        .btn-small, .btn-main { font-size: 1.5rem !important; padding: 20px !important; }
+    }
+
+    .header-nav { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 16px 20px; z-index: 3000; border-bottom: 1px solid #e2e8f0; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+    .brand { font-weight: 800; font-size: 16px; color: var(--dark); cursor: pointer; }
+    .brand span { color: var(--primary); }
+    .toggle-view-btn { background: var(--dark); color: white; border: none; padding: 8px 16px; border-radius: 10px; font-weight: 700; font-size: 11px; cursor: pointer; text-transform: uppercase; transition: 0.3s; }
+    .toggle-view-btn:hover { background: var(--primary); }
+    
+    .view-container { display: none; padding: 20px; max-width: 800px; margin: 0 auto; box-sizing: border-box; }
+    .view-container.active { display: block; }
+    
+    .card { background: white; padding: 25px; border-radius: 20px; border: 1px solid #f0f2f5; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+    .summary-card { background: linear-gradient(135deg, var(--dark), #071952); color: white; padding: 25px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,26,53,0.2); }
+    
+    .form-group { margin-bottom: 15px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    label { font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; display: block; letter-spacing: 0.5px; }
+    input, select { width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #f0f2f5; background: #f9fbff; font-family: inherit; font-size: 14px; font-weight: 600; outline: none; box-sizing: border-box; transition: 0.3s; }
+    input:focus, select:focus { border-color: var(--primary); background: #fff; }
+    
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 5000; backdrop-filter: blur(5px); }
+    .modal { background: white; padding: 25px; border-radius: 20px; width: 300px; text-align: center; box-sizing: border-box; }
+    .btn-small { padding: 12px 20px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; font-size: 12px; color: white; transition: 0.2s; }
+    .btn-small:hover { opacity: 0.9; }
+    
+    .history-item { background: white; padding: 16px; border-radius: 14px; border: 1px solid #e2e8f0; margin-bottom: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+    .history-item:hover { border-color: var(--primary); transform: translateY(-1px); }
+    .detail-row { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
+
+    /* --- High-End Dark/Bluish/Orange Template Blocks & Purchase Graph Panel --- */
+    .sales-analytics-panel {
+        background: linear-gradient(135deg, #001A35 0%, #071952 100%);
+        border-radius: 20px;
+        padding: 30px;
+        color: white;
+        margin: 25px auto 40px auto;
+        box-sizing: border-box;
+        box-shadow: 0 15px 35px rgba(0, 26, 53, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .analytics-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 15px;
+    }
+    .analytics-title {
+        font-size: 15px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .analytics-title span {
+        width: 10px;
+        height: 10px;
+        background: var(--accent);
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 10px var(--accent);
+    }
+    .analytics-badge {
+        background: rgba(0, 114, 206, 0.3);
+        color: #60a5fa;
+        border: 1px solid rgba(96, 165, 250, 0.3);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+    
+    .sales-graph-box {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 25px;
+    }
+    .graph-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    .graph-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: #94a3b8;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+    .graph-val-highlight {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--accent);
+    }
+    
+    .template-blocks-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    .template-card {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        transition: transform 0.2s, border-color 0.2s;
+    }
+    .template-card:hover {
+        transform: translateY(-3px);
+        border-color: var(--accent);
+    }
+    .template-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .template-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: rgba(255, 107, 0, 0.15);
+        color: var(--accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 800;
+    }
+    .template-tag {
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #38bdf8;
+        background: rgba(56, 189, 248, 0.1);
+        padding: 2px 8px;
+        border-radius: 4px;
+    }
+    .template-card h5 {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 700;
+        color: #fff;
+    }
+    .template-card p {
+        margin: 0;
+        font-size: 11px;
+        color: #94a3b8;
+        line-height: 1.4;
+    }
+</style>
+</head>
+<body>
+
+    <div id="pinModal" class="modal-overlay">
+        <div class="modal">
+            <h3 style="margin-top:0; color:var(--dark);">Secure Access</h3>
+            <p style="font-size: 11px; color: var(--muted); margin-bottom: 15px;">Enter Admin PIN to continue</p>
+            <input type="password" id="pinInput" placeholder="PIN" maxlength="32" style="text-align:center; font-size: 20px; letter-spacing: 5px;">
+            <div id="pinError" style="color:var(--danger); font-size:11px; margin-top:10px; font-weight:700;"></div>
+            <div style="display:flex; gap:10px; justify-content:center; margin-top:15px;">
+                <button class="btn-small" style="background:#64748b; flex:1;" onclick="closePinModal()">Cancel</button>
+                <button class="btn-small" style="background:var(--primary); flex:1;" onclick="submitPin()">Submit</button>
+            </div>
+        </div>
+    </div>
+    
+    <header class="header-nav">
+        <div class="brand">AssetGuard <span>Purchase Terminal</span></div>
+        <button class="toggle-view-btn" id="toggleViewBtn" onclick="toggleView()">View Ledger</button>
+    </header>
+
+    <div id="view-entry" class="view-container active">
+        <div class="card">
+            <h2 id="formTitle" style="margin-top:0; font-size: 18px; color: var(--dark);">New Purchase Entry</h2>
+            <form id="purchaseForm">
+                <input type="hidden" id="editId">
+                <div class="form-group"><label>Item Name</label><input type="text" id="item_name" required></div>
+                <div class="form-group"><label>Supplier</label><input type="text" id="supplier" required></div>
+                <div class="row" style="grid-template-columns: 1fr 1fr;">
+                    <div class="form-group"><label>Quantity</label><input type="number" id="qty" required></div>
+                    <div class="form-group"><label>Unit</label><select id="unit"><option value="kg">kg</option><option value="pcs">pcs</option><option value="liters">liters</option></select></div>
+                </div>
+                <div class="form-group"><label>Total Cost (KES)</label><input type="number" id="amount" step="0.01" required></div>
+                <button type="submit" id="submitBtn" class="btn-small" style="background:var(--primary); width:100%; padding:15px; font-size: 14px; margin-top: 10px;">Record Purchase</button>
+            </form>
+        </div>
+
+        <!-- High-End Dark/Bluish/Orange Template Blocks & Daily Purchases Graph Panel -->
+        <div class="sales-analytics-panel">
+            <div class="analytics-header">
+                <div class="analytics-title">
+                    <span></span> Purchase Intelligence & Velocity
+                </div>
+                <div class="analytics-badge">Procurement v2.6</div>
+            </div>
+
+            <div class="sales-graph-box">
+                <div class="graph-header-row">
+                    <span class="graph-label">Daily Procurement Spending (Last 7 Days)</span>
+                    <span class="graph-val-highlight">Active Flow</span>
+                </div>
+                <div style="width: 100%; height: 120px; display: flex; align-items: flex-end; justify-content: space-between; padding-top: 15px; position: relative;">
+                    <div style="position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; opacity: 0.1;">
+                        <div style="border-top: 1px dashed white; width: 100%;"></div>
+                        <div style="border-top: 1px dashed white; width: 100%;"></div>
+                        <div style="border-top: 1px dashed white; width: 100%;"></div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                        <div style="width: 20px; height: 45px; background: rgba(0, 114, 206, 0.4); border-top: 3px solid #60a5fa; border-radius: 4px 4px 0 0;"></div>
+                        <span style="font-size: 9px; color: #94a3b8; font-weight: 700;">Mon</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                        <div style="width: 20px; height: 70px; background: rgba(0, 114, 206, 0.6); border-top: 3px solid #38bdf8; border-radius: 4px 4px 0 0;"></div>
+                        <span style="font-size: 9px; color: #94a3b8; font-weight: 700;">Tue</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                        <div style="width: 20px; height: 55px; background: rgba(0, 114, 206, 0.5); border-top: 3px solid #60a5fa; border-radius: 4px 4px 0 0;"></div>
+                        <span style="font-size: 9px; color: #94a3b8; font-weight: 700;">Wed</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                        <div style="width: 20px; height: 95px; background: linear-gradient(180deg, var(--accent) 0%, rgba(255, 107, 0, 0.4) 100%); border-top: 3px solid var(--accent); border-radius: 4px 4px 0 0; box-shadow: 0 0 15px rgba(255,107,0,0.3);"></div>
+                        <span style="font-size: 9px; color: #fff; font-weight: 800;">Thu</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                        <div style="width: 20px; height: 75px; background: rgba(0, 114, 206, 0.7); border-top: 3px solid #38bdf8; border-radius: 4px 4px 0 0;"></div>
+                        <span style="font-size: 9px; color: #94a3b8; font-weight: 700;">Fri</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                        <div style="width: 20px; height: 105px; background: linear-gradient(180deg, var(--accent) 0%, rgba(255, 107, 0, 0.4) 100%); border-top: 3px solid var(--accent); border-radius: 4px 4px 0 0; box-shadow: 0 0 15px rgba(255,107,0,0.3);"></div>
+                        <span style="font-size: 9px; color: #fff; font-weight: 800;">Sat</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                        <div style="width: 20px; height: 60px; background: rgba(0, 114, 206, 0.5); border-top: 3px solid #60a5fa; border-radius: 4px 4px 0 0;"></div>
+                        <span style="font-size: 9px; color: #94a3b8; font-weight: 700;">Sun</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="template-blocks-grid">
+                <div class="template-card">
+                    <div class="template-card-top">
+                        <div class="template-icon">📦</div>
+                        <span class="template-tag">Stock In</span>
+                    </div>
+                    <h5>Inventory Intake</h5>
+                    <p>Instant logging of material acquisition with automatic unit cost scaling and vendor referencing.</p>
+                </div>
+
+                <div class="template-card">
+                    <div class="template-card-top">
+                        <div class="template-icon">⚡</div>
+                        <span class="template-tag">Sync</span>
+                    </div>
+                    <h5>Cloud Redundancy</h5>
+                    <p>Complete IndexedDB offline storage with background Firebase synchronization upon connection recovery.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-ledger" class="view-container">
+        <div class="summary-card">
+            <label style="color:rgba(255,255,255,0.7)">Total Spending</label>
+            <div id="totalSpend" style="font-size: 28px; font-weight: 800; margin-top: 4px;">KES 0.00</div>
+        </div>
+        <div class="form-group"><label>Search Supplier</label><input type="text" id="searchSupplier" placeholder="Search supplier name..." oninput="refreshLedger()"></div>
+        <div id="historyList" style="margin-top: 15px;"></div>
+    </div>
+
+    <div id="view-detail" class="view-container">
+        <div class="card">
+            <h3 style="margin-top:0; color:var(--dark);">Purchase Details</h3>
+            <div id="detailContent" style="margin-top:20px;"></div>
+            <div style="display:flex; gap:10px; justify-content:center; margin-top:25px;">
+                <button class="btn-small" style="background:#fee2e2; color:#e11d48; flex:1;" id="delBtn">Delete</button>
+                <button class="btn-small" style="background:#e2e8f0; color:#1e293b; flex:1;" id="editBtn">Edit</button>
+            </div>
+            <button class="btn-small" style="background:transparent; color:var(--muted); border:1px solid #e2e8f0; margin-top:15px; width:100%;" onclick="showView('view-ledger')">Back to Ledger</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { getDb } from "./ag-firebase.js";
+        import { ref, onValue, remove, update } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+        import AGPasscode from "./ag-passcode.js";
+
+        if (navigator.storage && navigator.storage.persist) {
+            navigator.storage.persist().then(granted => {
+                if (granted) {
+                    console.log("Storage persistence granted! Local databases protected from auto-clearing.");
+                } else {
+                    console.log("Storage persistence requested but denied by browser policies.");
+                }
+            }).catch(error => AGErrors.report("purchase storage persistence request", error));
+        }
+
+        const db = getDb();
+        const currentUID = AGUtils.getActiveUID({ fallback: "global_user" });
+        const cloudPath = AGUtils.userPath(currentUID, "purchases");
+
+        let localPurchases = [];
+
+        const idbRequest = indexedDB.open(`AssetGuard_Purchases_${currentUID}`, 1);
+        idbRequest.onupgradeneeded = e => e.target.result.createObjectStore("purchases", { keyPath: "id" });
+
+        const localSaveSingle = (purchase) => {
+            return new Promise((resolve) => {
+                if (!idbRequest.result) return resolve();
+                const tx = idbRequest.result.transaction("purchases", "readwrite");
+                const store = tx.objectStore("purchases");
+                store.put(purchase);
+                tx.oncomplete = () => resolve();
+            });
+        };
+
+        const loadAndRenderLocal = () => {
+            return new Promise((resolve) => {
+                if (!idbRequest.result) return resolve();
+                const tx = idbRequest.result.transaction("purchases", "readonly");
+                tx.objectStore("purchases").getAll().onsuccess = e => {
+                    refreshLedger(e.target.result);
+                    resolve();
+                };
+            });
+        };
+
+        async function syncUnsyncedPurchases() {
+            if (!idbRequest.result) return;
+
+            const tx = idbRequest.result.transaction("purchases", "readonly");
+            tx.objectStore("purchases").getAll().onsuccess = async (e) => {
+                const allItems = e.target.result;
+                const unsynced = allItems.filter(p => p.synced === false);
+                const toDelete = allItems.filter(p => p.deleted === true);
+
+                for (const item of unsynced) {
+                    try {
+                        await update(ref(db, `${cloudPath}/${item.id}`), {
+                            id: item.id,
+                            item_name: item.item_name,
+                            supplier: item.supplier,
+                            quantity: item.quantity,
+                            amount: item.amount,
+                            unit: item.unit,
+                            timestamp: item.timestamp
+                        });
+                        item.synced = true;
+                        await localSaveSingle(item);
+                    } catch (err) {
+                        if (!AGErrors.isOffline(err)) AGErrors.report(`purchase sync for ${item.id}`, err);
+                        else console.log("Offline: Purchase sync queued for later.", item.id);
+                    }
+                }
+
+                for (const item of toDelete) {
+                    try {
+                        await remove(ref(db, `${cloudPath}/${item.id}`));
+                        if (idbRequest.result) {
+                            const delTx = idbRequest.result.transaction("purchases", "readwrite");
+                            delTx.objectStore("purchases").delete(item.id);
+                        }
+                    } catch (err) {
+                        if (!AGErrors.isOffline(err)) AGErrors.report(`purchase deletion sync for ${item.id}`, err);
+                        else console.log("Offline: Purchase deletion queued for later.", item.id);
+                    }
+                }
+
+                if (unsynced.length > 0 || toDelete.length > 0) {
+                    loadAndRenderLocal();
+                }
+            };
+        }
+
+        idbRequest.onsuccess = () => {
+            loadAndRenderLocal();
+            syncUnsyncedPurchases();
+
+            onValue(ref(db, cloudPath), async (snap) => {
+                const serverData = snap.val() || {};
+
+                const tx = idbRequest.result.transaction("purchases", "readwrite");
+                const store = tx.objectStore("purchases");
+
+                store.getAll().onsuccess = (e) => {
+                    const localList = e.target.result;
+                    const unsyncedItems = localList.filter(p => p.synced === false);
+                    const deletedItems = localList.filter(p => p.deleted === true);
+
+                    const clearTx = idbRequest.result.transaction("purchases", "readwrite");
+                    const clearStore = clearTx.objectStore("purchases");
+                    clearStore.clear();
+
+                    Object.entries(serverData).forEach(([id, val]) => {
+                        if (!deletedItems.some(di => di.id === id)) {
+                            clearStore.put({ id, ...val, synced: true });
+                        }
+                    });
+
+                    unsyncedItems.forEach(item => {
+                        clearStore.put(item);
+                    });
+
+                    deletedItems.forEach(item => {
+                        clearStore.put(item);
+                    });
+
+                    clearTx.oncomplete = () => {
+                        loadAndRenderLocal();
+                    };
+                };
+            }, error => AGErrors.report("purchase live data", error));
+        };
+
+        window.showView = (id) => {
+            document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.getElementById('toggleViewBtn').innerText = (id === 'view-ledger') ? "New Entry" : "View Ledger";
+        };
+
+        window.toggleView = () => (document.getElementById('view-entry').classList.contains('active')) ? showView('view-ledger') : showView('view-entry');
+        
+        window.closePinModal = () => {
+            document.getElementById('pinModal').style.display = 'none';
+            document.getElementById('pinError').innerText = "";
+            document.getElementById('pinInput').value = "";
+        };
+
+        window.refreshLedger = (data) => {
+            if (data) {
+                localPurchases = Array.isArray(data) ? data : Object.entries(data).map(([id, val]) => ({ id, ...val }));
+            }
+
+            const list = document.getElementById('historyList');
+            const searchField = document.getElementById('searchSupplier');
+            const search = searchField ? searchField.value.toLowerCase() : "";
+            let total = 0;
+            let htmlBuffer = '';
+
+            const activePurchases = localPurchases.filter(p => !p.deleted);
+            activePurchases.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            
+            activePurchases.forEach(val => {
+                if (val && val.supplier && val.supplier.toLowerCase().includes(search)) {
+                    total += parseFloat(val.amount || 0);
+                    htmlBuffer += `<div class="history-item" onclick="viewDetails('${val.id}')"><div><b style="color:var(--dark); font-size:14px;">${val.item_name}</b><br><small style="color:var(--muted); font-weight:600;">${val.supplier}</small></div><div><b style="color:var(--primary);">${AGUtils.formatCurrency(val.amount)}</b></div></div>`;
+                }
+            });
+            list.innerHTML = htmlBuffer || '<div style="text-align:center; color:var(--muted); padding:20px; font-size:12px;">No purchase records found.</div>';
+            const totalSpendEl = document.getElementById('totalSpend');
+            if(totalSpendEl) totalSpendEl.innerText = AGUtils.formatCurrency(total);
+        };
+
+        window.viewDetails = (id) => {
+            const item = localPurchases.find(p => p.id === id);
+            if(!item) return;
+
+            document.getElementById('detailContent').innerHTML = `
+                <div class="detail-row"><label>Item</label><b>${item.item_name}</b></div>
+                <div class="detail-row"><label>Supplier</label><b>${item.supplier}</b></div>
+                <div class="detail-row"><label>Quantity</label><b>${item.quantity} ${item.unit}</b></div>
+                <div class="detail-row"><label>Cost</label><b style="color:var(--primary);">${AGUtils.formatCurrency(item.amount)}</b></div>`;
+            
+            document.getElementById('delBtn').onclick = () => {
+                document.getElementById('pinModal').style.display = 'flex';
+                window.submitPin = async () => {
+                    const attempt = await AGPasscode.verify(document.getElementById('pinInput').value);
+                    if(attempt.ok) {
+                        closePinModal();
+
+                        item.deleted = true;
+                        await localSaveSingle(item);
+                        await loadAndRenderLocal();
+                        showView('view-ledger');
+
+                        try {
+                            await remove(ref(db, `${cloudPath}/${id}`));
+                            if (idbRequest.result) {
+                                const tx = idbRequest.result.transaction("purchases", "readwrite");
+                                tx.objectStore("purchases").delete(id);
+                            }
+                        } catch (e) {
+                            if (!AGErrors.isOffline(e)) AGErrors.report("purchase cloud deletion", e);
+                            else console.log("Offline: Deleted registered locally. Syncing deletion later.");
+                        }
+                    } else { 
+                        document.getElementById('pinError').innerText = attempt.message; 
+                    }
+                };
+            };
+            
+            document.getElementById('editBtn').onclick = () => {
+                document.getElementById('pinModal').style.display = 'flex';
+                window.submitPin = async () => {
+                    const attempt = await AGPasscode.verify(document.getElementById('pinInput').value);
+                    if(attempt.ok) {
+                        document.getElementById('editId').value = id;
+                        document.getElementById('item_name').value = item.item_name;
+                        document.getElementById('supplier').value = item.supplier;
+                        document.getElementById('qty').value = item.quantity;
+                        document.getElementById('amount').value = item.amount;
+                        document.getElementById('unit').value = item.unit;
+                        document.getElementById('formTitle').innerText = "Edit Entry";
+                        showView('view-entry');
+                        closePinModal();
+                    } else { 
+                        document.getElementById('pinError').innerText = attempt.message; 
+                    }
+                };
+            };
+            showView('view-detail');
+        };
+
+        document.getElementById('purchaseForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editId').value || `pur_${Date.now()}`;
+            const entry = { 
+                id, 
+                item_name: document.getElementById('item_name').value, 
+                supplier: document.getElementById('supplier').value, 
+                quantity: document.getElementById('qty').value, 
+                amount: document.getElementById('amount').value, 
+                unit: document.getElementById('unit').value, 
+                timestamp: document.getElementById('editId').value ? (localPurchases.find(p => p.id === id)?.timestamp || Date.now()) : Date.now(),
+                synced: false 
+            };
+            
+            await localSaveSingle(entry);
+            await loadAndRenderLocal();
+            
+            document.getElementById('purchaseForm').reset();
+            document.getElementById('editId').value = "";
+            document.getElementById('formTitle').innerText = "New Purchase Entry";
+            showView('view-ledger');
+
+            try {
+                await update(ref(db, `${cloudPath}/${id}`), {
+                    id: entry.id,
+                    item_name: entry.item_name,
+                    supplier: entry.supplier,
+                    quantity: entry.quantity,
+                    amount: entry.amount,
+                    unit: entry.unit,
+                    timestamp: entry.timestamp
+                });
+                entry.synced = true;
+                await localSaveSingle(entry);
+                await loadAndRenderLocal();
+            } catch (err) {
+                if (!AGErrors.isOffline(err)) AGErrors.report("purchase cloud save", err);
+                else console.log("Offline: Purchase saved locally. Will sync when connection is restored.");
+            }
+        };
+
+        window.addEventListener('online', syncUnsyncedPurchases);
+        loadAndRenderLocal();
+    </script>
+</body>
+</html>

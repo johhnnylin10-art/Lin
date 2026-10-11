@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="error-utils.js"></script>
+<script src="ag-utils.js"></script>
+<script src="ag-config.js"></script>
+<script src="ag-context-guard.js"></script>
+<script type="module" src="auth-guard.js"></script>
+<meta charset="utf-8">
+<title>AssetGuard Ultimate BI & Sales Analytics</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-database-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+    :root { --primary: #0072CE; --dark: #001A35; --accent: #ff6b00; --success: #22c55e; --danger: #ef4444; --warning: #f59e0b; --bg: #f4f6f9; --muted: #64748b; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+    
+    body { font-family: 'Poppins', sans-serif; margin: 0; padding: 8px; background: var(--bg); color: #1f2937; font-size: 12px; line-height: 1.4; }
+    .container { width: 100%; max-width: 500px; margin: 0 auto; background: #fff; padding: 14px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #f0f2f5; }
+
+    .header-nav { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 10px 14px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #e2e8f0; }
+    .brand { font-weight: 800; font-size: 13px; color: var(--dark); }
+    .brand span { color: var(--primary); }
+    .clock-badge { background: #f1f5f9; padding: 4px 8px; border-radius: 16px; font-size: 10px; font-weight: 700; color: var(--muted); }
+
+    .filter-bar { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; scrollbar-width: none; }
+    .f-btn { background: #fff; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 10px; font-size: 10px; font-weight: 700; color: var(--muted); white-space: nowrap; cursor: pointer; transition: 0.2s; }
+    .f-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 2px 8px rgba(0, 114, 206, 0.2); }
+
+    .banner { background: #fff; padding: 10px 14px; border-radius: 12px; margin-bottom: 12px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 11px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
+    .tax-banner { border-left: 4px solid var(--danger); background: linear-gradient(135deg, #fff5f5 0%, #fff 100%); }
+
+    .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+    .kpi-card { background: #fff; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; border-left: 4px solid var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    .kpi-card span { font-size: 9px; text-transform: uppercase; color: var(--muted); font-weight: 700; letter-spacing: 0.5px; display: block; }
+    .kpi-card div { font-size: 15px; font-weight: 800; margin-top: 4px; color: var(--dark); }
+
+    .card { background: #fff; padding: 14px; border-radius: 14px; margin-bottom: 12px; border: 1px solid #e2e8f0; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
+    .chart-wrap { position: relative; height: 160px; width: 100%; }
+
+    .section-title { font-size: 10px; font-weight: 800; color: var(--dark); margin: 0 0 8px 2px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 6px; }
+    
+    .debt-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 10px; margin-bottom: 6px; background: #f8fafc; font-size: 11px; border: 1px solid #e2e8f0; border-left: 4px solid var(--warning); cursor: pointer; transition: background 0.2s; }
+    .debt-row:hover { background: #f1f5f9; }
+    
+    .history-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding: 10px 0; cursor: pointer; }
+    .history-item:last-child { border-bottom: none; }
+    .item-tag { font-size: 9px; color: var(--muted); margin-top: 2px; display: block; font-weight: 500; }
+
+    @media (min-width: 768px) {
+        body { font-size: 1.5rem; padding: 20px; }
+        .container { max-width: 1200px !important; padding: 35px !important; border-radius: 20px; }
+        .header-nav { padding: 16px 24px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+        .brand { font-size: 2rem !important; }
+        .clock-badge { font-size: 14px; padding: 8px 16px; }
+        h2 { font-size: 2.5rem !important; }
+        .kpi-card div { font-size: 2.5rem !important; }
+        .kpi-card span { font-size: 1rem !important; }
+        .chart-wrap { height: 360px !important; }
+        .kpi-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 20px !important; }
+        .desktop-bi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; align-items: start; }
+        .full-width { grid-column: span 2; }
+        .filter-bar { gap: 10px; margin-bottom: 20px; }
+        .f-btn { padding: 10px 18px; font-size: 11px; border-radius: 14px; }
+        .banner { padding: 16px 20px; border-radius: 16px; margin-bottom: 20px; font-size: 13px; }
+        .card { padding: 20px; border-radius: 20px; margin-bottom: 20px; }
+        .section-title { font-size: 12px; margin: 0 0 12px 4px; }
+        .debt-row { padding: 14px 16px; border-radius: 14px; font-size: 13px; margin-bottom: 10px; border-left-width: 5px; }
+        .history-item { padding: 14px 0; }
+        .item-tag { font-size: 11px; }
+    }
+
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 4000; align-items: center; justify-content: center; padding: 20px; }
+    .modal-card { background: white; width: 100%; max-width: 480px; padding: 30px; border-radius: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); max-height: 90vh; overflow-y: auto; }
+    .detail-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+    .detail-label { font-weight: 600; color: var(--muted); }
+    .detail-value { font-weight: 700; color: var(--dark); text-align: right; }
+    .btn-close { background: var(--dark); color: white; border: none; padding: 14px; border-radius: 12px; font-weight: 700; width: 100%; margin-top: 20px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<header class="header-nav">
+    <div class="brand">AssetGuard <span>Ultimate BI</span></div>
+    <div class="clock-badge" id="clock">00:00:00</div>
+</header>
+
+<div class="container">
+    <div class="filter-bar">
+        <div class="f-btn active" onclick="window.setFilter('today', this)">TODAY</div>
+        <div class="f-btn" onclick="window.setFilter('7days', this)">7 DAYS</div>
+        <div class="f-btn" onclick="window.setFilter('30days', this)">30 DAYS</div>
+        <div class="f-btn" onclick="window.setFilter('all', this)">ALL TIME</div>
+    </div>
+
+    <div class="banner tax-banner full-width">
+        <div>
+            <b style="color: var(--danger); text-transform: uppercase; letter-spacing: 0.5px;">VAT Liability (KRA)</b><br>
+            <span id="vat-total" style="font-weight: 800; color: var(--dark);">KES 0</span>
+        </div>
+        <div style="text-align:right">
+            <span style="color: var(--muted); font-weight: 600; display: block;">Filing Deadline</span>
+            <b id="tax-days" style="color:var(--danger);">Calculating...</b>
+        </div>
+    </div>
+
+    <div class="kpi-grid full-width">
+        <div class="kpi-card" style="border-color: var(--success)"><span>Net Revenue</span><div id="profit">0</div></div>
+        <div class="kpi-card" style="border-color: var(--warning)"><span>Total Debt</span><div id="debt">0</div></div>
+        <div class="kpi-card" style="border-color: var(--danger)"><span>Expenses</span><div id="exp">0</div></div>
+        <div class="kpi-card" style="border-color: #8b5cf6"><span>Stock Value</span><div id="stock">0</div></div>
+    </div>
+
+    <div class="desktop-bi-grid">
+        <div class="card full-width">
+            <div class="section-title">Revenue vs. Outflow Performance</div>
+            <div class="chart-wrap"><canvas id="pnlChart"></canvas></div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">👥 Active Debtors Ledger</div>
+            <div id="debt-list" style="max-height: 350px; overflow-y: auto;"></div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">🕒 Recent Transaction Activity</div>
+            <div id="history-list" style="max-height: 350px; overflow-y: auto;"></div>
+        </div>
+    </div>
+</div>
+
+<div id="detailModal" class="modal">
+    <div class="modal-card">
+        <h3 style="margin-top:0; border-bottom: 2px solid var(--primary); padding-bottom: 12px; color: var(--dark);">Transaction Breakdown</h3>
+        <div id="modalContent"></div>
+        <button class="btn-close" onclick="closeModal()">Dismiss</button>
+    </div>
+</div>
+
+<script>
+    const currentUID = AGUtils.resolveActiveUID();
+    const CACHE_KEY = AGUtils.uidKey("ag_ledger_cache", currentUID);
+    let currentFilter = 'today';
+
+    // Storage readers matching stock.html & expenses.html
+    function getStockData() {
+        try {
+            const cache = localStorage.getItem(`ag_inv_cache_${currentUID}`) || 
+                          localStorage.getItem(`ag_stock_cache_${currentUID}`) || 
+                          localStorage.getItem('inventory') || 
+                          localStorage.getItem('products');
+            return cache ? JSON.parse(cache) : {};
+        } catch(e) { return {}; }
+    }
+
+    let localExpensesCache = {};
+    // Open IndexedDB used by expenses.html
+    const idbReq = indexedDB.open(`AssetGuard_Expenses_${currentUID}`, 1);
+    idbReq.onsuccess = (e) => {
+        const db = e.target.result;
+        if (db.objectStoreNames.contains("expenses")) {
+            const tx = db.transaction("expenses", "readonly");
+            tx.objectStore("expenses").getAll().onsuccess = (evt) => {
+                const list = evt.target.result || [];
+                localExpensesCache = {};
+                list.forEach(item => { if (!item.deleted) localExpensesCache[item.id] = item; });
+                window.renderBI();
+            };
+        }
+    };
+
+    let rawData = AGUtils.readJSON(CACHE_KEY, {});
+
+    const handleDataUpdate = (newData) => {
+        if (!newData) return;
+        rawData = (typeof newData === 'string') ? JSON.parse(newData) : newData;
+        window.renderBI();
+    };
+
+    try {
+        if (!firebase.apps.length) firebase.initializeApp(AG_FIREBASE_CONFIG);
+        const db = firebase.database();
+        
+        // Listen to user path sales
+        db.ref(AGUtils.userPath(currentUID)).on('value', (snap) => {
+            if(snap.exists()) {
+                const dbData = snap.val();
+                AGUtils.writeJSON(CACHE_KEY, dbData);
+                handleDataUpdate(dbData);
+            }
+        });
+
+        // Listen to cloud products and expenses nodes directly
+        db.ref(`users/${currentUID}/inventory`).on('value', (snap) => {
+            if (snap.exists()) {
+                localStorage.setItem(`ag_inv_cache_${currentUID}`, JSON.stringify(snap.val()));
+                window.renderBI();
+            }
+        });
+
+        db.ref(`users/${currentUID}/expenses`).on('value', (snap) => {
+            if (snap.exists()) {
+                localExpensesCache = snap.val();
+                window.renderBI();
+            }
+        });
+    } catch (e) { console.log("BI: Offline mode active."); }
+
+    setInterval(() => {
+        const storedData = localStorage.getItem(CACHE_KEY);
+        if (storedData) {
+            const parsedData = JSON.parse(storedData);
+            if (JSON.stringify(parsedData) !== JSON.stringify(rawData)) {
+                handleDataUpdate(parsedData);
+            }
+        }
+    }, 2000);
+
+    const pnlChart = new Chart(document.getElementById('pnlChart'), {
+        type: 'bar', 
+        options: { 
+            maintainAspectRatio: false, 
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        },
+        data: { 
+            labels: ['Revenue', 'Expenses'], 
+            datasets: [{ 
+                backgroundColor: ['#0072CE', '#ef4444'], 
+                borderRadius: 8,
+                data: [0, 0] 
+            }] 
+        }
+    });
+
+    window.setFilter = (type, btn) => {
+        currentFilter = type;
+        document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        window.renderBI();
+    };
+
+    window.renderBI = () => {
+        const sales = Object.values(rawData.sales || rawData || {}); 
+        const exps = Object.values(localExpensesCache);
+        const inventoryObj = getStockData();
+        const inventory = Array.isArray(inventoryObj) ? inventoryObj : Object.values(inventoryObj);
+        const now = new Date();
+
+        let metrics = { rev: 0, exp: 0, totalDebt: 0, vat: 0, stock: 0 };
+        let debtHtml = "";
+        let history = [];
+
+        sales.forEach(s => {
+            if (!s || !s.timestamp) return;
+            const sDate = new Date(s.timestamp);
+            const diffDays = (now - sDate) / 864e5;
+            const total = s.items ? s.items.reduce((acc, i) => acc + (parseFloat(i.total) || 0), 0) : (parseFloat(s.total) || 0);
+            const paid = s.payments ? Object.values(s.payments).reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0) : 0;
+            const balance = total - paid;
+
+            let inRange = false;
+            if (currentFilter === 'today' && sDate.toLocaleDateString() === now.toLocaleDateString()) inRange = true;
+            else if (currentFilter === '7days' && diffDays <= 7) inRange = true;
+            else if (currentFilter === '30days' && diffDays <= 30) inRange = true;
+            else if (currentFilter === 'all') inRange = true;
+
+            if (inRange) {
+                metrics.rev += total;
+                metrics.vat += (total * 0.16) / 1.16;
+                history.push(s);
+            }
+
+            if (s.payment === 'Credit' && balance > 0) {
+                metrics.totalDebt += balance;
+                const encodedSale = encodeURIComponent(JSON.stringify(s));
+                debtHtml += `
+                    <div class="debt-row" onclick='openSaleDetails(${encodedSale})'>
+                        <div><b>${s.customer || 'Customer'}</b><br><small style="color:var(--muted);">${sDate.toLocaleDateString()}</small></div>
+                        <div style="text-align:right"><b style="color:var(--warning);">${AGUtils.formatCurrency(balance)}</b><br><small style="font-size:10px; color:var(--muted);">Tap for details</small></div>
+                    </div>`;
+            }
+        });
+
+        exps.forEach(e => {
+            if (!e || e.deleted) return;
+            const dateVal = e.expense_date || e.timestamp;
+            const eDate = dateVal ? new Date(dateVal) : now;
+            const diffDays = (now - eDate) / 864e5;
+            let inRange = false;
+            if (currentFilter === 'today' && eDate.toLocaleDateString() === now.toLocaleDateString()) inRange = true;
+            else if (currentFilter === '7days' && diffDays <= 7) inRange = true;
+            else if (currentFilter === '30days' && diffDays <= 30) inRange = true;
+            else if (currentFilter === 'all') inRange = true;
+
+            if (inRange) metrics.exp += (parseFloat(e.amount) || 0);
+        });
+
+        inventory.forEach(i => {
+            if (!i) return;
+            const qty = parseFloat(i.qty || i.stock || 0);
+            const price = parseFloat(i.salePrice || i.price || i.productionCost || 0);
+            metrics.stock += (qty * price);
+        });
+
+        document.getElementById('profit').innerText = AGUtils.formatAmount(metrics.rev);
+        document.getElementById('debt').innerText = AGUtils.formatAmount(metrics.totalDebt);
+        document.getElementById('exp').innerText = AGUtils.formatAmount(metrics.exp);
+        document.getElementById('stock').innerText = AGUtils.formatAmount(metrics.stock);
+        document.getElementById('vat-total').innerText = AGUtils.formatCurrency(Math.floor(metrics.vat));
+
+        let deadline = new Date(now.getFullYear(), now.getMonth(), 20);
+        if (now.getDate() > 20) deadline = new Date(now.getFullYear(), now.getMonth() + 1, 20);
+        document.getElementById('tax-days').innerText = `${Math.ceil((deadline - now) / 864e5)} Days Left`;
+
+        pnlChart.data.datasets[0].data = [metrics.rev, metrics.exp];
+        pnlChart.update();
+
+        const sorted = history.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5);
+        document.getElementById('history-list').innerHTML = sorted.map(s => {
+            const encodedSale = encodeURIComponent(JSON.stringify(s));
+            const totalAmt = s.items ? s.items.reduce((acc, i) => acc + parseFloat(i.total || 0), 0) : parseFloat(s.total || 0);
+            return `
+                <div class="history-item" onclick='openSaleDetails(${encodedSale})'>
+                    <div>
+                        <b style="color:var(--dark);">${s.customer || 'Walk-in Customer'}</b>
+                        <span class="item-tag">${s.payment || 'Cash'} Sale • ${new Date(s.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                    </div>
+                    <div style="text-align:right;">
+                        <span style="color:var(--success); font-weight:800;">+${AGUtils.formatAmount(totalAmt)}</span>
+                        <small style="display:block; font-size:9px; color:var(--muted);">Tap to inspect</small>
+                    </div>
+                </div>`;
+        }).join('') || '<p style="text-align:center; color:var(--muted); padding:15px;">No recent records found for this period.</p>';
+
+        document.getElementById('debt-list').innerHTML = debtHtml || '<p style="text-align:center; color:var(--success); padding:15px;">Zero outstanding debt balances.</p>';
+    }
+
+    window.openSaleDetails = (s) => {
+        const total = s.items ? s.items.reduce((acc, i) => acc + (parseFloat(i.total) || 0), 0) : (parseFloat(s.total) || 0);
+        const itemsList = s.items ? s.items.map(i => `${i.name || 'Item'} (x${i.qty || 1}) - ${AGUtils.formatCurrency(i.total || 0)}`).join('<br>') : 'Standard Sale Record';
+        
+        const rows = [
+            { label: "Customer", val: s.customer || 'Walk-in' },
+            { label: "Payment Type", val: s.payment || 'Cash' },
+            { label: "Timestamp", val: AGUtils.formatDateTime(s.timestamp) },
+            { label: "Items Purchased", val: itemsList },
+            { label: "Total Amount", val: AGUtils.formatCurrency(total) }
+        ];
+
+        document.getElementById('modalContent').innerHTML = rows.map(r => `
+            <div class="detail-row">
+                <div class="detail-label">${r.label}</div>
+                <div class="detail-value">${r.val}</div>
+            </div>
+        `).join('');
+
+        document.getElementById('detailModal').style.display = 'flex';
+    };
+
+    window.closeModal = () => {
+        document.getElementById('detailModal').style.display = 'none';
+    };
+
+    window.renderBI();
+    setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
+</script>
+</body>
+</html>

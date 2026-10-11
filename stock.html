@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AssetGuard Pro - Inventory List & Grid</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #0f172a; --accent: #0072CE; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --bg: #f4f7fa; --white: #ffffff; --text-main: #1e293b; --text-sub: #64748b; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 0; color: var(--text-main); line-height: 1.5; overflow-x: hidden; }
+
+        .sticky-header { position: fixed; top: 0; left: 0; right: 0; background: var(--white); z-index: 1000; padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .header-left { font-weight: 800; font-size: 16px; color: var(--primary); letter-spacing: -0.5px; }
+        .header-left span { color: var(--accent); }
+        .header-right { font-size: 11px; font-weight: 800; color: var(--text-sub); text-transform: uppercase; letter-spacing: 1px; }
+        
+        .app-container { max-width: 700px; margin: 0 auto; padding: 90px 15px 40px 15px; }
+        .controls-row { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; }
+        .search-box { flex: 1; padding: 14px 18px; border: 1px solid #e2e8f0; border-radius: 14px; font-size: 14px; background: var(--white); box-shadow: 0 2px 4px rgba(0,0,0,0.02); font-family: inherit; }
+        
+        .btn-add { background: var(--accent); color: white; border: none; width: 48px; height: 48px; border-radius: 14px; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0, 114, 206, 0.2); transition: 0.2s; }
+        .btn-add:hover { transform: translateY(-2px); }
+
+        @media (max-width: 767px) {
+            .app-container { max-width: 500px; padding: 85px 15px 30px 15px; }
+            .stock-container { display: flex; flex-direction: column; gap: 10px; }
+            .stock-item { background: var(--white); padding: 14px 16px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(226, 232, 240, 0.8); position: relative; overflow: hidden; }
+            .stock-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 4px 0 0 4px; }
+            .status-good::before { background: var(--success); }
+            .status-low::before { background: var(--warning); }
+            .status-out::before { background: var(--danger); }
+            .item-info h3 { margin: 0; font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--primary); }
+            .item-info p { margin: 2px 0 0; font-size: 11px; color: var(--text-sub); }
+            .qty-val { font-size: 14px; font-weight: 700; background: #f1f5f9; padding: 6px 12px; border-radius: 8px; color: var(--primary); }
+        }
+
+        @media (min-width: 768px) {
+            body { font-size: 1.2rem; }
+            .app-container { max-width: 1200px !important; }
+            .stock-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+            .stock-item { background: var(--white); padding: 20px; border-radius: 18px; border: 1px solid rgba(226, 232, 240, 0.8); position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 15px rgba(0,0,0,0.02); transition: 0.2s; }
+            .stock-item:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.05); }
+            .stock-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; }
+            .status-good::before { background: var(--success); }
+            .status-low::before { background: var(--warning); }
+            .status-out::before { background: var(--danger); }
+            .item-info h3 { margin: 0 0 10px 0; font-size: 15px; font-weight: 700; text-transform: uppercase; color: var(--primary); }
+            .item-info p { margin: 0 0 10px 0; font-size: 12px; color: var(--text-sub); }
+            .qty-val { font-size: 14px; font-weight: 800; background: #f1f5f9; padding: 6px 12px; border-radius: 8px; align-self: flex-start; color: var(--primary); }
+        }
+
+        .view { display: none; }
+        .view.active { display: block; }
+        
+        .admin-form { background: var(--white); padding: 25px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 25px; border: 1px solid #e2e8f0; }
+        .modern-input { width: 100%; padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 14px; font-size: 14px; background: #fafafa; font-family: inherit; }
+        .modern-input:focus { border-color: var(--accent); background: var(--white); }
+        
+        .btn-main { width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; background: var(--accent); color: white; font-family: inherit; transition: 0.2s; }
+        .btn-main:hover { opacity: 0.9; }
+
+        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 280px; margin: 0 auto; }
+        .num-btn { background: var(--white); border: 1px solid #e2e8f0; padding: 18px; border-radius: 14px; font-size: 18px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .num-btn:active { background: #f1f5f9; }
+        
+        .manage-item { background: var(--white); padding: 14px 18px; border-radius: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #e2e8f0; }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        .modal-card { background: var(--white); width: 90%; max-width: 340px; border-radius: 20px; padding: 25px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        
+        #toastContainer { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 3000; }
+        .toast { background: var(--primary); color: white; padding: 12px 24px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-top: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+    </style>
+</head>
+<body>
+
+<div id="toastContainer"></div>
+
+<div class="sticky-header">
+    <div class="header-left">ASSETGUARD <span>Pro</span></div>
+    <div class="header-right" id="user-badge-label">Inventory View</div>
+</div>
+
+<div id="modalOverlay" class="modal-overlay">
+    <div class="modal-card">
+        <h3 id="modalTitle" style="font-size: 16px; margin-top:0; margin-bottom: 15px;">Delete Item?</h3>
+        <button class="btn-main" id="modalConfirmBtn" style="background:var(--danger); margin-bottom:10px">Yes, Delete</button>
+        <button class="btn-main" style="background:#f1f5f9; color:#64748b" onclick="closeModal()">Cancel</button>
+    </div>
+</div>
+
+<!-- Firebase Auth Login Modal -->
+<div id="authLoginModal" class="modal-overlay" style="z-index: 6000; display: none;">
+    <div class="modal-card" style="max-width: 340px; text-align: center;">
+        <h3 style="margin: 0 0 10px 0; font-size: 18px; color: var(--primary);">Firebase Authentication Required</h3>
+        <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 20px;">Please sign in to sync inventory with the cloud database.</p>
+        <input type="email" id="authEmail" value="forexlin254@gmail.com" class="modern-input" readonly>
+        <input type="password" id="authPassword" placeholder="Enter Firebase Password" class="modern-input">
+        <div id="authError" style="color: var(--danger); font-size: 11px; font-weight: 700; margin-bottom: 10px; display: none;"></div>
+        <button class="btn-main" onclick="handleFirebaseLogin()">Sign In & Sync Instantly</button>
+    </div>
+</div>
+
+<div class="app-container">
+    <div id="view-dashboard" class="view active">
+        <div class="controls-row">
+            <input type="text" id="searchInput" class="search-box" placeholder="Search products..." oninput="renderDashboard()">
+            <button class="btn-add" onclick="openAdmin()">+</button>
+        </div>
+        <div id="inventoryContainer" class="stock-container"></div>
+    </div>
+
+    <div id="view-pin" class="view">
+        <div style="text-align: center; padding-top: 20px;">
+            <h3 style="font-size: 18px; color: var(--primary);">Manager PIN Access</h3>
+            <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 20px;">Enter 4-digit manager PIN code</p>
+            <div class="pin-dots" style="display: flex; justify-content: center; gap: 12px; margin: 20px 0 30px 0;">
+                <div class="pin-dot" style="width:14px; height:14px; border-radius:50%; border:2px solid #cbd5e1;"></div>
+                <div class="pin-dot" style="width:14px; height:14px; border-radius:50%; border:2px solid #cbd5e1;"></div>
+                <div class="pin-dot" style="width:14px; height:14px; border-radius:50%; border:2px solid #cbd5e1;"></div>
+                <div class="pin-dot" style="width:14px; height:14px; border-radius:50%; border:2px solid #cbd5e1;"></div>
+            </div>
+            <div class="numpad">
+                <button class="num-btn" onclick="pressNum('1')">1</button><button class="num-btn" onclick="pressNum('2')">2</button><button class="num-btn" onclick="pressNum('3')">3</button>
+                <button class="num-btn" onclick="pressNum('4')">4</button><button class="num-btn" onclick="pressNum('5')">5</button><button class="num-btn" onclick="pressNum('6')">6</button>
+                <button class="num-btn" onclick="pressNum('7')">7</button><button class="num-btn" onclick="pressNum('8')">8</button><button class="num-btn" onclick="pressNum('9')">9</button>
+                <button class="num-btn" onclick="pressNum('C')" style="color:var(--danger)">C</button><button class="num-btn" onclick="pressNum('0')">0</button><button class="num-btn" onclick="pressNum('⌫')">⌫</button>
+            </div>
+            <button class="btn-main" style="background:transparent; color:#64748b; margin-top:25px; box-shadow:none;" onclick="switchView('view-dashboard')">Cancel</button>
+        </div>
+    </div>
+
+    <div id="view-admin" class="view">
+        <div class="controls-row">
+            <h2 style="font-size: 18px; flex: 1; margin:0; color: var(--primary);">Control Center</h2>
+            <button style="background:#f1f5f9; border:none; padding: 12px 18px; border-radius:12px; font-weight:700; cursor:pointer; font-family:inherit;" onclick="switchView('view-dashboard')">Back</button>
+        </div>
+        <div class="admin-form">
+            <h4 id="formTitle" style="margin:0 0 15px 0; font-size: 15px; color: var(--primary);">Product Editor</h4>
+            <input type="text" id="itemName" class="modern-input" placeholder="Product Name (e.g., Mineral Turpentine)">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+                <input type="text" inputmode="text" autocomplete="off" id="itemQty" class="modern-input" placeholder="Quantity (e.g., 10)">
+                <input type="text" inputmode="text" autocomplete="off" id="itemLiters" class="modern-input" placeholder="Volume (Liters; e.g., 0.5)">
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+                <input type="text" inputmode="text" autocomplete="off" id="salePrice" class="modern-input" placeholder="Selling Price (KES)">
+                <input type="text" inputmode="text" autocomplete="off" id="productionCost" class="modern-input" placeholder="Production Cost (KES)">
+            </div>
+            <button class="btn-main" onclick="handleSave()">Save Product</button>
+        </div>
+        <div id="adminManageList"></div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getDatabase, ref, onValue, set, remove, update } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+    const app = initializeApp({
+        apiKey: "AIzaSyDCkP7LTzdNcvZhp24rRsQirYDCcrsuvOA",
+        authDomain: "assetguard-c8c8c.firebaseapp.com",
+        databaseURL: "https://assetguard-c8c8c-default-rtdb.firebaseio.com/",
+        projectId: "assetguard-c8c8c"
+    });
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let resolvedUID = urlParams.get('uid') || urlParams.get('user') || urlParams.get('currentUID') || urlParams.get('userId');
+
+    if (!resolvedUID) {
+        try {
+            if (window.AppInventor && typeof window.AppInventor.getWebViewString === 'function') {
+                const wvString = window.AppInventor.getWebViewString();
+                if (wvString && wvString !== "undefined" && wvString !== "null" && wvString.trim() !== "") {
+                    if (wvString.startsWith('{') || wvString.startsWith('[')) {
+                        try {
+                            const parsed = JSON.parse(wvString);
+                            resolvedUID = parsed.uid || parsed.userId || parsed.username || wvString;
+                        } catch(e) {
+                            resolvedUID = wvString;
+                        }
+                    } else {
+                        resolvedUID = wvString;
+                    }
+                }
+            }
+        } catch(e) {
+            console.error("WebViewString capture failed", e);
+        }
+    }
+
+    if (!resolvedUID) {
+        resolvedUID = localStorage.getItem("ag_active_uid");
+    }
+
+    if (!resolvedUID || resolvedUID === "null" || resolvedUID === "undefined" || resolvedUID.trim() === "") {
+        resolvedUID = "global_user";
+    }
+
+    const currentUID = resolvedUID;
+    localStorage.setItem("ag_active_uid", currentUID);
+    const cloudPath = `users/${currentUID}/inventory`;
+
+    function persistAllCaches(cacheObj) {
+        const jsonStr = JSON.stringify(cacheObj);
+        const arrayStr = JSON.stringify(Object.values(cacheObj));
+
+        localStorage.setItem(`ag_inv_cache_${currentUID}`, jsonStr);
+        localStorage.setItem(`ag_stock_cache_${currentUID}`, jsonStr);
+        localStorage.setItem(`ag_inv_array_${currentUID}`, arrayStr);
+        localStorage.setItem(`ag_inv_cache`, jsonStr);
+        localStorage.setItem(`ag_stock_cache`, jsonStr);
+        localStorage.setItem(`inventory`, arrayStr);
+        localStorage.setItem(`products`, arrayStr);
+    }
+
+    let inventoryCache = JSON.parse(localStorage.getItem(`ag_inv_cache_${currentUID}`)) || 
+                         JSON.parse(localStorage.getItem(`ag_stock_cache_${currentUID}`)) || {};
+
+    Object.keys(inventoryCache).forEach(k => {
+        if (inventoryCache[k]) {
+            let q = Number(inventoryCache[k].qty);
+            if (!Number.isFinite(q)) inventoryCache[k].qty = 0;
+            let p = Number(inventoryCache[k].salePrice);
+            if (!Number.isFinite(p)) inventoryCache[k].salePrice = 0;
+        }
+    });
+    persistAllCaches(inventoryCache);
+
+    let syncQueue = JSON.parse(localStorage.getItem(`ag_inv_queue_${currentUID}`)) || [];
+
+    window.handleFirebaseLogin = async () => {
+        const email = document.getElementById('authEmail').value;
+        const password = document.getElementById('authPassword').value;
+        const errEl = document.getElementById('authError');
+        if (!password) {
+            errEl.style.display = 'block';
+            errEl.innerText = "Please enter your password.";
+            return;
+        }
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+            errEl.style.display = 'none';
+            document.getElementById('authLoginModal').style.display = 'none';
+        } catch (error) {
+            errEl.style.display = 'block';
+            errEl.innerText = error.message || "Authentication failed.";
+        }
+    };
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            document.getElementById('authLoginModal').style.display = 'none';
+            console.log("Authenticated as:", user.email);
+            if (navigator.onLine) attemptSync();
+        } else {
+            document.getElementById('authLoginModal').style.display = 'flex';
+        }
+    });
+
+    async function attemptSync() {
+        if (!navigator.onLine || syncQueue.length === 0) return;
+        for (let i = 0; i < syncQueue.length; i++) {
+            const item = syncQueue[i];
+            try {
+                if (item.isDelete) { await remove(ref(db, `${cloudPath}/${item.id}`)); }
+                else { await update(ref(db, `${cloudPath}/${item.id}`), item); }
+                syncQueue.splice(i, 1);
+                localStorage.setItem(`ag_inv_queue_${currentUID}`, JSON.stringify(syncQueue));
+                i--;
+            } catch(e) { break; }
+        }
+    }
+
+    function parseEditorNumber(rawValue) {
+        const raw = String(rawValue ?? "").trim();
+        if (raw === "") return 0;
+
+        const fraction = raw.match(/^((?:\d+(?:\.\d*)?|\.\d+))\s*\/\s*((?:\d+(?:\.\d*)?|\.\d+))$/);
+        let value;
+        if (fraction) {
+            const denominator = Number(fraction[2]);
+            if (denominator === 0) return null;
+            value = Number(fraction[1]) / denominator;
+        } else if (/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(raw)) {
+            value = Number(raw);
+        } else {
+            return null;
+        }
+
+        return Number.isFinite(value) && value >= 0 ? value : null;
+    }
+
+    window.handleSave = async () => {
+        const name = document.getElementById('itemName').value.trim();
+        if(!name) return notify("Product name required", "error");
+
+        const qty = parseEditorNumber(document.getElementById('itemQty').value);
+        const liters = parseEditorNumber(document.getElementById('itemLiters').value);
+        const price = parseEditorNumber(document.getElementById('salePrice').value);
+        const cost = parseEditorNumber(document.getElementById('productionCost').value);
+
+        if (qty === null || liters === null || price === null || cost === null) {
+            notify("Please enter valid positive numbers for quantities, liters, and prices.", "error");
+            return;
+        }
+        
+        const key = name.toLowerCase().replace(/[\/\.#$\[\]]/g, '_').replace(/\s+/g, '_');
+
+        const updatedItem = { id: key, name, qty, liters, salePrice: price, productionCost: cost };
+        inventoryCache[key] = updatedItem;
+        syncQueue.push(updatedItem);
+
+        persistAllCaches(inventoryCache);
+        localStorage.setItem(`ag_inv_queue_${currentUID}`, JSON.stringify(syncQueue));
+        
+        resetForm();
+        renderDashboard();
+        renderAdminList();
+        notify("Saved successfully");
+        attemptSync();
+    };
+
+    window.popDelete = (k) => {
+        document.getElementById('modalOverlay').style.display = 'flex';
+        document.getElementById('modalConfirmBtn').onclick = () => {
+            delete inventoryCache[k];
+            syncQueue.push({ id: k, isDelete: true });
+            persistAllCaches(inventoryCache);
+            localStorage.setItem(`ag_inv_queue_${currentUID}`, JSON.stringify(syncQueue));
+            closeModal();
+            renderDashboard();
+            renderAdminList();
+            notify("Item deleted");
+            attemptSync();
+        };
+    };
+
+    window.renderDashboard = () => {
+        const container = document.getElementById('inventoryContainer');
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        container.innerHTML = '';
+        
+        const keys = Object.keys(inventoryCache).sort();
+        if(keys.length === 0) {
+            container.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding: 40px; color: var(--text-sub);">No inventory items found. Tap '+' to add products.</div>`;
+            return;
+        }
+
+        keys.forEach(k => {
+            const item = inventoryCache[k];
+            if(!item.name.toLowerCase().includes(search)) return;
+            const q = Number.isFinite(Number(item.qty)) ? Number(item.qty) : 0;
+            const status = q > 5 ? 'status-good' : (q > 0 ? 'status-low' : 'status-out');
+            container.innerHTML += `
+                <div class="stock-item ${status}">
+                    <div class="item-info">
+                        <h3>${item.name}</h3>
+                        <p>${item.liters || 0}L • KES ${(item.salePrice || 0).toLocaleString()}</p>
+                    </div>
+                    <div class="qty-val">${q}</div>
+                </div>`;
+        });
+    };
+
+    window.renderAdminList = () => {
+        const container = document.getElementById('adminManageList');
+        container.innerHTML = '';
+        Object.keys(inventoryCache).sort().forEach(k => {
+            const item = inventoryCache[k];
+            const q = Number.isFinite(Number(item.qty)) ? Number(item.qty) : 0;
+            container.innerHTML += `
+                <div class="manage-item">
+                    <div style="font-size:13px; font-weight:700; color:var(--primary);">${item.name} <span style="font-weight:400; color:var(--text-sub);">(${q} units)</span></div>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn-main" style="width:auto; padding:8px 14px; font-size:11px" onclick="fillForm('${k}')">Edit</button>
+                        <button class="btn-main" style="width:auto; padding:8px 14px; font-size:11px; background:var(--danger)" onclick="popDelete('${k}')">Del</button>
+                    </div>
+                </div>`;
+        });
+    };
+
+    onValue(ref(db, cloudPath), (snap) => {
+        if(snap.exists()) {
+            const val = snap.val();
+            Object.keys(val).forEach(k => {
+                if(val[k]) {
+                    let q = Number(val[k].qty);
+                    if(!Number.isFinite(q)) val[k].qty = 0;
+                }
+            });
+            inventoryCache = val;
+            persistAllCaches(inventoryCache);
+            renderDashboard();
+            renderAdminList();
+        }
+    });
+
+    let pinBuffer = "";
+    window.pressNum = (n) => {
+        if(n === 'C') pinBuffer = ""; else if(n === '⌫') pinBuffer = pinBuffer.slice(0, -1); else if(pinBuffer.length < 4) pinBuffer += n;
+        document.querySelectorAll('.pin-dot').forEach((d, i) => { d.style.background = i < pinBuffer.length ? "var(--accent)" : "transparent"; });
+        if(pinBuffer.length === 4) { if(pinBuffer === "1234") switchView('view-admin'); else { notify("Invalid PIN", "error"); pinBuffer = ""; document.querySelectorAll('.pin-dot').forEach(d => d.style.background = "transparent"); } }
+    };
+    
+    window.switchView = (id) => { document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); document.getElementById(id).classList.add('active'); };
+    window.openAdmin = () => { pinBuffer = ""; document.querySelectorAll('.pin-dot').forEach(d => d.style.background = "transparent"); switchView('view-pin'); };
+    window.fillForm = (k) => { 
+        const i = inventoryCache[k]; 
+        document.getElementById('itemName').value = i.name; 
+        document.getElementById('itemLiters').value = i.liters; 
+        document.getElementById('salePrice').value = i.salePrice; 
+        document.getElementById('productionCost').value = i.productionCost || '';
+        document.getElementById('itemQty').value = i.qty; 
+        switchView('view-admin'); 
+    };
+    window.closeModal = () => document.getElementById('modalOverlay').style.display = 'none';
+    window.notify = (m) => { 
+        const t = document.createElement('div'); 
+        t.className = 'toast'; 
+        t.innerText = m; 
+        document.getElementById('toastContainer').appendChild(t); 
+        setTimeout(() => t.remove(), 2000); 
+    };
+    function resetForm() { ['itemName', 'itemQty', 'itemLiters', 'salePrice', 'productionCost'].forEach(id => document.getElementById(id).value = ''); }
+    window.addEventListener('online', attemptSync);
+    renderDashboard();
+    renderAdminList();
+</script>
+</body>
+</html>

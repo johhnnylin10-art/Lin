@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="error-utils.js"></script>
+<script src="ag-utils.js"></script>
+<script src="ag-config.js"></script>
+<script src="ag-context-guard.js"></script>
+<script type="module" src="auth-guard.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AssetGuard Pro - Master Admin Control Terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+    --primary: #0052cc;
+    --primary-dark: #071952;
+    --accent: #ff6b00;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --bg-light: #f8fafc;
+    --card-bg: #ffffff;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --border-color: #e2e8f0;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg-light);color:var(--text-main);min-height:100vh;display:flex;flex-direction:column;}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+/* Login Container */
+.login-wrapper {
+    flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.login-card {
+    background: var(--card-bg); width: 100%; max-width: 400px; padding: 35px;
+    border-radius: 18px; box-shadow: 0 15px 35px rgba(0,0,0,0.08); border: 1px solid var(--border-color);
+    text-align: center;
+}
+.login-card h2 { font-size: 22px; font-weight: 800; color: var(--primary-dark); margin-bottom: 8px; }
+.login-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 25px; }
+.form-group { margin-bottom: 16px; text-align: left; }
+.form-group label { display: block; font-size: 11px; text-transform: uppercase; font-weight: 800; color: var(--text-muted); margin-bottom: 6px; letter-spacing: 0.5px; }
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 10px;
+    font-size: 14px; outline: none; font-family: inherit; transition: 0.2s; background: #fff;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,82,204,0.1); }
+
+.btn { padding: 12px 20px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; width: 100%; font-size: 14px; transition: 0.2s; text-align: center; display: inline-block; text-decoration: none;}
+.btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(0,82,204,0.3); }
+.btn-primary:hover { background: #0043a5; }
+
+/* Dashboard Container */
+.dashboard-container { display: none; flex: 1; flex-direction: column; width: 100%; height: 100vh; overflow: hidden; }
+.top-nav {
+    background: var(--primary-dark); color: white; padding: 16px 30px;
+    display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+.top-nav h1 { font-size: 16px; font-weight: 800; }
+.top-nav-actions { display: flex; gap: 12px; align-items: center; }
+.btn-sm { padding: 6px 12px; border-radius: 6px; border: none; font-size: 11px; font-weight: 700; cursor: pointer; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-success { background: var(--success); color: white; }
+.btn-warning { background: var(--warning); color: #fff; }
+
+/* Navigation Tabs */
+.admin-tabs {
+    background: #0f172a; padding: 0 30px; display: flex; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); overflow-x: auto;
+}
+.tab-btn {
+    background: none; border: none; color: #94a3b8; padding: 14px 20px; font-size: 13px; font-weight: 700;
+    cursor: pointer; border-bottom: 3px solid transparent; transition: 0.2s; white-space: nowrap;
+}
+.tab-btn:hover { color: #fff; }
+.tab-btn.active { color: #fff; border-bottom-color: var(--primary); }
+
+.main-content { flex: 1; padding: 30px; overflow-y: auto; max-width: 1400px; width: 100%; margin: 0 auto; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* Stat Cards */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 25px; }
+.stat-box { background: white; padding: 20px; border-radius: 14px; border: 1px solid var(--border-color); box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+.stat-title { font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 800; letter-spacing: 0.5px; }
+.stat-value { font-size: 28px; font-weight: 800; color: var(--primary-dark); margin-top: 4px; }
+
+.card-box {
+    background: var(--card-bg); border-radius: 16px; border: 1px solid var(--border-color);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.02); overflow: hidden; margin-bottom: 25px;
+}
+.card-header { padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.card-header h3 { font-size: 16px; font-weight: 800; color: var(--primary-dark); }
+.card-body { padding: 24px; }
+
+.table-responsive { width: 100%; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+th { background: #f1f5f9; color: var(--text-muted); font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 15px 20px; border-bottom: 1px solid var(--border-color); }
+td { padding: 16px 20px; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
+tr:hover { background: #fafafa; }
+
+/* Modal Styles */
+.modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.6); backdrop-filter: blur(4px);
+    z-index: 2000; align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.active { display: flex; }
+.modal-card {
+    background: white; width: 100%; max-width: 750px; border-radius: 18px; padding: 30px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 16px; max-height: 90vh; overflow-y: auto;
+}
+.modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; }
+.modal-header h3 { font-size: 18px; font-weight: 800; color: var(--primary-dark); }
+.modal-header button { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); }
+
+.profile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); }
+.profile-item label { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 2px; }
+.profile-item span { font-size: 13px; font-weight: 700; color: var(--text-main); }
+
+.chat-history-box {
+    background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 16px;
+    max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; font-size: 12px;
+}
+.bubble { 
+    padding: 10px 14px; border-radius: 10px; max-width: 85%; line-height: 1.4; position: relative; 
+}
+.bubble.user { background: white; border: 1px solid var(--border-color); align-self: flex-start; color: var(--text-main); }
+.bubble.admin { background: #e0f2fe; border: 1px solid #bae6fd; color: var(--primary-dark); align-self: flex-end; }
+.bubble-meta { font-size: 10px; color: var(--text-muted); margin-top: 4px; display: block; text-align: right; }
+
+.error-msg { color: var(--danger); font-size: 12px; margin-top: 12px; font-weight: 600; display: none; }
+.success-banner { background: #dcfce7; color: #166534; padding: 12px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; margin-bottom: 20px; display: none; }
+</style>
+
+<!-- Firebase Classic SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body>
+
+<!-- Login View -->
+<div class="login-wrapper" id="loginWrapper">
+    <div class="login-card">
+        <h2>AssetGuard Admin</h2>
+        <p>Restricted access for master administrator only.</p>
+        <div class="form-group">
+            <label>Admin Email</label>
+            <input type="email" id="adminEmail" value="forexlin254@gmail.com" placeholder="Enter admin email">
+        </div>
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="adminPassword" placeholder="Enter password">
+        </div>
+        <button class="btn btn-primary" onclick="handleAdminLogin()">Secure Login</button>
+        <div class="error-msg" id="loginError"></div>
+    </div>
+</div>
+
+<!-- Admin Dashboard View -->
+<div class="dashboard-container" id="adminDashboard">
+    <div class="top-nav">
+        <h1>AssetGuard Pro — Master Admin Control Terminal</h1>
+        <div class="top-nav-actions">
+            <span id="adminSessionInfo" style="font-size: 12px; background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 6px;">Logged in: ...</span>
+            <button class="btn-sm btn-primary" onclick="refreshData()">Sync Cloud</button>
+            <button class="btn-sm btn-danger" onclick="handleAdminLogout()">Logout</button>
+        </div>
+    </div>
+    
+    <div class="admin-tabs">
+        <button class="tab-btn active" onclick="switchTab('helpdesk')">Helpdesk & Inquiries</button>
+        <button class="tab-btn" onclick="switchTab('userDirectory')">Registered User Directory</button>
+        <button class="tab-btn" onclick="switchTab('broadcastHub')">Broadcast Hub</button>
+        <button class="tab-btn" onclick="switchTab('auditTracer')">Login & Activity History</button>
+        <button class="tab-btn" onclick="switchTab('historyRequests')">History Requests</button>
+        <button class="tab-btn" onclick="switchTab('marketingRequests')">Marketing Requests</button>
+        <button class="tab-btn" onclick="switchTab('stkConfig')">Master STK Config</button>
+    </div>
+
+    <div class="main-content">
+        <!-- TAB 1: HELPDESK & AI QUERIES -->
+        <div class="tab-panel active" id="panel-helpdesk">
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-title">Total New Issue Tickets</div>
+                    <div class="stat-value" id="statTotal">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-title">Active (< 72h)</div>
+                    <div class="stat-value" id="statActive" style="color: var(--success);">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-title">Expired (> 72h)</div>
+                    <div class="stat-value" id="statExpired" style="color: var(--danger);">0</div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <h2 style="font-size: 20px; font-weight: 800;">Support Tickets & User Inquiries</h2>
+                    <p style="font-size: 13px; color: var(--text-muted);">Manage and respond to active client support threads instantly.</p>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text" id="ticketSearchBox" placeholder="Search ticket or UID..." onkeyup="filterTicketsTable()" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 12px; width: 220px;">
+                    <button class="btn-sm btn-danger" onclick="deleteSelectedTickets()">Delete Selected</button>
+                </div>
+            </div>
+
+            <div class="card-box">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 40px; text-align: center;"><input type="checkbox" id="selectAllTickets" onclick="toggleSelectAllTickets(this)"></th>
+                                <th>Time</th>
+                                <th>User UID</th>
+                                <th>Ticket # / Initial Issue</th>
+                                <th>Workflow Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminTicketsTableBody">
+                            <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">Loading tickets instantly...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: REGISTERED USER DIRECTORY & ACCOUNT CONTROL -->
+        <div class="tab-panel" id="panel-userDirectory">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <h2 style="font-size: 20px; font-weight: 800;">Registered User Directory</h2>
+                    <p style="font-size: 13px; color: var(--text-muted);">Manage all registered user accounts, track credentials, and grant subscription access.</p>
+                </div>
+                <div>
+                    <input type="text" id="userSearchBox" placeholder="Search email, phone, password or UID..." onkeyup="filterUserDirectory()" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 12px; width: 280px;">
+                </div>
+            </div>
+
+            <div class="card-box">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>User Credentials (Email / Phone / Password / UID)</th>
+                                <th>Date Joined</th>
+                                <th>Last Active Login</th>
+                                <th>Account Status</th>
+                                <th>Access Controls</th>
+                                <th>User Details Popup</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userDirectoryTableBody">
+                            <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">Loading user directory...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: BROADCAST HUB -->
+        <div class="tab-panel" id="panel-broadcastHub">
+            <div style="margin-bottom: 20px;">
+                <h2 style="font-size: 20px; font-weight: 800;">Instant Global Broadcast Hub</h2>
+                <p style="font-size: 13px; color: var(--text-muted);">Send common information, announcements, or alerts instantly to all connected users.</p>
+            </div>
+
+            <div class="success-banner" id="broadcastSuccessBanner">Broadcast notification sent successfully to all users!</div>
+
+            <div class="card-box">
+                <div class="card-header">
+                    <h3>Compose Global Broadcast Message</h3>
+                </div>
+                <div class="card-body">
+                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                        <div class="form-group">
+                            <label>Broadcast Title / Subject</label>
+                            <input type="text" id="broadcastTitle" placeholder="e.g., System Maintenance Notice">
+                        </div>
+                        <div class="form-group">
+                            <label>Priority Level</label>
+                            <select id="broadcastPriority">
+                                <option value="Normal">Normal Announcement</option>
+                                <option value="Important">Important Update</option>
+                                <option value="Urgent">Urgent System Alert</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Message Content</label>
+                            <textarea id="broadcastMessage" placeholder="Type common information to broadcast to all users..." style="width: 100%; height: 120px; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; resize: none;"></textarea>
+                        </div>
+                        <div style="display: flex; justify-content: flex-end;">
+                            <button class="btn btn-primary" style="max-width: 250px;" onclick="sendBroadcastNotification()">Broadcast to All Users Instantly</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: LOGIN & ACTIVITY HISTORY TRACER -->
+        <div class="tab-panel" id="panel-auditTracer">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <h2 style="font-size: 20px; font-weight: 800;">Users Login & Activity History Stream</h2>
+                    <p style="font-size: 13px; color: var(--text-muted);">Every login event captured in real time with exact timestamp, email, phone number, and password used.</p>
+                </div>
+                <div>
+                    <button class="btn-sm btn-danger" onclick="clearActivityLogs()">Clear Login & Audit Logs</button>
+                </div>
+            </div>
+
+            <div class="card-box">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>User UID</th>
+                                <th>Subscription Status</th>
+                                <th>Captured Login Credentials & Action Details</th>
+                                <th>Device Reference</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditLogsTableBody">
+                            <tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Listening for instant user login history...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: HISTORY REQUESTS -->
+        <div class="tab-panel" id="panel-historyRequests">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <h2 style="font-size: 20px; font-weight: 800;">Chat History Retrieval Requests</h2>
+                    <p style="font-size: 13px; color: var(--text-muted);">Users requesting to restore expired chat history. Accept or decline requests instantly below.</p>
+                </div>
+                <div>
+                    <button class="btn-sm btn-danger" onclick="deleteSelectedHistoryRequests()">Delete Selected</button>
+                </div>
+            </div>
+
+            <div class="card-box">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 40px; text-align: center;"><input type="checkbox" id="selectAllHistoryReqs" onclick="toggleSelectAllHistoryReqs(this)"></th>
+                                <th>Time Requested</th>
+                                <th>User UID</th>
+                                <th>Reason / Note</th>
+                                <th>Status</th>
+                                <th>Decision Action / Delete</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyRequestsTableBody">
+                            <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">Loading history requests instantly...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 6: MARKETING REQUESTS -->
+        <div class="tab-panel" id="panel-marketingRequests">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <h2 style="font-size: 20px; font-weight: 800;">Marketing Requests (Name, Phone & Numberplate)</h2>
+                    <p style="font-size: 13px; color: var(--text-muted);">Review submitted entries capturing Name, Phone Number, and Car Numberplate.</p>
+                </div>
+                <div>
+                    <button class="btn-sm btn-danger" onclick="deleteSelectedMarketingRequests()">Delete Selected</button>
+                </div>
+            </div>
+
+            <div class="card-box">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 40px; text-align: center;"><input type="checkbox" id="selectAllMarketing" onclick="toggleSelectAllMarketing(this)"></th>
+                                <th>Time Requested</th>
+                                <th>User UID</th>
+                                <th>Captured Details (Name, Phone, Numberplate)</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="marketingRequestsTableBody">
+                            <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">Loading marketing requests instantly...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 7: MASTER STK PUSH CONFIG -->
+        <div class="tab-panel" id="panel-stkConfig">
+            <div style="margin-bottom: 20px;">
+                <h2 style="font-size: 20px; font-weight: 800;">Master M-Pesa Daraja & STK Push Configuration</h2>
+                <p style="font-size: 13px; color: var(--text-muted);">Manage global Daraja API keys, shortcodes, and Cloudflare Worker endpoints.</p>
+            </div>
+
+            <div class="success-banner" id="configSuccessBanner">Configuration saved and synchronized successfully to Firebase!</div>
+
+            <div class="card-box">
+                <div class="card-header">
+                    <h3>Global Gateway Credentials</h3>
+                </div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label>Cloudflare Worker Backend URL</label>
+                            <input type="text" id="cfgBackendUrl" placeholder="https://weathered-glade-c60b.assetguardinfo.workers.dev">
+                        </div>
+                        <div class="form-group">
+                            <label>Environment Mode</label>
+                            <select id="cfgEnvironment">
+                                <option value="production">Production (Live)</option>
+                                <option value="sandbox">Sandbox (Testing)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Default Account Type</label>
+                            <select id="cfgAccountType">
+                                <option value="Paybill">Paybill (Business Shortcode)</option>
+                                <option value="Till">Till Number (Buy Goods & Services)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Master Business Shortcode / Till</label>
+                            <input type="text" id="cfgShortcode" placeholder="e.g. 257471">
+                        </div>
+                        <div class="form-group">
+                            <label>Lipwa Na M-Pesa Online Passkey</label>
+                            <input type="password" id="cfgPasskey" placeholder="Enter live passkey">
+                        </div>
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label>Daraja Consumer Key</label>
+                            <input type="text" id="cfgConsumerKey" placeholder="Enter Consumer Key">
+                        </div>
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label>Daraja Consumer Secret</label>
+                            <input type="password" id="cfgConsumerSecret" placeholder="Enter Consumer Secret">
+                        </div>
+                    </div>
+                    <div style="margin-top: 25px; display: flex; justify-content: flex-end;">
+                        <button class="btn btn-primary" style="max-width: 250px;" onclick="saveMasterStkConfig()">Save & Broadcast Configuration</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manage / Ticket Chat Modal -->
+<div class="modal-overlay" id="ticketModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Manage Support Ticket</h3>
+            <button onclick="closeModal()">✕</button>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted);" id="modalMetaInfo">User UID: ...</div>
+        
+        <div class="chat-history-box" id="modalChatHistory"></div>
+
+        <div class="form-group" id="modalStatusWrapper" style="margin-bottom:0;">
+            <label id="modalStatusLabel">Ticket Workflow Status</label>
+            <div id="modalStatusControlArea"></div>
+        </div>
+
+        <div id="adminReplyingBar" style="display:none; background:#e0f2fe; padding:6px 10px; border-radius:6px; font-size:11px; color:var(--primary-dark); justify-content:space-between; align-items:center;">
+            <span id="adminReplyingTextSnippet">Replying to message...</span>
+            <button onclick="cancelAdminReplyHighlight()" style="background:none; border:none; cursor:pointer; font-weight:bold; color:var(--danger);">✕</button>
+        </div>
+
+        <div class="form-group" style="margin-bottom:0;">
+            <label>Reply Directly to User</label>
+            <textarea id="modalReplyText" placeholder="Type your response to the user here..." style="width: 100%; height: 90px; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 13px; font-family: inherit; outline: none; resize: none;"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 5px;">
+            <button class="btn" style="background: #f1f5f9; color: var(--text-muted);" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitAdminReply()">Send Reply & Update Status</button>
+        </div>
+    </div>
+</div>
+
+<!-- Marketing Request Edit Modal (Name, Phone, Numberplate) -->
+<div class="modal-overlay" id="marketingEditModal">
+    <div class="modal-card" style="max-width: 550px;">
+        <div class="modal-header">
+            <h3>Edit Marketing Request</h3>
+            <button onclick="closeMarketingEditModal()">✕</button>
+        </div>
+        <input type="hidden" id="editMarketingId">
+        <div class="form-group" style="margin-top:10px;">
+            <label>Name</label>
+            <input type="text" id="editMarketingName" placeholder="Full Name">
+        </div>
+        <div class="form-group">
+            <label>Phone Number</label>
+            <input type="text" id="editMarketingPhone" placeholder="Phone Number">
+        </div>
+        <div class="form-group">
+            <label>Car Numberplate</label>
+            <input type="text" id="editMarketingNumberplate" placeholder="Car Numberplate (e.g. KAA 000A)">
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 5px;">
+            <button class="btn" style="background: #f1f5f9; color: var(--text-muted);" onclick="closeMarketingEditModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveMarketingEdit()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed User Profile Popup Modal -->
+<div class="modal-overlay" id="userProfileModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 id="userProfileTitle">Individual User Profile & Activity</h3>
+            <button onclick="closeUserProfileModal()">✕</button>
+        </div>
+        
+        <div class="profile-grid">
+            <div class="profile-item" style="grid-column: 1 / -1;">
+                <label>User Identity (Email & Phone)</label>
+                <span id="pModalEmailPhone" style="font-size: 14px; color: var(--primary);">...</span>
+            </div>
+            <div class="profile-item" style="grid-column: 1 / -1;">
+                <label>Captured Account Password</label>
+                <span id="pModalPassword" style="font-size: 14px; color: var(--danger); font-weight: 800; background: #fee2e2; padding: 4px 8px; border-radius: 6px; display: inline-block;">...</span>
+            </div>
+            <div class="profile-item">
+                <label>User Unique ID (UID)</label>
+                <span id="pModalUid" style="font-size: 11px; word-break: break-all;">...</span>
+            </div>
+            <div class="profile-item">
+                <label>Date of Joining (Registered)</label>
+                <span id="pModalJoined">...</span>
+            </div>
+            <div class="profile-item">
+                <label>Last Logged In Activity</label>
+                <span id="pModalLastLogin">...</span>
+            </div>
+            <div class="profile-item">
+                <label>Account Status</label>
+                <span id="pModalStatus">...</span>
+            </div>
+            <div class="profile-item">
+                <label>Payment / Subscription Status</label>
+                <span id="pModalSubStatus">...</span>
+            </div>
+            <div class="profile-item">
+                <label>Balance Due / Expiry Date</label>
+                <span id="pModalBalanceExpiry">Ksh 0.00 Due — Active</span>
+            </div>
+        </div>
+
+        <!-- Grant / Extend Subscription Section -->
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; margin-top: 10px;">
+            <label style="font-size: 11px; font-weight: 800; color: var(--primary-dark); text-transform: uppercase; margin-bottom: 8px; display: block;">Grant / Extend Subscription License (Millisecond Timestamp)</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="btn btn-primary" style="font-size: 12px; padding: 10px;" onclick="adminGrantSubscription(30)">Grant 30 Days</button>
+                <button class="btn btn-success" style="font-size: 12px; padding: 10px;" onclick="adminGrantSubscription(365)">Grant 1 Year</button>
+            </div>
+        </div>
+
+        <!-- Subscription Pause Control Section -->
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; margin-top: 10px;">
+            <label style="font-size: 11px; font-weight: 800; color: var(--primary-dark); text-transform: uppercase; margin-bottom: 8px; display: block;">Temporary Subscription Pause / Free Access Window</label>
+            <div id="pauseStatusDisplay" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 10px;">Status: Checking pause state...</div>
+            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+                <input type="number" id="pauseDurationInput" placeholder="Duration" style="flex: 1; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 12px;" min="1" value="30">
+                <select id="pauseUnitSelect" style="padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 12px;">
+                    <option value="minutes">Minutes</option>
+                    <option value="hours" selected>Hours</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn-primary" style="font-size: 12px; padding: 8px 12px;" onclick="applyUserSubscriptionPause()">Pause Subscription / Allow Free Access</button>
+                <button class="btn btn-danger" style="font-size: 12px; padding: 8px 12px;" onclick="cancelUserSubscriptionPause()">Cancel Pause / Resume Check</button>
+            </div>
+        </div>
+
+        <div style="font-weight: 800; font-size: 13px; margin-top: 5px;">Complete Login & Activity History Stream:</div>
+        <div class="chat-history-box" id="pModalActivityStream" style="max-height: 150px;">
+            <!-- User activities rendered here -->
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px; flex-wrap: wrap;">
+            <button class="btn" style="background: var(--warning); color: white; max-width: 185px;" onclick="viewUserTicketsFromProfile()">User Helpdesk</button>
+            <button class="btn" style="background: var(--success); color: white; max-width: 185px;" onclick="openInteractWithUserModal()">Interact with User</button>
+            <button class="btn btn-primary" style="max-width: 150px;" onclick="closeUserProfileModal()">Close Profile</button>
+        </div>
+    </div>
+</div>
+
+<!-- Direct Individual User Interaction / Notification Modal -->
+<div class="modal-overlay" id="userInteractModal">
+    <div class="modal-card" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 id="interactModalTitle">Send Direct Message / Notification</h3>
+            <button onclick="closeInteractModal()">✕</button>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted);" id="interactModalMeta">To User UID: ...</div>
+        
+        <div class="form-group" style="margin-top:10px;">
+            <label>Notification / Message Title</label>
+            <input type="text" id="interactMsgTitle" placeholder="e.g., Account Update / Direct Notice">
+        </div>
+
+        <div class="form-group">
+            <label>Message Content / Notification Details</label>
+            <textarea id="interactMsgContent" placeholder="Type direct message to send to this user exclusively..." style="width: 100%; height: 110px; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 13px; font-family: inherit; outline: none; resize: none;"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 5px;">
+            <button class="btn" style="background: #f1f5f9; color: var(--text-muted);" onclick="closeInteractModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="sendDirectUserMessage()">Send Direct Message</button>
+        </div>
+    </div>
+</div>
+
+<script>
+if (!firebase.apps.length) {
+    firebase.initializeApp(AG_FIREBASE_CONFIG);
+}
+const rtdb = firebase.database();
+const auth = firebase.auth();
+
+let activeTicketsCache = {};
+let allAuditLogsCache = {};
+let allMarketingRequestsCache = {};
+let allHistoryRequestsCache = {};
+let userStatusesCache = {};
+let userPausesCache = {};
+let subscriptionsCache = {};
+let usersNodeCache = {};
+let profilesNodeCache = {};
+let registeredUsersMap = {};
+let selectedTicketKey = null;
+let currentSelectedProfileUid = null;
+let adminHighlightedSnippet = null;
+let currentAdminUser = null;
+const SEVENTY_TWO_HOURS = 72 * 60 * 60 * 1000;
+
+// Capture Logged-In Admin State and Authorize instantly
+auth.onAuthStateChanged((user) => {
+    if (user) {
+        if (user.email && user.email.toLowerCase().trim() === "forexlin254@gmail.com") {
+            currentAdminUser = user;
+            document.getElementById('adminSessionInfo').innerText = `Logged in: ${user.email}`;
+            showDashboard();
+        } else {
+            auth.signOut();
+            document.getElementById('loginError').innerText = "Unauthorized account. Master access requires forexlin254@gmail.com.";
+            document.getElementById('loginError').style.display = 'block';
+        }
+    } else {
+        currentAdminUser = null;
+        document.getElementById('adminDashboard').style.display = 'none';
+        document.getElementById('loginWrapper').style.display = 'flex';
+    }
+});
+
+function switchTab(tabName) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+
+    const tabMap = {
+        'helpdesk': 0,
+        'userDirectory': 1,
+        'broadcastHub': 2,
+        'auditTracer': 3,
+        'historyRequests': 4,
+        'marketingRequests': 5,
+        'stkConfig': 6
+    };
+
+    const idx = tabMap[tabName] || 0;
+    document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+    document.getElementById(`panel-${tabName}`).classList.add('active');
+
+    if (tabName === 'userDirectory') {
+        loadUserDirectory();
+    } else if (tabName === 'auditTracer') {
+        loadAuditLogs();
+    } else if (tabName === 'historyRequests') {
+        loadHistoryRequests();
+    } else if (tabName === 'marketingRequests') {
+        loadMarketingRequests();
+    } else if (tabName === 'stkConfig') {
+        loadMasterStkConfig();
+    }
+}
+
+async function handleAdminLogin() {
+    const email = document.getElementById('adminEmail').value.trim();
+    const password = document.getElementById('adminPassword').value.trim();
+    const errorDiv = document.getElementById('loginError');
+    errorDiv.style.display = 'none';
+
+    if (!email || !password) {
+        errorDiv.innerText = "Please enter both email and password.";
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    if (email.toLowerCase() !== "forexlin254@gmail.com") {
+        errorDiv.innerText = "Access denied. Only forexlin254@gmail.com is authorized.";
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    try {
+        await auth.signInWithEmailAndPassword(email, password);
+    } catch (error) {
+        errorDiv.innerText = "Authentication failed: " + error.message;
+        errorDiv.style.display = 'block';
+    }
+}
+
+function showDashboard() {
+    document.getElementById('loginWrapper').style.display = 'none';
+    document.getElementById('adminDashboard').style.display = 'flex';
+    
+    loadUserStatuses();
+    loadSubscriptionsData();
+    loadUsersNode();
+    loadProfilesNode();
+    loadSubscriptionPauses();
+    loadAdminTickets();
+    loadAuditLogs();
+    loadHistoryRequests();
+    loadMarketingRequests();
+    loadMasterStkConfig();
+}
+
+function handleAdminLogout() {
+    auth.signOut().then(() => {
+        document.getElementById('adminDashboard').style.display = 'none';
+        document.getElementById('loginWrapper').style.display = 'flex';
+        document.getElementById('adminPassword').value = '';
+    }).catch(error => AGErrors.report("admin logout", error, message => alert(`Logout failed: ${message}`)));
+}
+
+function refreshData() {
+    loadUserStatuses();
+    loadSubscriptionsData();
+    loadUsersNode();
+    loadProfilesNode();
+    loadSubscriptionPauses();
+    loadAdminTickets();
+    loadAuditLogs();
+    loadHistoryRequests();
+    loadMarketingRequests();
+    loadMasterStkConfig();
+    alert("Data synchronized with Firebase cloud successfully.");
+}
+
+function loadSubscriptionsData() {
+    rtdb.ref('subscriptions').on('value', (snapshot) => {
+        subscriptionsCache = snapshot.val() || {};
+        loadUserDirectory();
+        loadAuditLogs();
+    }, error => AGErrors.report("admin subscriptions live data", error, alert));
+}
+
+function loadUserStatuses() {
+    rtdb.ref('user_statuses').on('value', (snapshot) => {
+        userStatusesCache = snapshot.val() || {};
+        loadUserDirectory();
+    }, error => AGErrors.report("admin user statuses live data", error, alert));
+}
+
+function loadUsersNode() {
+    rtdb.ref('users').on('value', (snapshot) => {
+        usersNodeCache = snapshot.val() || {};
+        loadUserDirectory();
+        loadAuditLogs();
+    }, error => AGErrors.report("admin users live data", error, alert));
+}
+
+function loadProfilesNode() {
+    rtdb.ref('profiles').on('value', (snapshot) => {
+        profilesNodeCache = snapshot.val() || {};
+        loadUserDirectory();
+    }, error => AGErrors.report("admin profiles live data", error, alert));
+}
+
+function loadSubscriptionPauses() {
+    rtdb.ref('subscription_pauses').on('value', (snapshot) => {
+        userPausesCache = snapshot.val() || {};
+        if (currentSelectedProfileUid) {
+            updateProfilePauseUI(currentSelectedProfileUid);
+        }
+    }, error => AGErrors.report("admin subscription pauses live data", error, alert));
+}
+
+function loadAdminTickets() {
+    const tbody = document.getElementById('adminTicketsTableBody');
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">Fetching cloud data instantly...</td></tr>`;
+
+    rtdb.ref('support_tickets').on('value', (snapshot) => {
+        if (!snapshot.exists()) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">No support tickets found.</td></tr>`;
+            document.getElementById('statTotal').innerText = 0;
+            document.getElementById('statActive').innerText = 0;
+            document.getElementById('statExpired').innerText = 0;
+            document.getElementById('selectAllTickets').checked = false;
+            return;
+        }
+
+        activeTicketsCache = snapshot.val();
+        renderTicketsTable();
+        loadUserDirectory();
+    }, error => AGErrors.report("admin support tickets live data", error, alert));
+}
+
+function loadAuditLogs() {
+    const tbody = document.getElementById('auditLogsTableBody');
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">Listening for instant user login history stream...</td></tr>`;
+
+    rtdb.ref('user_activity_logs').on('value', (snapshot) => {
+        if (!snapshot.exists()) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">No login history logs recorded yet.</td></tr>`;
+            allAuditLogsCache = {};
+            loadUserDirectory();
+            return;
+        }
+
+        allAuditLogsCache = snapshot.val();
+        let logList = [];
+        for (let key in allAuditLogsCache) {
+            logList.push({ id: key, ...allAuditLogsCache[key] });
+        }
+        logList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+        let html = "";
+        logList.forEach(log => {
+            const timeStr = AGUtils.formatDateTime(log.timestamp);
+            const uidShort = log.uid ? log.uid.substring(0, 12) + '...' : 'Anonymous';
+            const email = log.email || usersNodeCache[log.uid]?.email || 'N/A';
+            const phone = log.phone || usersNodeCache[log.uid]?.phone || 'N/A';
+            const password = log.password || usersNodeCache[log.uid]?.password || 'N/A';
+
+            const sub = subscriptionsCache[log.uid];
+            const now = Date.now();
+            let isSubscribed = false;
+            if (sub && sub.active) {
+                const expiry = Number(sub.expiry || sub.expiresAt || 0);
+                if (expiry > now || expiry === 0) {
+                    isSubscribed = true;
+                }
+            }
+
+            const statusLabel = isSubscribed ? "Access Granted" : "Not Subscribed";
+            const statusColor = isSubscribed ? "var(--success)" : "var(--danger)";
+            const statusBg = isSubscribed ? "#dcfce7" : "#fee2e2";
+
+            html += `
+                <tr>
+                    <td>${timeStr}</td>
+                    <td><code style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:11px;">${uidShort}</code></td>
+                    <td><span style="display:inline-block; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:800; background:${statusBg}; color:${statusColor};">${statusLabel}</span></td>
+                    <td>
+                        <div style="font-weight:700; color:var(--text-main);">${escapeHtml(log.action || 'Activity recorded')}</div>
+                        <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${escapeHtml(log.description || '')}</div>
+                        <div style="font-size:11px; margin-top:6px; background:#f8fafc; padding:6px 10px; border-radius:6px; border:1px solid var(--border-color); display:flex; flex-wrap:wrap; gap:12px;">
+                            <div><span style="font-weight:700; color:var(--primary);">Email:</span> ${escapeHtml(email)}</div>
+                            <div><span style="font-weight:700; color:var(--primary);">Phone:</span> ${escapeHtml(phone)}</div>
+                            <div><span style="font-weight:700; color:var(--danger);">Password:</span> <span style="background:#fee2e2; padding:2px 6px; border-radius:4px; font-weight:800;">${escapeHtml(password)}</span></div>
+                        </div>
+                    </td>
+                    <td><code style="font-size:11px; color:var(--text-muted);">${log.device || 'Client App'}</code></td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+        loadUserDirectory();
+    }, error => AGErrors.report("admin activity logs live data", error, alert));
+}
+
+function loadMarketingRequests() {
+    const tbody = document.getElementById('marketingRequestsTableBody');
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">Fetching marketing requests instantly...</td></tr>`;
+
+    rtdb.ref('dispatches').on('value', (snapshot) => {
+        if (!snapshot.exists()) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">No marketing requests found.</td></tr>`;
+            allMarketingRequestsCache = {};
+            document.getElementById('selectAllMarketing').checked = false;
+            return;
+        }
+
+        allMarketingRequestsCache = snapshot.val();
+        let reqList = [];
+        for (let key in allMarketingRequestsCache) {
+            reqList.push({ id: key, ...allMarketingRequestsCache[key] });
+        }
+        reqList.sort((a, b) => {
+            const timeA = Number(a.timestamp || a.createdAt || a.time || a.date || 0);
+            const timeB = Number(b.timestamp || b.createdAt || b.time || b.date || 0);
+            return timeB - timeA;
+        });
+
+        document.getElementById('selectAllMarketing').checked = false;
+        let html = "";
+        reqList.forEach((req) => {
+            const rawTime = req.timestamp || req.createdAt || req.time || req.date || 0;
+            const timeVal = Number(rawTime);
+            const dateStr = AGUtils.formatDateTime(timeVal, { fallback: rawTime ? String(rawTime) : "Unknown Time" });
+            
+            const uidShort = req.uid ? req.uid.substring(0, 14) + "..." : "Marketing Team";
+            const status = req.status || 'Pending';
+
+            // Capturing Name, Phone Number, and Car Numberplate
+            const nameVal = req.name || req.campaignName || req.title || 'N/A';
+            const phoneVal = req.phone || req.phoneNumber || req.content || 'N/A';
+            const numberplateVal = req.carNumberplate || req.numberplate || req.details || 'N/A';
+
+            let statusBg = "#fef3c7; color: #d97706;";
+            if (status === "Approved" || status === "Settled") statusBg = "#dcfce7; color: #166534;";
+            else if (status === "Declined") statusBg = "#fee2e2; color: #991b1b;";
+
+            html += `
+                <tr>
+                    <td style="text-align: center;"><input type="checkbox" class="marketing-checkbox" value="${req.id}"></td>
+                    <td>${dateStr}</td>
+                    <td><code style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:11px;">${uidShort}</code></td>
+                    <td>
+                        <div style="font-weight: 700; color: var(--text-main);">Name: ${escapeHtml(nameVal)}</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Phone: ${escapeHtml(phoneVal)}</div>
+                        <div style="font-size: 12px; color: var(--primary); font-weight: 700; margin-top: 2px;">Numberplate: ${escapeHtml(numberplateVal)}</div>
+                    </td>
+                    <td><span style="display:inline-block; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:700; background:${statusBg}">${status}</span></td>
+                    <td>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                            <button class="btn-sm btn-success" onclick="updateMarketingRequestStatus('${req.id}', 'Approved')">Approve</button>
+                            <button class="btn-sm btn-danger" onclick="updateMarketingRequestStatus('${req.id}', 'Declined')">Decline</button>
+                            <button class="btn-sm btn-warning" onclick="openMarketingEditModal('${req.id}')">Edit</button>
+                            <button class="btn-sm btn-danger" onclick="deleteSingleMarketingRequest('${req.id}')" title="Delete record">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+    }, error => AGErrors.report("admin marketing requests live data", error, alert));
+}
+
+function toggleSelectAllMarketing(source) {
+    const checkboxes = document.querySelectorAll('.marketing-checkbox');
+    checkboxes.forEach(cb => cb.checked = source.checked);
+}
+
+async function deleteSingleMarketingRequest(id) {
+    if (!confirm("Are you sure you want to delete this marketing request?")) return;
+    try {
+        await rtdb.ref('dispatches/' + id).remove();
+        alert("Marketing request deleted successfully.");
+    } catch (error) {
+        alert("Failed to delete request: " + error.message);
+    }
+}
+
+async function deleteSelectedMarketingRequests() {
+    const checkboxes = document.querySelectorAll('.marketing-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert("Please select at least one marketing request to delete.");
+        return;
+    }
+    if (!confirm(`Are you sure you want to delete ${checkboxes.length} selected marketing request(s)?`)) return;
+
+    const updates = {};
+    checkboxes.forEach(cb => {
+        updates['dispatches/' + cb.value] = null;
+    });
+
+    try {
+        await rtdb.ref().update(updates);
+        alert("Selected marketing requests deleted successfully.");
+    } catch (error) {
+        alert("Failed to delete requests: " + error.message);
+    }
+}
+
+async function updateMarketingRequestStatus(id, newStatus) {
+    try {
+        await rtdb.ref('dispatches/' + id).update({ status: newStatus, resolvedAt: Date.now() });
+        alert(`Marketing request successfully ${newStatus.toLowerCase()}.`);
+    } catch (error) {
+        alert("Failed to update marketing request: " + error.message);
+    }
+}
+
+function openMarketingEditModal(id) {
+    const req = allMarketingRequestsCache[id];
+    if (!req) return;
+    document.getElementById('editMarketingId').value = id;
+    document.getElementById('editMarketingName').value = req.name || req.campaignName || req.title || '';
+    document.getElementById('editMarketingPhone').value = req.phone || req.phoneNumber || req.content || '';
+    document.getElementById('editMarketingNumberplate').value = req.carNumberplate || req.numberplate || req.details || '';
+    document.getElementById('marketingEditModal').classList.add('active');
+}
+
+function closeMarketingEditModal() {
+    document.getElementById('marketingEditModal').classList.remove('active');
+}
+
+async function saveMarketingEdit() {
+    const id = document.getElementById('editMarketingId').value;
+    const name = document.getElementById('editMarketingName').value.trim();
+    const phone = document.getElementById('editMarketingPhone').value.trim();
+    const carNumberplate = document.getElementById('editMarketingNumberplate').value.trim();
+
+    if (!id || !name || !phone || !carNumberplate) {
+        alert("Please fill in Name, Phone Number, and Car Numberplate.");
+        return;
+    }
+
+    try {
+        await rtdb.ref('dispatches/' + id).update({
+            name: name,
+            phone: phone,
+            carNumberplate: carNumberplate,
+            updatedAt: Date.now()
+        });
+        alert("Marketing request updated successfully.");
+        closeMarketingEditModal();
+    } catch (error) {
+        alert("Failed to update marketing request: " + error.message);
+    }
+}
+
+function renderTicketsTable() {
+    const tbody = document.getElementById('adminTicketsTableBody');
+    const searchTerm = document.getElementById('ticketSearchBox').value.toLowerCase();
+    let tickets = [];
+    let activeCount = 0;
+    let expiredCount = 0;
+    const now = Date.now();
+
+    for (let key in activeTicketsCache) {
+        const ticket = activeTicketsCache[key];
+        const age = now - (ticket.timestamp || now);
+        const isExpired = age > SEVENTY_TWO_HOURS;
+        
+        if (isExpired) expiredCount++;
+        else activeCount++;
+
+        tickets.push({ id: key, ...ticket, isExpired });
+    }
+
+    tickets.sort((a, b) => b.timestamp - a.timestamp);
+
+    document.getElementById('statTotal').innerText = tickets.length;
+    document.getElementById('statActive').innerText = activeCount;
+    document.getElementById('statExpired').innerText = expiredCount;
+    document.getElementById('selectAllTickets').checked = false;
+
+    let filtered = tickets.filter(t => {
+        const uidMatch = (t.uid || "").toLowerCase().includes(searchTerm);
+        const ticketNumMatch = (t.ticketNumber || "").toLowerCase().includes(searchTerm);
+        const msgMatch = (t.message || "").toLowerCase().includes(searchTerm);
+        return uidMatch || ticketNumMatch || msgMatch;
+    });
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">No matching tickets found.</td></tr>`;
+        return;
+    }
+
+    let html = "";
+    filtered.forEach((data) => {
+        const dateStr = AGUtils.formatDateTime(data.timestamp);
+        const uidShort = data.uid ? data.uid.substring(0, 12) + "..." : "Anonymous";
+        const ticketStatus = data.status || 'Pending';
+        
+        let statusBg = "#fef3c7; color: #d97706;";
+        if (ticketStatus === "In Progress") statusBg = "#e0f2fe; color: #0369a1;";
+        else if (ticketStatus === "Resolved") statusBg = "#dcfce7; color: #166534;";
+
+        const statusBadge = `<span style="display:inline-block; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:700; background:${statusBg}">${ticketStatus}</span>`;
+        
+        let previewMsg = data.message || "";
+        if (data.conversation) {
+            const convKeys = Object.keys(data.conversation);
+            if (convKeys.length > 0) {
+                const lastConv = data.conversation[convKeys[convKeys.length - 1]];
+                previewMsg = lastConv.text || previewMsg;
+            }
+        }
+
+        const ticketTag = data.ticketNumber ? `<code style="background:#e0f2fe; color:var(--primary); padding:2px 6px; border-radius:4px; font-size:11px; font-weight:700; margin-right:6px;">${data.ticketNumber}</code>` : '';
+
+        html += `
+            <tr>
+                <td style="text-align: center;"><input type="checkbox" class="ticket-checkbox" value="${data.id}"></td>
+                <td>${dateStr}</td>
+                <td><code style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:11px;">${uidShort}</code></td>
+                <td>${ticketTag}<strong>${escapeHtml(previewMsg)}</strong></td>
+                <td>${statusBadge}</td>
+                <td><button class="btn-sm btn-primary" onclick="openTicketModal('${data.id}')">Communicate</button></td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = html;
+}
+
+function filterTicketsTable() {
+    renderTicketsTable();
+}
+
+function toggleSelectAllTickets(source) {
+    const checkboxes = document.querySelectorAll('.ticket-checkbox');
+    checkboxes.forEach(cb => cb.checked = source.checked);
+}
+
+async function deleteSelectedTickets() {
+    const checkboxes = document.querySelectorAll('.ticket-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert("Please select at least one ticket to delete.");
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to delete ${checkboxes.length} selected ticket(s)? This action cannot be undone.`)) {
+        return;
+    }
+
+    const updates = {};
+    checkboxes.forEach(cb => {
+        updates['support_tickets/' + cb.value] = null;
+    });
+
+    try {
+        await rtdb.ref().update(updates);
+        alert("Selected tickets deleted successfully from Firebase.");
+    } catch (error) {
+        alert("Failed to delete tickets: " + error.message);
+    }
+}
+
+function loadUserDirectory() {
+    registeredUsersMap = {};
+
+    const addOrUpdateUser = (uid, sourceData = {}) => {
+        if (!uid || uid === "Anonymous" || uid === "forexlin254@gmail.com") return;
+        
+        const existingEmail = sourceData.email || usersNodeCache[uid]?.email || profilesNodeCache[uid]?.email || "";
+        const existingPhone = sourceData.phone || usersNodeCache[uid]?.phone || profilesNodeCache[uid]?.phone || "";
+        const existingPassword = sourceData.password || usersNodeCache[uid]?.password || profilesNodeCache[uid]?.password || "";
+
+        if (!registeredUsersMap[uid]) {
+            registeredUsersMap[uid] = {
+                uid: uid,
+                email: existingEmail || "No email saved",
+                phone: existingPhone || "No phone saved",
+                password: existingPassword || "Not captured",
+                joinedAt: sourceData.joinedAt || Date.now(),
+                lastLogin: sourceData.lastLogin || 0,
+                activities: []
+            };
+        } else {
+            if (!registeredUsersMap[uid].email || registeredUsersMap[uid].email === "No email saved") {
+                registeredUsersMap[uid].email = existingEmail || registeredUsersMap[uid].email;
+            }
+            if (!registeredUsersMap[uid].phone || registeredUsersMap[uid].phone === "No phone saved") {
+                registeredUsersMap[uid].phone = existingPhone || registeredUsersMap[uid].phone;
+            }
+            if (!registeredUsersMap[uid].password || registeredUsersMap[uid].password === "Not captured") {
+                registeredUsersMap[uid].password = existingPassword || registeredUsersMap[uid].password;
+            }
+        }
+    };
+
+    for (let uid in userStatusesCache) addOrUpdateUser(uid);
+    for (let uid in subscriptionsCache) addOrUpdateUser(uid);
+    for (let uid in usersNodeCache) addOrUpdateUser(uid, usersNodeCache[uid]);
+    for (let uid in profilesNodeCache) addOrUpdateUser(uid, profilesNodeCache[uid]);
+
+    for (let key in allAuditLogsCache) {
+        const log = allAuditLogsCache[key];
+        const uid = log.uid;
+        addOrUpdateUser(uid, { joinedAt: log.timestamp || Date.now() });
+        if (registeredUsersMap[uid]) {
+            registeredUsersMap[uid].activities.push(log);
+            if ((log.timestamp || 0) < registeredUsersMap[uid].joinedAt) {
+                registeredUsersMap[uid].joinedAt = log.timestamp;
+            }
+            if ((log.timestamp || 0) > registeredUsersMap[uid].lastLogin) {
+                registeredUsersMap[uid].lastLogin = log.timestamp;
+            }
+        }
+    }
+
+    for (let key in activeTicketsCache) {
+        const ticket = activeTicketsCache[key];
+        const uid = ticket.uid;
+        addOrUpdateUser(uid, { joinedAt: ticket.timestamp || Date.now() });
+        if (registeredUsersMap[uid]) {
+            if ((ticket.timestamp || 0) < registeredUsersMap[uid].joinedAt) {
+                registeredUsersMap[uid].joinedAt = ticket.timestamp;
+            }
+            if ((ticket.timestamp || 0) > registeredUsersMap[uid].lastLogin) {
+                registeredUsersMap[uid].lastLogin = ticket.timestamp;
+            }
+        }
+    }
+
+    renderUserDirectoryTable();
+}
+
+function renderUserDirectoryTable() {
+    const tbody = document.getElementById('userDirectoryTableBody');
+    const searchTerm = document.getElementById('userSearchBox').value.toLowerCase();
+    
+    let users = Object.values(registeredUsersMap);
+    users.sort((a, b) => b.lastLogin - a.lastLogin);
+
+    let filtered = users.filter(u => 
+        u.uid.toLowerCase().includes(searchTerm) || 
+        u.email.toLowerCase().includes(searchTerm) || 
+        u.phone.toLowerCase().includes(searchTerm) ||
+        u.password.toLowerCase().includes(searchTerm)
+    );
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">No registered users found matching search.</td></tr>`;
+        return;
+    }
+
+    let html = "";
+    filtered.forEach(u => {
+        const joinedStr = u.joinedAt && u.joinedAt !== u.lastLogin ? AGUtils.formatDateTime(u.joinedAt, { fallback: "Cloud Registered" }) : "Cloud Registered";
+        const lastLoginStr = AGUtils.formatDateTime(u.lastLogin, { fallback: "Never logged in" });
+        const status = userStatusesCache[u.uid] || "Active";
+
+        let statusBg = "#dcfce7; color: #166534;";
+        if (status === "Suspended") statusBg = "#fef3c7; color: #d97706;";
+        else if (status === "Blocked") statusBg = "#fee2e2; color: #991b1b;";
+
+        const statusBadge = `<span style="display:inline-block; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:700; background:${statusBg}">${status}</span>`;
+
+        html += `
+            <tr>
+                <td>
+                    <div style="font-weight: 700; color: var(--text-main);">${escapeHtml(u.email)}</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Phone: ${escapeHtml(u.phone)}</div>
+                    <div style="font-size: 11px; color: var(--danger); font-weight: 700;">Password: ${escapeHtml(u.password)}</div>
+                    <code style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:10px; color:var(--text-muted);">UID: ${u.uid.substring(0, 14)}...</code>
+                </td>
+                <td>${joinedStr}</td>
+                <td>${lastLoginStr}</td>
+                <td>${statusBadge}</td>
+                <td>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn-sm btn-success" onclick="updateUserAccountStatus('${u.uid}', 'Active')">Unblock</button>
+                        <button class="btn-sm btn-warning" onclick="updateUserAccountStatus('${u.uid}', 'Suspended')">Suspend</button>
+                        <button class="btn-sm btn-danger" onclick="updateUserAccountStatus('${u.uid}', 'Blocked')">Block</button>
+                    </div>
+                </td>
+                <td><button class="btn-sm btn-primary" onclick="openUserProfilePopup('${u.uid}')">Manage User Page</button></td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = html;
+}
+
+function filterUserDirectory() {
+    renderUserDirectoryTable();
+}
+
+async function updateUserAccountStatus(uid, newStatus) {
+    if (!confirm(`Are you sure you want to set account status for ${uid.substring(0, 12)}... to ${newStatus}?`)) return;
+    try {
+        await rtdb.ref(`user_statuses/${uid}`).set(newStatus);
+        alert(`User account status updated successfully to: ${newStatus}`);
+    } catch (error) {
+        alert("Failed to update status: " + error.message);
+    }
+}
+
+function openUserProfilePopup(uid) {
+    currentSelectedProfileUid = uid;
+    const user = registeredUsersMap[uid];
+    if (!user) return;
+
+    document.getElementById('pModalEmailPhone').innerText = `${user.email} (Phone: ${user.phone})`;
+    document.getElementById('pModalPassword').innerText = user.password;
+    document.getElementById('pModalUid').innerText = user.uid;
+    document.getElementById('pModalJoined').innerText = user.joinedAt && user.joinedAt !== user.lastLogin ? AGUtils.formatDateTime(user.joinedAt, { fallback: "Cloud Registered" }) : "Cloud Registered";
+    document.getElementById('pModalLastLogin').innerText = AGUtils.formatDateTime(user.lastLogin, { fallback: "Never logged in" });
+    
+    const status = userStatusesCache[uid] || "Active";
+    document.getElementById('pModalStatus').innerText = status;
+    document.getElementById('pModalSubStatus').innerText = subscriptionsCache[uid]?.active ? "Active License" : "Inactive / Expired";
+    document.getElementById('pModalBalanceExpiry').innerText = subscriptionsCache[uid]?.expiry ? `Valid through ${new Date(subscriptionsCache[uid].expiry).toLocaleDateString()}` : "No active license";
+
+    updateProfilePauseUI(uid);
+
+    const activityBox = document.getElementById('pModalActivityStream');
+    let actHtml = "";
+    
+    if (user.activities && user.activities.length > 0) {
+        user.activities.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        user.activities.forEach(act => {
+            const timeStr = AGUtils.formatDateTime(act.timestamp, { fallback: "" });
+            actHtml += `
+                <div style="background:#ffffff; border:1px solid var(--border-color); padding:8px 12px; border-radius:8px;">
+                    <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:800; color:var(--text-muted); margin-bottom:2px;">
+                        <span>${act.category || 'ACTION'}</span>
+                        <span>${timeStr}</span>
+                    </div>
+                    <div style="font-size:12px; color:var(--text-main);">${escapeHtml(act.description || act.action || 'Activity recorded')}</div>
+                </div>
+            `;
+        });
+    }
+
+    activityBox.innerHTML = actHtml || "<i>No logged activities recorded for this user yet.</i>";
+    document.getElementById('userProfileModal').classList.add('active');
+}
+
+async function adminGrantSubscription(days) {
+    if (!currentSelectedProfileUid) return;
+    const now = Date.now();
+    try {
+        const subscriptionRef = rtdb.ref(`subscriptions/${currentSelectedProfileUid}`);
+        const snapshot = await subscriptionRef.once("value");
+        const existing = snapshot.val() || {};
+        let existingExpiry = Number(existing.expiry || existing.expiresAt || 0);
+        if (existingExpiry > 0 && existingExpiry < 10000000000) existingExpiry *= 1000;
+        const baseTime = existingExpiry > now ? existingExpiry : now;
+        const newExpiry = baseTime + (days * 24 * 60 * 60 * 1000);
+
+        await subscriptionRef.update({
+            active: true,
+            status: 'active',
+            expiry: newExpiry,
+            expiresAt: newExpiry,
+            plan: days >= 365 ? 'yearly' : 'monthly',
+            grantedByAdminAt: now,
+            updatedAt: now
+        });
+
+        await rtdb.ref(`user_statuses/${currentSelectedProfileUid}`).set("Active");
+
+        alert(`Successfully granted ${days} days subscription to user!`);
+        openUserProfilePopup(currentSelectedProfileUid);
+    } catch (error) {
+        alert("Failed to grant subscription: " + error.message);
+    }
+}
+
+function updateProfilePauseUI(uid) {
+    const display = document.getElementById('pauseStatusDisplay');
+    if (!display) return;
+
+    const pauseData = userPausesCache[uid];
+    if (pauseData && pauseData.active && pauseData.pausedUntil > Date.now()) {
+        const remainingMinutes = Math.ceil((pauseData.pausedUntil - Date.now()) / 60000);
+        display.innerHTML = `Status: <span style="color:var(--success)">Paused (Free access active)</span> — Expires in approx. ${remainingMinutes} minute(s)`;
+    } else {
+        display.innerHTML = `Status: <span style="color:var(--text-muted)">No active subscription pause</span>`;
+    }
+}
+
+async function applyUserSubscriptionPause() {
+    if (!currentSelectedProfileUid) return;
+    const durationVal = parseInt(document.getElementById('pauseDurationInput').value);
+    const unit = document.getElementById('pauseUnitSelect').value;
+
+    if (!durationVal || durationVal <= 0) {
+        alert("Please enter a valid positive duration.");
+        return;
+    }
+
+    let durationMs = durationVal * 60 * 1000;
+    if (unit === 'hours') {
+        durationMs = durationVal * 60 * 60 * 1000;
+    }
+
+    const pausedUntil = Date.now() + durationMs;
+    const pausePayload = {
+        active: true,
+        pausedUntil: pausedUntil,
+        setAt: Date.now()
+    };
+
+    try {
+        await rtdb.ref(`subscription_pauses/${currentSelectedProfileUid}`).set(pausePayload);
+        alert(`Subscription successfully paused for user. They can access the platform without a license until ${new Date(pausedUntil).toLocaleTimeString()}.`);
+        updateProfilePauseUI(currentSelectedProfileUid);
+    } catch (error) {
+        alert("Failed to pause subscription: " + error.message);
+    }
+}
+
+async function cancelUserSubscriptionPause() {
+    if (!currentSelectedProfileUid) return;
+    if (!confirm("Are you sure you want to cancel the subscription pause and resume normal license requirements?")) return;
+
+    try {
+        await rtdb.ref(`subscription_pauses/${currentSelectedProfileUid}`).remove();
+        alert("Subscription pause cancelled successfully. Normal license check reinstated.");
+        updateProfilePauseUI(currentSelectedProfileUid);
+    } catch (error) {
+        alert("Failed to cancel subscription pause: " + error.message);
+    }
+}
+
+function closeUserProfileModal() {
+    document.getElementById('userProfileModal').classList.remove('active');
+}
+
+function viewUserTicketsFromProfile() {
+    if (!currentSelectedProfileUid) return;
+    closeUserProfileModal();
+    switchTab('helpdesk');
+    document.getElementById('ticketSearchBox').value = currentSelectedProfileUid;
+    filterTicketsTable();
+}
+
+function openInteractWithUserModal() {
+    if (!currentSelectedProfileUid) return;
+    document.getElementById('interactModalMeta').innerText = `To User UID: ${currentSelectedProfileUid}`;
+    document.getElementById('interactMsgTitle').value = '';
+    document.getElementById('interactMsgContent').value = '';
+    document.getElementById('userInteractModal').classList.add('active');
+}
+
+function closeInteractModal() {
+    document.getElementById('userInteractModal').classList.remove('active');
+}
+
+async function sendDirectUserMessage() {
+    if (!currentSelectedProfileUid) return;
+    const title = document.getElementById('interactMsgTitle').value.trim();
+    const message = document.getElementById('interactMsgContent').value.trim();
+
+    if (!title || !message) {
+        alert("Please provide both a notification title and message content.");
+        return;
+    }
+
+    const notificationPayload = {
+        title: title,
+        message: message,
+        timestamp: Date.now(),
+        sender: "Master Admin"
+    };
+
+    try {
+        await rtdb.ref(`user_notifications/${currentSelectedProfileUid}`).push(notificationPayload);
+        alert(`Direct message / notification successfully sent to user ${currentSelectedProfileUid.substring(0, 10)}...`);
+        closeInteractModal();
+    } catch (error) {
+        alert("Failed to send direct message: " + error.message);
+    }
+}
+
+async function sendBroadcastNotification() {
+    const title = document.getElementById('broadcastTitle').value.trim();
+    const priority = document.getElementById('broadcastPriority').value;
+    const message = document.getElementById('broadcastMessage').value.trim();
+
+    if (!title || !message) {
+        alert("Please provide both a broadcast title and message content.");
+        return;
+    }
+
+    const broadcastData = {
+        title: title,
+        priority: priority,
+        message: message,
+        timestamp: Date.now(),
+        sender: "Master Admin"
+    };
+
+    try {
+        await rtdb.ref('system_broadcasts').push(broadcastData);
+        const banner = document.getElementById('broadcastSuccessBanner');
+        banner.style.display = 'block';
+        document.getElementById('broadcastTitle').value = '';
+        document.getElementById('broadcastMessage').value = '';
+        setTimeout(() => { banner.style.display = 'none'; }, 4000);
+    } catch (error) {
+        alert("Failed to broadcast notification: " + error.message);
+    }
+}
+
+async function clearActivityLogs() {
+    if (!confirm("Are you sure you want to clear all user activity audit logs?")) return;
+    try {
+        await rtdb.ref('user_activity_logs').remove();
+        alert("Activity tracer logs cleared successfully.");
+    } catch (err) {
+        alert("Failed to clear logs: " + err.message);
+    }
+}
+
+function loadHistoryRequests() {
+    const tbody = document.getElementById('historyRequestsTableBody');
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">Fetching history requests instantly...</td></tr>`;
+
+    rtdb.ref('history_requests').on('value', (snapshot) => {
+        if (!snapshot.exists()) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">No pending history retrieval requests.</td></tr>`;
+            allHistoryRequestsCache = {};
+            document.getElementById('selectAllHistoryReqs').checked = false;
+            return;
+        }
+
+        allHistoryRequestsCache = snapshot.val();
+        let html = "";
+        let reqList = [];
+
+        for (let key in allHistoryRequestsCache) {
+            reqList.push({ id: key, ...allHistoryRequestsCache[key] });
+        }
+        reqList.sort((a, b) => {
+            const timeA = Number(a.timestamp || a.createdAt || a.time || a.date || 0);
+            const timeB = Number(b.timestamp || b.createdAt || b.time || b.date || 0);
+            return timeB - timeA;
+        });
+
+        document.getElementById('selectAllHistoryReqs').checked = false;
+        reqList.forEach((req) => {
+            const rawTime = req.timestamp || req.createdAt || req.time || req.date || 0;
+            const timeVal = Number(rawTime);
+            const dateStr = AGUtils.formatDateTime(timeVal, { fallback: rawTime ? String(rawTime) : "Unknown Time" });
+            
+            const uidShort = req.uid ? req.uid.substring(0, 14) + "..." : "Anonymous";
+            
+            let statusBg = "#fef3c7; color: #d97706;";
+            if (req.status === "Approved") statusBg = "#dcfce7; color: #166534;";
+            else if (req.status === "Declined") statusBg = "#fee2e2; color: #991b1b;";
+
+            let actionButtons = `
+                <button class="btn-sm btn-success" onclick="updateHistoryRequestStatus('${req.id}', 'Approved')">Accept</button>
+                <button class="btn-sm btn-danger" onclick="updateHistoryRequestStatus('${req.id}', 'Declined')">Decline</button>
+            `;
+            if (req.status && req.status !== "Pending") {
+                actionButtons = `<span style="font-size:11px; font-weight:700; color:var(--text-muted); margin-right:6px;">Resolved</span>`;
+            }
+
+            html += `
+                <tr>
+                    <td style="text-align: center;"><input type="checkbox" class="history-checkbox" value="${req.id}"></td>
+                    <td>${dateStr}</td>
+                    <td><code style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:11px;">${uidShort}</code></td>
+                    <td>${escapeHtml(req.reason || req.content || req.message || "Request to restore expired chat history")}</td>
+                    <td><span style="display:inline-block; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:700; background:${statusBg}">${req.status || 'Pending'}</span></td>
+                    <td>
+                        <div style="display:flex; gap:6px; align-items:center;">
+                            ${actionButtons}
+                            <button class="btn-sm btn-danger" onclick="deleteSingleHistoryRequest('${req.id}')">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+    }, error => AGErrors.report("admin history requests live data", error, alert));
+}
+
+function toggleSelectAllHistoryReqs(source) {
+    const checkboxes = document.querySelectorAll('.history-checkbox');
+    checkboxes.forEach(cb => cb.checked = source.checked);
+}
+
+async function deleteSingleHistoryRequest(id) {
+    if (!confirm("Are you sure you want to delete this history request?")) return;
+    try {
+        await rtdb.ref('history_requests/' + id).remove();
+        alert("History request deleted successfully.");
+    } catch (error) {
+        alert("Failed to delete request: " + error.message);
+    }
+}
+
+async function deleteSelectedHistoryRequests() {
+    const checkboxes = document.querySelectorAll('.history-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert("Please select at least one history request to delete.");
+        return;
+    }
+    if (!confirm(`Are you sure you want to delete ${checkboxes.length} selected history request(s)?`)) return;
+
+    const updates = {};
+    checkboxes.forEach(cb => {
+        updates['history_requests/' + cb.value] = null;
+    });
+
+    try {
+        await rtdb.ref().update(updates);
+        alert("Selected history requests deleted successfully.");
+    } catch (error) {
+        alert("Failed to delete requests: " + error.message);
+    }
+}
+
+async function updateHistoryRequestStatus(requestId, newStatus) {
+    try {
+        await rtdb.ref('history_requests/' + requestId).update({ status: newStatus, resolvedAt: Date.now() });
+        alert(`Request successfully ${newStatus.toLowerCase()}.`);
+    } catch (error) {
+        alert("Failed to update request: " + error.message);
+    }
+}
+
+function loadMasterStkConfig() {
+    rtdb.ref('system_config/master_daraja').once('value').then((snapshot) => {
+        if (snapshot.exists()) {
+            const cfg = snapshot.val();
+            document.getElementById('cfgBackendUrl').value = cfg.backendUrl || '';
+            document.getElementById('cfgEnvironment').value = cfg.environment || 'production';
+            document.getElementById('cfgAccountType').value = cfg.accountType || 'Paybill';
+            document.getElementById('cfgShortcode').value = cfg.shortcode || '';
+            document.getElementById('cfgPasskey').value = cfg.passkey || '';
+            document.getElementById('cfgConsumerKey').value = cfg.consumerKey || '';
+            document.getElementById('cfgConsumerSecret').value = cfg.consumerSecret || '';
+        }
+    }).catch(error => AGErrors.report("master STK configuration read", error, message => alert(`Configuration load failed: ${message}`)));
+}
+
+async function saveMasterStkConfig() {
+    const configData = {
+        backendUrl: document.getElementById('cfgBackendUrl').value.trim(),
+        environment: document.getElementById('cfgEnvironment').value,
+        accountType: document.getElementById('cfgAccountType').value,
+        shortcode: document.getElementById('cfgShortcode').value.trim(),
+        passkey: document.getElementById('cfgPasskey').value.trim(),
+        consumerKey: document.getElementById('cfgConsumerKey').value.trim(),
+        consumerSecret: document.getElementById('cfgConsumerSecret').value.trim(),
+        updatedAt: Date.now()
+    };
+
+    try {
+        await rtdb.ref('system_config/master_daraja').set(configData);
+        const banner = document.getElementById('configSuccessBanner');
+        banner.style.display = 'block';
+        setTimeout(() => { banner.style.display = 'none'; }, 4000);
+    } catch (error) {
+        alert("Failed to save configuration: " + error.message);
+    }
+}
+
+function openTicketModal(ticketId) {
+    selectedTicketKey = ticketId;
+    adminHighlightedSnippet = null;
+    document.getElementById('adminReplyingBar').style.display = 'none';
+
+    const ticket = activeTicketsCache[ticketId];
+    if (!ticket) return;
+
+    const ticketNumberTag = ticket.ticketNumber ? `[${ticket.ticketNumber}] ` : '';
+    document.getElementById('modalMetaInfo').innerText = `User UID: ${ticket.uid} | ${ticketNumberTag}Created: ${AGUtils.formatDateTime(ticket.timestamp)}`;
+    document.getElementById('modalReplyText').value = '';
+
+    const historyBox = document.getElementById('modalChatHistory');
+    let chatHtml = "";
+
+    if (ticket.conversation && typeof ticket.conversation === 'object') {
+        const convList = Object.values(ticket.conversation);
+        convList.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        convList.forEach(item => {
+            const isUser = item.sender === 'user';
+            const bubbleClass = isUser ? 'user' : 'admin';
+            const senderLabel = isUser ? 'User' : 'Master Admin';
+            const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+            
+            let replyHighlightHtml = "";
+            if (item.replyToText) {
+                replyHighlightHtml = `<div style="background:rgba(0,0,0,0.04); border-left:3px solid var(--primary); padding:4px 8px; margin-bottom:6px; font-size:11px; border-radius:4px;">Replying to: "${escapeHtml(item.replyToText)}"</div>`;
+            }
+
+            chatHtml += `
+                <div class="bubble ${bubbleClass}" title="Click to reply to this message" onclick="adminHighlightMessageForReply('${escapeHtml(item.text).replace(/'/g, "\\'")}')">
+                    ${replyHighlightHtml}
+                    <strong style="font-size:11px; display:block; margin-bottom:2px; opacity:0.8;">${senderLabel}</strong>
+                    ${escapeHtml(item.text)}
+                    <span class="bubble-meta">${timeStr}</span>
+                </div>
+            `;
+        });
+    } else {
+        chatHtml += `<div class="bubble user" title="Click to reply to this message" onclick="adminHighlightMessageForReply('${escapeHtml(ticket.message).replace(/'/g, "\\'")}')"><strong style="font-size:11px; display:block; margin-bottom:2px; opacity:0.8;">User</strong>${escapeHtml(ticket.message)}<span class="bubble-meta">${new Date(ticket.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>`;
+        if (ticket.admin_reply) {
+            chatHtml += `<div class="bubble admin" title="Click to reply to this message" onclick="adminHighlightMessageForReply('${escapeHtml(ticket.admin_reply).replace(/'/g, "\\'")}')"><strong style="font-size:11px; display:block; margin-bottom:2px; opacity:0.8;">Master Admin</strong>${escapeHtml(ticket.admin_reply)}<span class="bubble-meta">${ticket.reply_timestamp ? new Date(ticket.reply_timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span></div>`;
+        }
+    }
+    historyBox.innerHTML = chatHtml;
+    historyBox.scrollTop = historyBox.scrollHeight;
+
+    updateModalStatusView(ticket);
+    document.getElementById('ticketModal').classList.add('active');
+}
+
+function adminHighlightMessageForReply(textSnippet) {
+    adminHighlightedSnippet = textSnippet;
+    document.getElementById('adminReplyingTextSnippet').innerText = `Replying to: "${textSnippet.substring(0, 40)}..."`;
+    document.getElementById('adminReplyingBar').style.display = 'flex';
+    document.getElementById('modalReplyText').focus();
+}
+
+function cancelAdminReplyHighlight() {
+    adminHighlightedSnippet = null;
+    document.getElementById('adminReplyingBar').style.display = 'none';
+}
+
+function updateModalStatusView(ticket) {
+    const statusControlArea = document.getElementById('modalStatusControlArea');
+    const currentStatus = ticket.status || 'Pending';
+
+    statusControlArea.innerHTML = `
+        <select id="modalStatusSelect" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 13px; font-family: inherit;">
+            <option value="Pending" ${currentStatus === 'Pending' ? 'selected' : ''}>Pending</option>
+            <option value="In Progress" ${currentStatus === 'In Progress' ? 'selected' : ''}>In Progress</option>
+            <option value="Resolved" ${currentStatus === 'Resolved' ? 'selected' : ''}>Resolved / Settled</option>
+        </select>
+    `;
+}
+
+function closeModal() {
+    document.getElementById('ticketModal').classList.remove('active');
+    selectedTicketKey = null;
+    adminHighlightedSnippet = null;
+}
+
+async function submitAdminReply() {
+    if (!selectedTicketKey) return;
+    const replyText = document.getElementById('modalReplyText').value.trim();
+    const statusSelect = document.getElementById('modalStatusSelect');
+    const newStatus = statusSelect ? statusSelect.value : (activeTicketsCache[selectedTicketKey].status || 'Pending');
+
+    const ticketRef = rtdb.ref('support_tickets/' + selectedTicketKey);
+    const updates = {
+        status: newStatus,
+        last_updated: Date.now()
+    };
+
+    try {
+        if (replyText) {
+            const ticketData = activeTicketsCache[selectedTicketKey];
+            if (!ticketData.conversation) {
+                await ticketRef.child('conversation').push({
+                    sender: 'user',
+                    text: ticketData.message || 'Initial message',
+                    timestamp: ticketData.timestamp || Date.now()
+                });
+                if (ticketData.admin_reply) {
+                    await ticketRef.child('conversation').push({
+                        sender: 'admin',
+                        text: ticketData.admin_reply,
+                        timestamp: ticketData.reply_timestamp || Date.now()
+                    });
+                }
+            }
+            await ticketRef.child('conversation').push({
+                sender: 'admin',
+                text: replyText,
+                replyToText: adminHighlightedSnippet || null,
+                timestamp: Date.now()
+            });
+        }
+
+        await ticketRef.update(updates);
+        document.getElementById('modalReplyText').value = '';
+        cancelAdminReplyHighlight();
+        
+        if (activeTicketsCache[selectedTicketKey]) {
+            activeTicketsCache[selectedTicketKey].status = newStatus;
+            updateModalStatusView(activeTicketsCache[selectedTicketKey]);
+        }
+    } catch (error) {
+        alert("Failed to send reply: " + error.message);
+    }
+}
+
+function escapeHtml(text) {
+    return AGUtils.escapeHtml(text);
+}
+</script>
+</body>
+</html>

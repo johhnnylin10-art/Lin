@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="error-utils.js"></script>
+<script src="ag-utils.js"></script>
+<script src="ag-context-guard.js"></script>
+<script type="module" src="auth-guard.js"></script>
+    <meta charset="utf-8">
+    <title>Accounts Audit Pro - AssetGuard Ultimate</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <style>
+        :root { 
+            --primary: #001A35; 
+            --accent: #0072CE; 
+            --success: #22c55e; 
+            --danger: #ef4444; 
+            --warning: #f59e0b; 
+            --bg: #f4f6f9; 
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: 'Poppins', sans-serif; outline: none; }
+        body { background: var(--bg); margin: 0; color: var(--text-main); line-height: 1.4; font-size: 12px; padding: 8px; }
+
+        .container { 
+            width: 100%; max-width: 500px; margin: 0 auto; background: #fff; padding: 16px; 
+            border-radius: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid #f0f2f5; 
+            box-sizing: border-box; 
+        }
+
+        @media (min-width: 768px) {
+            body { padding: 25px; }
+            .container { max-width: 1200px !important; padding: 35px !important; border-radius: 24px; }
+            .sticky-nav { border-radius: 18px; margin-bottom: 25px; padding: 24px 32px !important; }
+            .brand-title { font-size: 13px !important; }
+            .brand-subtitle { font-size: 24px !important; }
+            .metrics-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 20px !important; margin-bottom: 25px !important; }
+            .stat-pill { padding: 22px 24px !important; border-radius: 18px !important; }
+            .stat-pill label { font-size: 12px !important; }
+            .stat-pill span { font-size: 28px !important; }
+            .filter-controls { gap: 15px !important; }
+            .filter-row { gap: 14px !important; }
+            select, .search-input, .dropdown-btn { height: 48px !important; font-size: 15px !important; border-radius: 14px !important; padding: 12px 18px !important; }
+            button.btn-action { height: 48px !important; padding: 12px 24px !important; font-size: 15px !important; border-radius: 14px !important; }
+            .chart-card { padding: 20px 24px !important; border-radius: 20px !important; }
+            .chart-wrap { height: 180px !important; }
+            .entry-card { padding: 20px 24px !important; border-radius: 18px !important; margin-bottom: 14px !important; }
+            .entry-name { font-size: 16px !important; }
+            .val-amt { font-size: 20px !important; }
+        }
+
+        .sticky-nav {
+            position: sticky; top: 0; z-index: 1000;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8); padding: 14px 18px;
+            box-shadow: 0 4px 20px rgba(0, 26, 53, 0.03); border-radius: 14px; margin-bottom: 14px;
+        }
+        
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+        .brand-block { display: flex; align-items: center; gap: 10px; }
+        .brand-title { font-size: 10px; font-weight: 800; color: var(--accent); letter-spacing: 1.5px; text-transform: uppercase; margin: 0; }
+        .brand-subtitle { font-size: 15px; font-weight: 800; color: var(--primary); margin: 2px 0 0 0; }
+
+        .lock-wrapper { 
+            cursor: pointer; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; 
+            background: #f1f5f9; border-radius: 10px; border: 1px solid var(--border); transition: all 0.2s ease;
+        }
+        .lock-wrapper:hover { background: #e2e8f0; }
+        .lock-wrapper svg { width: 15px; height: 15px; fill: var(--text-muted); }
+
+        .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+        .stat-pill { 
+            background: #ffffff; padding: 12px; border-radius: 12px; 
+            border: 1px solid var(--border); box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .stat-pill.net-card { background: linear-gradient(135deg, #001A35 0%, #002d5c 100%); border: none; }
+        .stat-pill label { font-size: 9px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px; }
+        .stat-pill.net-card label { color: rgba(255,255,255,0.6); }
+        .stat-pill span { font-size: 14px; font-weight: 800; color: var(--primary); }
+        .stat-pill.net-card span { color: #ffffff; }
+
+        .filter-controls { display: flex; flex-direction: column; gap: 8px; }
+        .filter-row { display: flex; gap: 6px; align-items: center; width: 100%; }
+        
+        .select-wrapper { position: relative; flex: 1; display: flex; align-items: center; }
+        select, input[type="date"] { 
+            width: 100%; padding: 8px 28px 8px 10px; border-radius: 10px; border: 1px solid var(--border); 
+            font-size: 11px; font-weight: 600; color: var(--text-main); background: #fff; cursor: pointer;
+            appearance: none; -webkit-appearance: none; transition: all 0.2s; height: 36px;
+        }
+        select:focus, input[type="date"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0, 114, 206, 0.1); }
+        .select-wrapper::after {
+            content: ""; position: absolute; right: 10px; pointer-events: none;
+            width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--text-muted);
+        }
+
+        button.btn-action { 
+            padding: 8px 14px; border-radius: 10px; font-size: 11px; font-weight: 700; 
+            background: var(--primary); color: #fff; display: flex; align-items: center; gap: 6px; 
+            border: none; cursor: pointer; transition: background 0.2s; height: 36px; white-space: nowrap;
+        }
+        button.btn-action:hover { background: #002d5c; }
+        button.btn-action svg { width: 13px; height: 13px; fill: currentColor; }
+
+        .search-wrapper { position: relative; flex: 2; display: flex; }
+        .search-input { 
+            width: 100%; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); 
+            font-size: 11px; font-weight: 500; color: var(--text-main); outline: none; transition: all 0.2s; height: 36px; background: #fff;
+        }
+        .search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0, 114, 206, 0.1); }
+        
+        .hover-dropdown { position: relative; display: inline-block; flex: 1; }
+        .dropdown-btn { 
+            width: 100%; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); 
+            background: #fff; font-size: 11px; font-weight: 600; text-align: left; cursor: pointer; 
+            display: flex; justify-content: space-between; align-items: center; height: 36px; color: var(--text-main);
+        }
+        .dropdown-content { 
+            display: none; position: absolute; background-color: #fff; min-width: 100%; 
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.1); z-index: 100; border-radius: 10px; 
+            border: 1px solid var(--border); top: 100%; margin-top: 4px; overflow: hidden; 
+        }
+        .hover-dropdown:hover .dropdown-content { display: block; }
+        .dropdown-content a { 
+            color: var(--text-main); padding: 9px 10px; text-decoration: none; 
+            display: block; font-size: 11px; font-weight: 500; border-bottom: 1px solid #f1f5f9; transition: background 0.1s;
+        }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background-color: #f8fafc; color: var(--accent); }
+
+        @keyframes donutPulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 114, 206, 0.4); }
+            50% { transform: scale(1.09); box-shadow: 0 0 0 8px rgba(0, 114, 206, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 114, 206, 0); }
+        }
+
+        .action-row { display: flex; align-items: center; justify-content: flex-end; gap: 8px; background: transparent; padding: 4px 2px; margin: 10px 0; border: none; box-shadow: none; }
+        .tap-pointer-label { font-size: 10px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .analytics-donut-btn { 
+            width: 42px; height: 42px; border-radius: 50%; 
+            background: linear-gradient(135deg, #001A35 0%, #002d5c 100%); 
+            border: 3px solid #e0f2fe; color: #fff; display: flex; align-items: center; justify-content: center; 
+            cursor: pointer; animation: donutPulse 2s infinite ease-in-out;
+            transition: transform 0.2s ease, box-shadow 0.2s ease; flex-shrink: 0;
+        }
+        .analytics-donut-btn:hover { transform: scale(1.15); animation: none; }
+        .analytics-donut-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+        .scroll-container { padding-bottom: 40px; }
+
+        .chart-card { background: white; padding: 14px 16px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.01); margin-bottom: 12px; }
+        .chart-card h4 { margin: 0 0 10px 0; font-size: 10px; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .chart-wrap { position: relative; height: 140px; width: 100%; }
+
+        .analytics-metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 8px; }
+        .analytics-stat-pill { background: #fff; padding: 12px; border-radius: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; justify-content: space-between; }
+        .analytics-stat-pill label { font-size: 9px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .analytics-stat-pill span { font-size: 14px; font-weight: 800; color: var(--primary); }
+        .analytics-stat-pill.highlight { background: linear-gradient(135deg, #001A35 0%, #002d5c 100%); border: none; }
+        .analytics-stat-pill.highlight label { color: rgba(255,255,255,0.6); }
+        .analytics-stat-pill.highlight span { color: #ffffff; }
+
+        .product-table-wrapper { overflow-x: auto; margin-top: 10px; }
+        .product-table { width: 100%; border-collapse: collapse; background: #fff; font-size: 11px; text-align: left; }
+        .product-table th, .product-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); }
+        .product-table th { background: #f8fafc; font-weight: 800; color: var(--primary); text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px; }
+        .profit-tag { font-weight: 700; padding: 3px 8px; border-radius: 6px; font-size: 10px; }
+        .profit-pos { background: #dcfce7; color: #15803d; }
+        .profit-neg { background: #fee2e2; color: #b91c1c; }
+
+        .entry-card {
+            background: white; padding: 12px 14px; border-radius: 12px; margin-bottom: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-left: 4px solid #cbd5e1; box-shadow: 0 2px 8px rgba(0,0,0,0.01);
+            cursor: pointer; transition: transform 0.1s, box-shadow 0.1s; border: 1px solid var(--border); border-left-width: 5px;
+            will-change: transform;
+        }
+        .entry-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.03); background: #fafbfc; }
+        .entry-card:active { transform: scale(0.99); }
+        .entry-card.in { border-left-color: var(--success); }
+        .entry-card.out { border-left-color: var(--danger); }
+        .entry-card.pending { border-left-style: dashed; border-left-color: var(--warning); background: #fffcf0; }
+
+        .entry-info { display: flex; flex-direction: column; gap: 3px; }
+        .entry-cat { font-size: 9px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
+        .entry-name { font-size: 13px; font-weight: 700; color: var(--text-main); }
+        .entry-meta { font-size: 10px; color: var(--text-muted); font-weight: 500; }
+
+        .entry-val { text-align: right; }
+        .val-amt { font-size: 14px; font-weight: 800; display: block; }
+        .val-type { font-size: 8px; font-weight: 700; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .admin-btn { background: #fee2e2; color: var(--danger); border: none; padding: 4px 10px; border-radius: 6px; font-size: 9px; font-weight: 800; margin-top: 6px; cursor: pointer; width: fit-content; }
+        
+        .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
+        .modal { background: white; padding: 24px; border-radius: 20px; width: 100%; max-width: 380px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        
+        .analytics-modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(8px); display: none; z-index: 2500; overflow-y: auto; padding: 15px; }
+        .analytics-modal-card { background: var(--bg); width: 100%; max-width: 1100px; margin: 10px auto; border-radius: 20px; padding: 20px 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); position: relative; }
+        .analytics-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+        .close-analytics { background: var(--primary); color: white; border: none; width: 34px; height: 34px; border-radius: 50%; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+
+        .analytics-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: #fff; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 16px; }
+        .analytics-toolbar select, .analytics-toolbar input { height: 34px; font-size: 11px; padding: 6px 10px; border-radius: 8px; }
+
+        .pin-input { width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 12px; font-size: 22px; text-align: center; letter-spacing: 6px; margin-bottom: 14px; outline: none; }
+        
+        .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+        .detail-row span:first-child { color: var(--text-muted); font-weight: 600; }
+        .detail-row span:last-child { color: var(--text-main); font-weight: 700; text-align: right; }
+        .detail-items-box { background: #f8fafc; padding: 10px; border-radius: 8px; margin-top: 8px; text-align: left; max-height: 120px; overflow-y: auto; border: 1px solid var(--border); }
+
+        #print-report-header { display: none; }
+
+        @media print {
+            body { background: white; color: black; font-size: 11px; padding: 0; }
+            .container { max-width: 100% !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+            .sticky-nav, .action-row, .admin-btn, .overlay, .analytics-modal-overlay, .no-print { display: none !important; }
+            .scroll-container { padding: 0; }
+            .entry-card { border: 1px solid #cbd5e1 !important; margin-bottom: 6px; page-break-inside: avoid; }
+            #print-report-header { display: block; border-bottom: 2px solid var(--primary); padding-bottom: 12px; margin-bottom: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="app-content" style="display:block;">
+        <div id="print-report-header">
+            <h2 style="margin:0; color:#001A35;">AssetGuard Pro - Financial Statement</h2>
+            <p style="margin:4px 0; color:#64748b; font-weight: 600;" id="print-period-range">Audit Period: General</p>
+        </div>
+
+        <div class="sticky-nav">
+            <div class="header-top">
+                <div class="brand-block">
+                    <div>
+                        <h1 class="brand-title">AssetGuard Pro</h1>
+                        <h2 class="brand-subtitle">Accounts Audit Ledger</h2>
+                    </div>
+                </div>
+                <div class="lock-wrapper" onclick="toggleAdmin()" id="lock-container">
+                    <svg id="lock-icon-svg" viewBox="0 0 24 24"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-5V9c0-3.31-2.69-6-6-6S6 5.69 6 9v3c-1.1 0-2 .9-2 2v7c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-7c0-1.1-.9-2-2-2zm-3.1 0H9.1V9c0-1.6 1.3-2.9 2.9-2.9 1.6 0 2.9 1.3 2.9 2.9v3z"/></svg>
+                </div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="stat-pill"><label>Gross Inflow</label><span id="total-in" style="color: var(--success);">0</span></div>
+                <div class="stat-pill"><label>Gross Outflow</label><span id="total-out" style="color: var(--danger);">0</span></div>
+                <div class="stat-pill net-card"><label>Net Capital</label><span id="net-cash">0</span></div>
+            </div>
+
+            <div class="filter-controls">
+                <div class="filter-row">
+                    <div class="select-wrapper">
+                        <select id="fMonth" onchange="filterAndRender()"></select>
+                    </div>
+                    <div class="select-wrapper">
+                        <select id="fYear" onchange="filterAndRender()"></select>
+                    </div>
+                    <button class="btn-action no-print" onclick="printReport()">
+                        <svg viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+                        Print
+                    </button>
+                </div>
+                <div class="filter-row no-print">
+                    <div class="search-wrapper">
+                        <input type="text" id="searchInput" class="search-input" placeholder="Search transactions..." oninput="debouncedFilter()">
+                    </div>
+                    <div class="hover-dropdown">
+                        <button class="dropdown-btn" id="dropdown-btn-text">All <span style="font-size: 10px; opacity: 0.6;">▼</span></button>
+                        <div class="dropdown-content">
+                            <a href="#" onclick="setCategoryFilter('ALL', 'All'); return false;">All Categories</a>
+                            <a href="#" onclick="setCategoryFilter('SALE', 'Sales'); return false;">Sales</a>
+                            <a href="#" onclick="setCategoryFilter('PURCHASE', 'Purchases'); return false;">Purchases</a>
+                            <a href="#" onclick="setCategoryFilter('EXPENSE', 'Expenses'); return false;">Expenses</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="action-row no-print">
+            <span class="tap-pointer-label">Tap to view profits report &rarr;</span>
+            <button class="analytics-donut-btn" onclick="requestAnalyticsAccess()" title="Open Advanced Analytics Dashboard & Market Suite">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+            </button>
+        </div>
+
+        <div class="scroll-container">
+            <div id="cardList"></div>
+        </div>
+    </div>
+</div>
+
+<div id="analyticsModal" class="analytics-modal-overlay" onclick="closeAnalyticsModal(event)">
+    <div class="analytics-modal-card" onclick="event.stopPropagation()">
+        <div class="analytics-header">
+            <div>
+                <h2 style="margin:0; font-size:16px; color:var(--primary);">Advanced Analytics & Profit Intelligence Suite</h2>
+                <p style="margin:2px 0 0 0; font-size:11px; color:var(--text-muted);">Real-time production cost tracking, product margins, and net profit calculations</p>
+            </div>
+            <button class="close-analytics" onclick="document.getElementById('analyticsModal').style.display='none'">✕</button>
+        </div>
+
+        <div class="analytics-toolbar">
+            <span style="font-size:11px; font-weight:700; color:var(--primary);">Analysis Period:</span>
+            <div style="flex: 1; max-width: 140px;">
+                <select id="analyticsPeriodType" onchange="toggleAnalyticsPeriodMode()">
+                    <option value="day">Per Day</option>
+                    <option value="month" selected>Per Month</option>
+                    <option value="year">Per Year</option>
+                </select>
+            </div>
+            
+            <div id="analyticsDaySelector" style="display:none; flex: 1; max-width: 160px;">
+                <input type="date" id="analyticsDateVal" onchange="renderAnalyticsModalData()">
+            </div>
+
+            <div id="analyticsMonthSelector" style="display:flex; gap:6px; flex:2;">
+                <select id="analyticsMonthVal" onchange="renderAnalyticsModalData()"></select>
+                <select id="analyticsYearVal" onchange="renderAnalyticsModalData()"></select>
+            </div>
+        </div>
+
+        <div class="analytics-metrics-grid">
+            <div class="analytics-stat-pill">
+                <label>Paid Profit (Cash, M-Pesa, Bank)</label>
+                <span id="stat-paid-profit" style="color:var(--success);">0</span>
+            </div>
+            <div class="analytics-stat-pill">
+                <label>Credit Sales Profit</label>
+                <span id="stat-credit-profit" style="color:var(--warning);">0</span>
+            </div>
+            <div class="analytics-stat-pill">
+                <label>Total Profit (Credits Inclusive)</label>
+                <span id="stat-total-product-profit" style="color:var(--success);">0</span>
+            </div>
+            <div class="analytics-stat-pill">
+                <label>Expenses Incurred</label>
+                <span id="stat-total-expenses" style="color:var(--danger);">0</span>
+            </div>
+        </div>
+        <div class="analytics-metrics-grid" style="grid-template-columns: 1fr; margin-bottom: 12px;">
+            <div class="analytics-stat-pill highlight">
+                <label>Net Period Profit / Loss (Credits Inclusive)</label>
+                <span id="stat-net-period-profit">0</span>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h4>Operational Allocations</h4>
+            <div class="chart-wrap">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card full-width" style="margin-top: 12px;">
+            <h4>Product Line Market & Production Cost Analytics</h4>
+            <div class="product-table-wrapper">
+                <table class="product-table">
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th>Qty Sold</th>
+                            <th>Total Revenue</th>
+                            <th>Actual Prod. Cost</th>
+                            <th>Actual Net Profit</th>
+                            <th>Margin</th>
+                        </tr>
+                    </thead>
+                    <tbody id="product-analytics-tbody">
+                        <tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No sales items recorded for this timeframe.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="pinModal" class="overlay">
+    <div class="modal" style="text-align: center;">
+        <h3 style="margin:0 0 10px 0; color: var(--primary);" id="pinModalTitle">Security Verification</h3>
+        <p style="font-size:11px; color:var(--text-muted); margin-bottom:16px;" id="pinModalDesc">Input security configuration pin</p>
+        <input type="password" id="adminPin" class="pin-input" placeholder="••••" maxlength="32" oninput="verifyPin()">
+        <button style="border:none; background:none; color:var(--text-muted); font-weight:700; cursor:pointer;" onclick="closeModals()">CANCEL</button>
+    </div>
+</div>
+
+<div id="detailsModal" class="overlay" onclick="closeDetailsModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <h3 style="margin:0 0 6px 0; color:var(--primary);" id="det-title">Transaction Details</h3>
+        <p style="font-size:10px; color:var(--text-muted); margin-bottom:14px;" id="det-id">ID: --</p>
+        
+        <div id="details-content">
+            <div class="detail-row"><span>Classification</span><span id="det-cat">--</span></div>
+            <div class="detail-row"><span>Entity/Account</span><span id="det-sub">--</span></div>
+            <div class="detail-row"><span>Execution Timestamp</span><span id="det-date">--</span></div>
+            <div class="detail-row"><span>Financial Value</span><span id="det-amt" style="font-size:14px;">--</span></div>
+            <div class="detail-row"><span>Pipeline Vector</span><span id="det-type">--</span></div>
+            <div class="detail-row"><span>Sync Architecture</span><span id="det-status">--</span></div>
+            
+            <div id="det-items-wrap" style="margin-top:10px; display:none;">
+                <span style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Line Item Inventory Manifest</span>
+                <div class="detail-items-box" id="det-items-list"></div>
+            </div>
+        </div>
+        
+        <button style="border:none; background:#f1f5f9; color:var(--primary); font-weight:700; padding:10px; width:100%; border-radius:12px; margin-top:18px; cursor:pointer;" onclick="document.getElementById('detailsModal').style.display='none'">DISMISS STATEMENT</button>
+    </div>
+</div>
+
+<script type="module">
+    import { getDb } from "./ag-firebase.js";
+    import { ref, onValue, remove } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+    import AGPasscode from "./ag-passcode.js";
+
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const now = new Date();
+    
+    document.getElementById('fMonth').innerHTML = months.map((m, i) => `<option value="${i}" ${i===now.getMonth()?'selected':''}>${m}</option>`).join('');
+    document.getElementById('fYear').innerHTML = [2024, 2025, 2026].map(y => `<option value="${y}" ${y===now.getFullYear()?'selected':''}>${y}</option>`).join('');
+
+    document.getElementById('analyticsMonthVal').innerHTML = months.map((m, i) => `<option value="${i}" ${i===now.getMonth()?'selected':''}>${m}</option>`).join('');
+    document.getElementById('analyticsYearVal').innerHTML = [2024, 2025, 2026].map(y => `<option value="${y}" ${y===now.getFullYear()?'selected':''}>${y}</option>`).join('');
+    document.getElementById('analyticsDateVal').value = now.toISOString().split('T')[0];
+
+    const db = getDb();
+    const currentUID = AGUtils.resolveActiveUID();
+    const queueKey = AGUtils.uidKey("ag_sales_queue", currentUID);
+    const mirrorKey = AGUtils.uidKey("ag_cash_audit_mirror", currentUID);
+    const invCacheKey = AGUtils.uidKey("ag_inv_cache", currentUID);
+
+    let isAdmin = false;
+    let authContext = 'admin';
+    let cloudRecords = [];
+    let combinedRecords = [];
+    let activeCategoryFilter = 'ALL';
+    let inventoryData = AGUtils.readJSON(invCacheKey, {});
+    
+    let categoryChartInstance = null;
+    let debounceTimer = null;
+    let isDataLoaded = false;
+
+    if (currentUID) {
+        onValue(ref(db, AGUtils.userPath(currentUID, "inventory")), (snap) => {
+            if (snap.exists()) {
+                inventoryData = snap.val();
+                AGUtils.writeJSON(invCacheKey, inventoryData);
+                filterAndRender();
+            }
+        }, error => AGErrors.report("inventory live fetch in audit ledger", error), { onlyOnce: false });
+    }
+
+    const cachedMirror = localStorage.getItem(mirrorKey) || localStorage.getItem(queueKey);
+    if (cachedMirror) {
+        try {
+            const parsed = JSON.parse(cachedMirror);
+            combinedRecords = Array.isArray(parsed) ? parsed : Object.values(parsed);
+            isDataLoaded = true;
+            queueMicrotask(() => window.filterAndRender());
+        } catch(e) {
+            AGErrors.report("master ledger cached mirror parsing", e);
+        }
+    } else {
+        isDataLoaded = true;
+        queueMicrotask(() => window.filterAndRender());
+    }
+
+    const refreshUnifiedData = () => {
+        const syncQueue = AGUtils.readJSON(queueKey, []);
+        const pendingSales = syncQueue.map(q => ({
+            id: q.saleId || `local-${Math.random()}`,
+            date: q.timestamp,
+            cat: 'SALE',
+            type: 'IN',
+            sub: (q.customer || "Walk-in") + " (PENDING)",
+            amt: q.items ? q.items.reduce((sum, i) => sum + parseFloat(i.total || i.amount || 0), 0) : parseFloat(q.total || 0),
+            payment: q.payment || 'Cash',
+            paymentRef: q.mpesaRef || q.mpesa || q.bank || '',
+            payments: q.payments || [],
+            isPending: true,
+            rawItems: q.items || []
+        }));
+
+        combinedRecords = AGUtils.mergePendingWithCloud(cloudRecords, pendingSales, { sortKey: "date" });
+        isDataLoaded = true;
+        AGUtils.writeJSON(mirrorKey, combinedRecords);
+        filterAndRender();
+    };
+
+    if (currentUID) {
+        onValue(ref(db, AGUtils.userPath(currentUID)), (snap) => {
+            const data = snap.val() || {};
+            let temp = [];
+            
+            const process = (obj, type, cat, pathSuffix) => {
+                if(!obj) return;
+                for (const [id, d] of Object.entries(obj)) {
+                    let val = parseFloat(d.total || d.amount || 0);
+                    if (!val && d.items) val = d.items.reduce((sum, i) => sum + parseFloat(i.total || i.amount || 0), 0);
+
+                    temp.push({ 
+                        id, date: d.timestamp || d.expense_date, cat, type, 
+                        sub: d.customer || d.category || d.supplier || "General", 
+                        amt: val, 
+                        payment: d.payment || 'Cash',
+                        paymentRef: d.mpesaRef || d.mpesa || d.bank || '',
+                        payments: d.payments || [],
+                        path: AGUtils.userPath(currentUID, pathSuffix, id), 
+                        isPending: false,
+                        rawItems: d.items || null, 
+                        notes: d.notes || d.description || null
+                    });
+                }
+            };
+
+            process(data.sales, 'IN', 'SALE', 'sales');
+            process(data.expenses, 'OUT', 'EXPENSE', 'expenses');
+            process(data.purchases, 'OUT', 'PURCHASE', 'purchases');
+
+            cloudRecords = temp;
+            refreshUnifiedData();
+        }, error => AGErrors.report("master ledger live data", error), { onlyOnce: false });
+    }
+
+    window.setCategoryFilter = (cat, label) => {
+        activeCategoryFilter = cat;
+        document.getElementById('dropdown-btn-text').innerHTML = `${label} <span style="font-size: 10px; opacity: 0.6;">▼</span>`;
+        filterAndRender();
+    };
+
+    window.debouncedFilter = () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            filterAndRender();
+        }, 60);
+    };
+
+    window.filterAndRender = () => {
+        if (!isDataLoaded) return;
+        const m = document.getElementById('fMonth').value;
+        const y = document.getElementById('fYear').value;
+        const searchTerm = document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase().trim() : '';
+        const list = document.getElementById('cardList');
+        
+        const activeMonthName = document.getElementById('fMonth').options[document.getElementById('fMonth').selectedIndex].text;
+        document.getElementById('print-period-range').innerText = `Audit Period: ${activeMonthName} ${y}` + (activeCategoryFilter !== 'ALL' ? ` | Category: ${activeCategoryFilter}` : '');
+
+        let tin = 0, tout = 0;
+        const htmlChunks = [];
+
+        for (let i = 0; i < combinedRecords.length; i++) {
+            const r = combinedRecords[i];
+            const dt = new Date(r.date);
+            if(dt.getMonth().toString() !== m || dt.getFullYear().toString() !== y) continue;
+
+            if(activeCategoryFilter !== 'ALL' && r.cat !== activeCategoryFilter) continue;
+            
+            if(searchTerm) {
+                const searchString = `${r.sub} ${r.cat} ${r.payment || ''} ${r.notes || ''}`.toLowerCase();
+                if(!searchString.includes(searchTerm)) continue;
+            }
+            
+            if(r.type==='IN') { tin += r.amt; } else { tout += r.amt; }
+
+            let paymentBadge = r.payment ? `<span style="font-size:8px; background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; font-weight:700; margin-left:4px;">${r.payment}</span>` : '';
+            if (r.payment === 'Credit') {
+                const paidSoFar = (r.payments || []).reduce((acc, p) => acc + parseFloat(p.amount || 0), 0);
+                const bal = r.amt - paidSoFar;
+                paymentBadge = `<span style="font-size:8px; background:#ffedd5; color:#c2410c; padding:2px 6px; border-radius:4px; font-weight:700; margin-left:4px;">Credit ${bal > 0 ? '(Pending)' : '(Settled)'}</span>`;
+            }
+
+            htmlChunks.push(`
+                <div class="entry-card ${r.type.toLowerCase()} ${r.isPending ? 'pending' : ''}" onclick="window.viewDetails('${r.id}')">
+                    <div class="entry-info">
+                        <span class="entry-cat">${r.cat} ${paymentBadge} ${r.isPending ? '⏳' : ''}</span>
+                        <span class="entry-name">${r.sub}</span>
+                        <span class="entry-meta">${dt.toLocaleDateString('en-GB')} • ${dt.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                        ${isAdmin && !r.isPending ? `<button class="admin-btn" onclick="event.stopPropagation(); deleteEntry('${r.path}')">DELETE</button>` : ''}
+                    </div>
+                    <div class="entry-val" style="color:var(--${r.type==='IN'?'success':'danger'})">
+                        <span class="val-amt">${r.type==='IN'?'+Ksh ':'-Ksh '}${AGUtils.formatAmount(r.amt)}</span>
+                        <span class="val-type">${r.payment || 'CASH'} ${r.type}</span>
+                    </div>
+                </div>`);
+        }
+
+        list.innerHTML = htmlChunks.length > 0 ? htmlChunks.join('') : '<p style="text-align:center; color:var(--text-muted); padding:20px;">No transaction records found.</p>';
+
+        document.getElementById('total-in').innerText = 'Ksh ' + AGUtils.formatAmount(tin);
+        document.getElementById('total-out').innerText = 'Ksh ' + AGUtils.formatAmount(tout);
+        
+        const netElement = document.getElementById('net-cash');
+        const netAmt = tin - tout;
+        netElement.innerText = (netAmt >= 0 ? '+Ksh ' : '-Ksh ') + AGUtils.formatAmount(Math.abs(netAmt));
+    };
+
+    window.requestAnalyticsAccess = () => {
+        authContext = 'analytics';
+        document.getElementById('pinModalTitle').innerText = "Analytics Security";
+        document.getElementById('pinModalDesc').innerText = "Enter passcode to open Analytics Suite";
+        document.getElementById('pinModal').style.display = 'flex';
+        document.getElementById('adminPin').focus();
+    };
+
+    window.toggleAnalyticsPeriodMode = () => {
+        const mode = document.getElementById('analyticsPeriodType').value;
+        document.getElementById('analyticsDaySelector').style.display = mode === 'day' ? 'block' : 'none';
+        document.getElementById('analyticsMonthSelector').style.display = mode === 'month' ? 'flex' : 'none';
+        renderAnalyticsModalData();
+    };
+
+    window.renderAnalyticsModalData = () => {
+        const periodType = document.getElementById('analyticsPeriodType').value;
+        const targetDateStr = document.getElementById('analyticsDateVal').value;
+        const targetMonth = document.getElementById('analyticsMonthVal').value;
+        const targetYear = document.getElementById('analyticsYearVal').value;
+
+        let catTotals = { 'SALE': 0, 'EXPENSE': 0, 'PURCHASE': 0 };
+        let productMap = {};
+        let totalProductProfit = 0;
+        let paidProfit = 0;
+        let creditProfit = 0;
+        let totalExpenses = 0;
+
+        for (let i = 0; i < combinedRecords.length; i++) {
+            const r = combinedRecords[i];
+            const dt = new Date(r.date);
+
+            if (periodType === 'day') {
+                const rDateStr = dt.toISOString().split('T')[0];
+                if (rDateStr !== targetDateStr) continue;
+            } else if (periodType === 'month') {
+                if (dt.getMonth().toString() !== targetMonth || dt.getFullYear().toString() !== targetYear) continue;
+            } else if (periodType === 'year') {
+                if (dt.getFullYear().toString() !== targetYear) continue;
+            }
+
+            if(r.cat === 'SALE' && r.rawItems && Array.isArray(r.rawItems)) {
+                let saleRev = r.amt;
+                let saleProfit = 0;
+
+                r.rawItems.forEach(item => {
+                    const itemName = (
+                        item.name || 
+                        item.productName || 
+                        item.product || 
+                        item.item_name || 
+                        item.title || 
+                        item.item || 
+                        item.description || 
+                        (typeof item === 'string' ? item : 'Unnamed Product')
+                    ).trim();
+
+                    const qty = parseFloat(item.quantity || item.qty || item.count || 1);
+                    const price = parseFloat(item.price || item.unitPrice || item.sellingPrice || 0);
+                    const rev = parseFloat(item.total || item.subtotal || (qty * price));
+                    
+                    const productKey = itemName.replace(/\s+/g, '_').toLowerCase();
+                    const invMatch = inventoryData[productKey] || Object.values(inventoryData).find(iv => iv.name && iv.name.toLowerCase() === itemName.toLowerCase());
+                    
+                    const unitCost = invMatch && invMatch.productionCost !== undefined 
+                        ? parseFloat(invMatch.productionCost) 
+                        : parseFloat(item.cost || item.unitCost || item.buyPrice || 0);
+
+                    const totCost = qty * unitCost;
+                    const profit = rev - totCost;
+
+                    saleProfit += profit;
+
+                    if (!productMap[itemName]) {
+                        productMap[itemName] = { qty: 0, revenue: 0, cost: 0, profit: 0 };
+                    }
+                    productMap[itemName].qty += qty;
+                    productMap[itemName].revenue += rev;
+                    productMap[itemName].cost += totCost;
+                    productMap[itemName].profit += profit;
+                });
+
+                totalProductProfit += saleProfit;
+
+                if (r.payment === 'Credit') {
+                    const paidSoFar = (r.payments || []).reduce((acc, p) => acc + parseFloat(p.amount || 0), 0);
+                    const ratio = saleRev > 0 ? Math.min(1, paidSoFar / saleRev) : 0;
+                    paidProfit += (saleProfit * ratio);
+                    creditProfit += (saleProfit * (1 - ratio));
+                } else {
+                    paidProfit += saleProfit;
+                }
+            }
+
+            if(r.cat === 'EXPENSE') {
+                totalExpenses += r.amt;
+            }
+
+            if(catTotals[r.cat] !== undefined) { catTotals[r.cat] += r.amt; }
+        }
+
+        const netPeriodProfit = totalProductProfit - totalExpenses;
+
+        document.getElementById('stat-paid-profit').innerText = 'Ksh ' + AGUtils.formatAmount(paidProfit);
+        document.getElementById('stat-credit-profit').innerText = 'Ksh ' + AGUtils.formatAmount(creditProfit);
+        document.getElementById('stat-total-product-profit').innerText = 'Ksh ' + AGUtils.formatAmount(totalProductProfit);
+        document.getElementById('stat-total-expenses').innerText = 'Ksh ' + AGUtils.formatAmount(totalExpenses);
+        
+        const netEl = document.getElementById('stat-net-period-profit');
+        netEl.innerText = (netPeriodProfit >= 0 ? '+Ksh ' : '-Ksh ') + AGUtils.formatAmount(Math.abs(netPeriodProfit));
+        netEl.style.color = netPeriodProfit >= 0 ? 'var(--success)' : 'var(--danger)';
+
+        renderChart(catTotals);
+        renderProductTable(productMap);
+    };
+
+    window.closeAnalyticsModal = (e) => {
+        if(e.target === document.getElementById('analyticsModal')) {
+            document.getElementById('analyticsModal').style.display = 'none';
+        }
+    };
+
+    const renderProductTable = (productMap) => {
+        const tbody = document.getElementById('product-analytics-tbody');
+        if(!tbody) return;
+
+        const keys = Object.keys(productMap);
+        if (keys.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:16px;">No product sales recorded in this timeframe.</td></tr>`;
+            return;
+        }
+
+        keys.sort((a, b) => productMap[b].profit - productMap[a].profit);
+
+        tbody.innerHTML = keys.map(name => {
+            const p = productMap[name];
+            const margin = p.revenue > 0 ? ((p.profit / p.revenue) * 100).toFixed(1) : '0.0';
+            return `
+                <tr>
+                    <td><b>${name}</b></td>
+                    <td>${p.qty}</td>
+                    <td>Ksh ${AGUtils.formatAmount(p.revenue)}</td>
+                    <td>Ksh ${AGUtils.formatAmount(p.cost)}</td>
+                    <td><b style="color:${p.profit >= 0 ? 'var(--success)' : 'var(--danger)'};">Ksh ${AGUtils.formatAmount(p.profit)}</b></td>
+                    <td><span class="profit-tag ${p.profit >= 0 ? 'profit-pos' : 'profit-neg'}">${margin}%</span></td>
+                </tr>
+            `;
+        }).join('');
+    };
+
+    window.viewDetails = (id) => {
+        const item = combinedRecords.find(r => r.id === id);
+        if(!item) return;
+
+        const dt = new Date(item.date);
+        document.getElementById('det-title').innerText = `${item.cat} Statement`;
+        document.getElementById('det-id').innerText = `System ID Identifier: ${item.id}`;
+        document.getElementById('det-cat').innerText = item.cat;
+        document.getElementById('det-sub').innerText = item.sub;
+        document.getElementById('det-date').innerText = `${dt.toLocaleDateString('en-GB')} at ${dt.toLocaleTimeString()}`;
+        document.getElementById('det-amt').innerText = `${item.type === 'IN' ? '+' : '-'} Ksh ${AGUtils.formatAmount(item.amt)}`;
+        document.getElementById('det-amt').style.color = item.type === 'IN' ? 'var(--success)' : 'var(--danger)';
+        document.getElementById('det-type').innerText = `Payment Method: ${item.payment || 'Cash'} (${item.paymentRef || 'Standard'})`;
+        document.getElementById('det-status').innerText = item.isPending ? "Local Mirror Queue (Pending Synchronization)" : "Complete Decentralized Realtime Sync";
+
+        const itemsWrap = document.getElementById('det-items-wrap');
+        const itemsList = document.getElementById('det-items-list');
+        
+        if (item.rawItems && Array.isArray(item.rawItems) && item.rawItems.length > 0) {
+            itemsWrap.style.display = 'block';
+            itemsList.innerHTML = item.rawItems.map(i => `
+                <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px; padding-bottom:4px; border-bottom:1px dashed #e2e8f0;">
+                    <span>${i.name || i.productName || i.product || i.item_name || i.title || i.item || i.description || 'Item'} (x${i.quantity || i.qty || i.count || 1})</span>
+                    <strong style="color:var(--primary)">Ksh ${AGUtils.formatAmount(i.total || i.amount || 0)}</strong>
+                </div>
+            `).join('');
+        } else if(item.notes) {
+            itemsWrap.style.display = 'block';
+            itemsList.innerHTML = `<p style="margin:0; font-size:11px; color:var(--text-muted); font-style:italic;">"${item.notes}"</p>`;
+        } else {
+            itemsWrap.style.display = 'none';
+        }
+
+        document.getElementById('detailsModal').style.display = 'flex';
+    };
+
+    window.closeDetailsModal = () => {
+        document.getElementById('detailsModal').style.display = 'none';
+    };
+
+    const renderChart = (catTotals) => {
+        const catCanvas = document.getElementById('categoryChart');
+        if(!catCanvas) return;
+
+        const ctxCat = catCanvas.getContext('2d');
+        if(categoryChartInstance) categoryChartInstance.destroy();
+
+        categoryChartInstance = new Chart(ctxCat, {
+            type: 'bar',
+            data: {
+                labels: ['Sales', 'Expenses', 'Purchases'],
+                datasets: [{
+                    data: [catTotals['SALE'], catTotals['EXPENSE'], catTotals['PURCHASE']],
+                    backgroundColor: ['#0072CE', '#f59e0b', '#64748b'],
+                    borderRadius: 6,
+                    barThickness: 22
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: { backgroundColor: '#001A35', padding: 8, cornerRadius: 6 }
+                },
+                scales: { 
+                    y: { beginAtZero: true, border: {display: false}, grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Poppins', size: 9 } } }, 
+                    x: { grid: { display: false }, ticks: { font: { family: 'Poppins', size: 9, weight: 600 } } } 
+                }
+            }
+        });
+    };
+
+    window.printReport = () => { window.print(); };
+
+    window.toggleAdmin = () => {
+        authContext = 'admin';
+        document.getElementById('pinModalTitle').innerText = "Admin Override";
+        document.getElementById('pinModalDesc').innerText = "Input security configuration pin";
+        if(isAdmin) { 
+            isAdmin = false; 
+            document.getElementById('lock-icon-svg').innerHTML = '<path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-5V9c0-3.31-2.69-6-6-6S6 5.69 6 9v3c-1.1 0-2 .9-2 2v7c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-7c0-1.1-.9-2-2-2zm-3.1 0H9.1V9c0-1.6 1.3-2.9 2.9-2.9 1.6 0 2.9 1.3 2.9 2.9v3z"/>';
+            filterAndRender(); 
+        } else { 
+            document.getElementById('pinModal').style.display = 'flex'; 
+            document.getElementById('adminPin').focus(); 
+        }
+    };
+    
+    window.verifyPin = async () => {
+        const entered = document.getElementById('adminPin').value;
+        if(entered.length < AGPasscode.MIN_LENGTH) return;
+        const res = await AGPasscode.verify(entered);
+        if(res.ok) {
+            closeModals();
+            if (authContext === 'admin') {
+                isAdmin = true; 
+                document.getElementById('lock-icon-svg').innerHTML = '<path d="M12 13c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6-1V9c0-3.31-2.69-6-6-6S6 5.69 6 9v3H4v9c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-9h-2zm-2 0H8V9c0-2.21 1.79-4 4-4s4 1.79 4 4v3 z"/>';
+                filterAndRender();
+            } else if (authContext === 'analytics') {
+                document.getElementById('analyticsModal').style.display = 'block';
+                renderAnalyticsModalData();
+            }
+        }
+    };
+    
+    window.closeModals = () => { document.getElementById('pinModal').style.display = 'none'; document.getElementById('adminPin').value = ''; };
+    window.deleteEntry = async (path) => {
+        if (!confirm("Permanently remove this cash record?")) return;
+        try {
+            await remove(ref(db, path));
+        } catch (error) {
+            AGErrors.report("master ledger deletion", error);
+        }
+    };
+</script>
+</body>
+</html>

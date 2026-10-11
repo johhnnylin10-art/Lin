@@ -1,0 +1,162 @@
+diff --git a/database.rules.json b/database.rules.json
+index 95089b4..3eced23 100644
+--- a/database.rules.json
++++ b/database.rules.json
+@@ -66,34 +66,43 @@
+     },
+ 
+     "support_tickets": {
+-      ".read": "auth != null",
+-      ".write": "auth != null",
+-      ".indexOn": "uid"
++      ".read": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || (query.orderByChild == 'uid' && query.equalTo == auth.uid))",
++      ".indexOn": "uid",
++      "$ticketId": {
++        ".read": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || data.child('uid').val() == auth.uid)",
++        ".write": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || data.child('uid').val() == auth.uid || (!data.exists() && newData.child('uid').val() == auth.uid))"
++      }
+     },
+ 
+     "history_requests": {
+-      ".read": "auth != null",
+-      ".write": "auth != null"
++      ".read": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || (query.orderByChild == 'uid' && query.equalTo == auth.uid))",
++      "$requestId": {
++        ".read": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || data.child('uid').val() == auth.uid)",
++        ".write": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || (!data.exists() && newData.child('uid').val() == auth.uid))"
++      }
+     },
+ 
+     "user_activity_logs": {
+-      ".read": "auth != null",
+-      ".write": "auth != null"
++      ".read": "auth != null && auth.token.email == 'forexlin254@gmail.com'",
++      ".write": "auth != null && auth.token.email == 'forexlin254@gmail.com'",
++      "$logId": {
++        ".write": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || (!data.exists() && newData.child('uid').val() == auth.uid))"
++      }
+     },
+ 
+     "dispatches": {
+-      ".read": "auth != null",
+-      ".write": "auth != null"
++      ".read": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || root.child('users').child(auth.uid).child('role').val() == 'marketing_team')",
++      ".write": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || root.child('users').child(auth.uid).child('role').val() == 'marketing_team')"
+     },
+ 
+     "adminRequests": {
+-      ".read": "auth != null",
+-      ".write": "auth != null"
++      ".read": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || root.child('users').child(auth.uid).child('role').val() == 'marketing_team')",
++      ".write": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || root.child('users').child(auth.uid).child('role').val() == 'marketing_team')"
+     },
+ 
+     "cars": {
+-      ".read": "auth != null",
+-      ".write": "auth != null"
++      ".read": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || root.child('users').child(auth.uid).child('role').val() == 'marketing_team')",
++      ".write": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || root.child('users').child(auth.uid).child('role').val() == 'marketing_team')"
+     },
+ 
+     "system_broadcasts": {
+diff --git a/server.js b/server.js
+index 28a77e4..a0d1bc5 100644
+--- a/server.js
++++ b/server.js
+@@ -3,10 +3,45 @@ const axios = require('axios');
+ const cors = require('cors');
+ 
+ const app = express();
+-app.use(express.json());
+-app.use(cors());
++const allowedOrigins = new Set(
++    (process.env.ALLOWED_ORIGINS || 'https://lin13423.github.io')
++        .split(',')
++        .map((origin) => origin.trim())
++        .filter(Boolean)
++);
++const requestBuckets = new Map();
+ 
+-app.post('/stk-push', async (req, res) => {
++app.use(express.json({ limit: '32kb' }));
++app.use(cors({
++    origin(origin, callback) {
++        // Non-browser clients do not send Origin. Keep those requests usable,
++        // while browsers are limited to explicitly trusted origins.
++        if (!origin || allowedOrigins.has(origin)) return callback(null, true);
++        return callback(null, false);
++    }
++}));
++
++function rateLimit(req, res, next) {
++    const now = Date.now();
++    const key = req.ip || req.socket.remoteAddress || 'unknown';
++    const bucket = requestBuckets.get(key) || { startedAt: now, count: 0 };
++
++    if (now - bucket.startedAt >= 60_000) {
++        bucket.startedAt = now;
++        bucket.count = 0;
++    }
++
++    bucket.count += 1;
++    requestBuckets.set(key, bucket);
++
++    if (bucket.count > 20) {
++        return res.status(429).json({ error: 'Too many payment requests. Try again later.' });
++    }
++
++    return next();
++}
++
++app.post('/stk-push', rateLimit, async (req, res) => {
+     try {
+         const { environment, shortcode, passkey, consumerKey, consumerSecret, accountType, amount, phoneNumber } = req.body;
+         const required = { environment, shortcode, passkey, consumerKey, consumerSecret, accountType, amount, phoneNumber };
+@@ -16,6 +51,27 @@ app.post('/stk-push', async (req, res) => {
+         if (missing.length > 0) {
+             return res.status(400).json({ error: `Missing required fields: ${missing.join(', ')}` });
+         }
++
++        if (!['production', 'sandbox'].includes(environment)) {
++            return res.status(400).json({ error: 'Invalid payment environment.' });
++        }
++
++        if (!['Paybill', 'Buy Goods'].includes(accountType)) {
++            return res.status(400).json({ error: 'Invalid account type.' });
++        }
++
++        const numericAmount = Number(amount);
++        if (!Number.isInteger(numericAmount) || numericAmount < 1 || numericAmount > 150000) {
++            return res.status(400).json({ error: 'Amount must be a whole number between 1 and 150000.' });
++        }
++
++        if (!/^\d{5,10}$/.test(String(shortcode)) || !/^\d{9,12}$/.test(String(phoneNumber))) {
++            return res.status(400).json({ error: 'Invalid shortcode or phone number.' });
++        }
++
++        if (String(passkey).length > 256 || String(consumerKey).length > 256 || String(consumerSecret).length > 512) {
++            return res.status(400).json({ error: 'Payment credential format is invalid.' });
++        }
+         
+         const baseUrl = environment === 'production' 
+             ? 'https://api.safaricom.co.ke' 
+@@ -52,7 +108,7 @@ app.post('/stk-push', async (req, res) => {
+             Password: password,
+             Timestamp: timestamp,
+             TransactionType: transactionType,
+-            Amount: amount,
++            Amount: numericAmount,
+             PartyA: phoneNumber,
+             PartyB: shortcode,
+             PhoneNumber: phoneNumber,
+@@ -69,8 +125,8 @@ app.post('/stk-push', async (req, res) => {
+         const status = error.response?.status || error.upstreamStatus || 500;
+         console.error('STK push failed:', upstreamPayload || error.message);
+         res.status(status).json({
+-            error: error.message,
+-            upstream: upstreamPayload || undefined
++            error: 'Payment request failed.',
++            upstreamStatus: status
+         });
+     }
+ });

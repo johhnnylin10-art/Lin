@@ -1,0 +1,118 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "users": {
+      ".read": "auth != null && auth.token.email == 'forexlin254@gmail.com'",
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || auth.token.email == 'forexlin254@gmail.com')",
+        ".write": "auth != null && (auth.uid == $uid || auth.token.email == 'forexlin254@gmail.com')"
+      }
+    },
+
+    "profiles": {
+      ".read": "auth != null && auth.token.email == 'forexlin254@gmail.com'",
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || auth.token.email == 'forexlin254@gmail.com')",
+        ".write": "auth != null && (auth.uid == $uid || auth.token.email == 'forexlin254@gmail.com')"
+      }
+    },
+
+    "user_settings": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || auth.token.email == 'forexlin254@gmail.com')",
+        ".write": "auth != null && (auth.uid == $uid || auth.token.email == 'forexlin254@gmail.com')"
+      }
+    },
+
+    "internal_security": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+
+    "user_notifications": {
+      ".read": "auth != null && auth.token.email == 'forexlin254@gmail.com'",
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || auth.token.email == 'forexlin254@gmail.com')",
+        ".write": "auth != null && (auth.uid == $uid || auth.token.email == 'forexlin254@gmail.com')"
+      }
+    },
+
+    "user_statuses": {
+      ".read": "auth != null && auth.token.email == 'forexlin254@gmail.com'",
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || auth.token.email == 'forexlin254@gmail.com')",
+        ".write": "auth != null && (auth.uid == $uid || auth.token.email == 'forexlin254@gmail.com')"
+      }
+    },
+
+    "subscriptions": {
+      ".read": "auth != null && auth.token.email == 'forexlin254@gmail.com'",
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || auth.token.email == 'forexlin254@gmail.com')",
+        ".write": "auth != null && (auth.uid == $uid || auth.token.email == 'forexlin254@gmail.com')"
+      }
+    },
+
+    "subscription_pauses": {
+      ".read": "auth != null && auth.token.email == 'forexlin254@gmail.com'",
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || auth.token.email == 'forexlin254@gmail.com')",
+        ".write": "auth != null && auth.token.email == 'forexlin254@gmail.com'"
+      }
+    },
+
+    "support_tickets": {
+      ".read": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || (query.orderByChild == 'uid' && query.equalTo == auth.uid))",
+      ".indexOn": "uid",
+      "$ticketId": {
+        ".read": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || data.child('uid').val() == auth.uid)",
+        ".write": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || data.child('uid').val() == auth.uid || (!data.exists() && newData.child('uid').val() == auth.uid))"
+      }
+    },
+
+    "history_requests": {
+      ".read": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || (query.orderByChild == 'uid' && query.equalTo == auth.uid))",
+      "$requestId": {
+        ".read": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || data.child('uid').val() == auth.uid)",
+        ".write": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || (!data.exists() && newData.child('uid').val() == auth.uid))"
+      }
+    },
+
+    "user_activity_logs": {
+      ".read": "auth != null && auth.token.email == 'forexlin254@gmail.com'",
+      ".write": "auth != null && auth.token.email == 'forexlin254@gmail.com'",
+      "$logId": {
+        ".write": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || (!data.exists() && newData.child('uid').val() == auth.uid))"
+      }
+    },
+
+    "dispatches": {
+      ".read": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || root.child('users').child(auth.uid).child('role').val() == 'marketing_team')",
+      ".write": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || root.child('users').child(auth.uid).child('role').val() == 'marketing_team')"
+    },
+
+    "adminRequests": {
+      ".read": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || root.child('users').child(auth.uid).child('role').val() == 'marketing_team')",
+      ".write": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || root.child('users').child(auth.uid).child('role').val() == 'marketing_team')"
+    },
+
+    "cars": {
+      ".read": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || root.child('users').child(auth.uid).child('role').val() == 'marketing_team')",
+      ".write": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || root.child('users').child(auth.uid).child('role').val() == 'marketing_team')"
+    },
+
+    "system_broadcasts": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.token.email == 'forexlin254@gmail.com'"
+    },
+
+    "system_config": {
+      ".read": "auth != null && auth.token.email == 'forexlin254@gmail.com'",
+      ".write": "auth != null && auth.token.email == 'forexlin254@gmail.com'"
+    }
+  }
+}

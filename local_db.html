@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="error-utils.js"></script>
+<script src="ag-utils.js"></script>
+<script src="ag-context-guard.js"></script>
+<script type="module" src="auth-guard.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AssetGuard - Persistent Vault</title>
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.07);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --accent: #00f2fe;
+            --error: #ff4b5c;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background: radial-gradient(circle at top right, #1e1e2f, #0a0a0c);
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .main-card {
+            width: 95%;
+            max-width: 450px;
+            padding: 40px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 300;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            font-size: 0.75rem;
+            opacity: 0.5;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+        }
+
+        .field {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 5px;
+            margin-bottom: 8px;
+            display: block;
+            color: var(--accent);
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 14px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 0.9rem;
+            box-sizing: border-box;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, textarea:focus {
+            border-color: var(--accent);
+            background: rgba(0, 0, 0, 0.4);
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
+        }
+
+        .actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+
+        .save-btn {
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            color: #000;
+        }
+
+        .load-btn {
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 242, 254, 0.3);
+        }
+
+        #log {
+            margin-top: 25px;
+            font-size: 0.8rem;
+            min-height: 1.5em;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+<div id="auth-check" style="display: none;" class="main-card">
+    <h1 style="color: var(--error);">Security Alert</h1>
+    <p>Authentication required to access the vault.</p>
+</div>
+
+<div class="main-card" id="vault-ui">
+    <h1>AssetGuard Vault</h1>
+    <div class="subtitle" id="user-display">Offline Permanent Archive</div>
+
+    <div class="field">
+        <label>Record Identity (Key)</label>
+        <input type="text" id="dbKey" placeholder="e.g., sales_march_2026">
+    </div>
+
+    <div class="field">
+        <label>Stored Data (JSON or Text)</label>
+        <textarea id="dbContent" rows="5" placeholder="Enter business data to archive..."></textarea>
+    </div>
+
+    <div class="actions">
+        <button class="save-btn" onclick="appAction('save')">Commit to DB</button>
+        <button class="load-btn" onclick="appAction('load')">Pull from DB</button>
+    </div>
+
+    <div id="log">Ready</div>
+</div>
+
+<script>
+    /**
+     * MULTI-USER CONFIGURATION
+     * Each user gets a unique physical database file on the device
+     */
+    const currentUID = AGUtils.getActiveUID();
+    
+    if (!currentUID) {
+        document.getElementById('vault-ui').style.display = 'none';
+        document.getElementById('auth-check').style.display = 'block';
+    }
+
+    const DB_CONFIG = {
+        name: `AssetGuard_Vault_${currentUID}`, 
+        version: 1,
+        store: "permanent_data"
+    };
+
+    let dbInstance = null;
+
+    async function getDB() {
+        if (!currentUID) return null;
+        if (dbInstance) return dbInstance;
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_CONFIG.name, DB_CONFIG.version);
+            
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(DB_CONFIG.store)) {
+                    db.createObjectStore(DB_CONFIG.store, { keyPath: "id" });
+                }
+            };
+
+            request.onsuccess = (e) => {
+                dbInstance = e.target.result;
+                resolve(dbInstance);
+            };
+
+            request.onerror = () => reject("Hardware Access Blocked.");
+        });
+    }
+
+    async function appAction(type) {
+        const id = document.getElementById('dbKey').value;
+        const content = document.getElementById('dbContent').value;
+
+        if (!id) {
+            log("Error: Key required", "#ff4b5c");
+            return;
+        }
+
+        try {
+            const db = await getDB();
+            if (!db) return;
+            
+            const transaction = db.transaction([DB_CONFIG.store], type === 'save' ? "readwrite" : "readonly");
+            const store = transaction.objectStore(DB_CONFIG.store);
+
+            if (type === 'save') {
+                const entry = { 
+                    id, 
+                    content, 
+                    lastUpdated: new Date().toISOString(),
+                    owner: currentUID // Secondary metadata check
+                };
+                const request = store.put(entry);
+                request.onsuccess = () => log("✓ Archived in User Vault", "#00f2fe");
+            } else {
+                const request = store.get(id);
+                request.onsuccess = () => {
+                    if (request.result) {
+                        document.getElementById('dbContent').value = request.result.content;
+                        log("✓ Restored from Archive", "#00f2fe");
+                    } else {
+                        log("No record found in your vault", "#ffbc00");
+                    }
+                };
+            }
+        } catch (err) {
+            log("Vault Error: " + err, "#ff4b5c");
+        }
+    }
+
+    function log(msg, color = "#fff") {
+        const logEl = document.getElementById('log');
+        logEl.innerText = msg;
+        logEl.style.color = color;
+    }
+
+    // Prevents Android/iOS from clearing the database during "Storage Pressure"
+    if (navigator.storage && navigator.storage.persist) {
+        navigator.storage.persist().then(granted => {
+            if (granted) console.log("User Vault Longevity Lock Active.");
+        }).catch(error => AGErrors.report("persistent storage request", error));
+    }
+
+    // Warm up
+    if (currentUID) {
+        getDB().then(() => console.log(`Vault Active for ${currentUID}`))
+            .catch(error => AGErrors.report("local vault initialization", error));
+    }
+</script>
+
+</body>
+</html>

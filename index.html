@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AssetGuard | Smart Business Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Poppins:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ===================================================== ASSETGUARD PREMIUM LANDING PAGE ===================================================== */ :root{ --navy:#071522; --navy2:#102536; --teal:#00a879; --teal2:#079d9d; --cyan:#079db7; --mint:#d9fff3; --mint2:#effffb; --white:#ffffff; --text:#071522; --muted:#61736f; --border:#e3eeeb; --shadow: 0 20px 60px rgba(7,40,35,.10); } /* RESET */ *{ box-sizing:border-box; margin:0; padding:0; } html{ scroll-behavior:smooth; } body{ font-family: "Plus Jakarta Sans", Arial, sans-serif; color:var(--text); background:white; overflow-x:hidden; } a{ text-decoration:none; color:inherit; } button, input, select, textarea{ font-family:inherit; } 
+
+/* ===================================================== WHATSAPP SVG STYLING (FULLY ORANGE) ===================================================== */
+.whatsapp-svg {
+  width: 20px;
+  height: 20px;
+  fill: #ff6b00; /* Vibrant Orange */
+  stroke: none;
+  filter: drop-shadow(0 2px 4px rgba(255, 107, 0, 0.3));
+  display: block;
+}
+
+/* ===================================================== NAVBAR ===================================================== */ .navbar{ position:fixed; top:0; left:0; right:0; height:78px; z-index:5000; background: rgba(255,255,255,.90); backdrop-filter:blur(20px); border-bottom: 1px solid rgba(7,21,34,.07); } .nav-inner{ width:92%; max-width:1180px; height:100%; margin:auto; display:flex; align-items:center; justify-content:space-between; } .logo{ display:flex; align-items:center; gap:11px; } .logo-mark{ width:43px; height:43px; border-radius:50%; display:grid; place-items:center; background: linear-gradient( 145deg, #071522, #159f9d ); color:white; font-family:Poppins; font-weight:900; font-size:18px; box-shadow: 0 8px 25px rgba(0,150,130,.20); } .logo-name{ font-family:Poppins; font-weight:800; font-size:20px; letter-spacing:-.6px; } .nav-links{ display:flex; align-items:center; gap:30px; } .nav-links a{ font-size:13px; font-weight:600; color:#52635f; } .nav-links a:hover{ color:var(--teal); } .nav-actions{ display:flex; align-items:center; gap:10px; } .nav-demo{ border: 1px solid #dce8e5; padding:11px 16px; border-radius:11px; color:#33443f; font-size:12px; font-weight:700; cursor:pointer; background:white; } .nav-login{ padding:12px 20px; border-radius:12px; background:var(--navy); color:white; font-family:Poppins; font-size:12px; font-weight:700; border:0; cursor:pointer; box-shadow: 0 10px 25px rgba(7,21,34,.16); transition:.2s; } .nav-login:hover{ opacity:.9; transform:translateY(-1px); } /* ===================================================== HERO ===================================================== */ .hero{ min-height:850px; padding: 155px 18px 100px; position:relative; overflow:hidden; background: radial-gradient( circle at 15% 35%, rgba(0,190,150,.18), transparent 34% ), radial-gradient( circle at 85% 30%, rgba(0,180,210,.15), transparent 35% ), linear-gradient( 135deg, #effffb, #d7fff4 45%, #edffff ); } .hero-content{ max-width:900px; margin:auto; text-align:center; position:relative; z-index:2; } .trust-pill{ display:inline-flex; align-items:center; gap:9px; padding: 11px 19px; border-radius:100px; background: rgba(255,255,255,.82); border: 1px solid rgba(0,130,110,.12); box-shadow: 0 10px 30px rgba(0,100,90,.07); color:#13745f; font-size:11px; font-weight:800; letter-spacing:.5px; margin-bottom:40px; } .dot{ width:8px; height:8px; border-radius:50%; background:#42c99d; box-shadow: 0 0 0 5px rgba(66,201,157,.10); } .hero h1{ font-family:Poppins; font-size: clamp(46px,8vw,86px); line-height:1; letter-spacing:-4px; font-weight:900; margin-bottom:28px; } .hero-gradient{ display:block; background: linear-gradient( 90deg, #079c8c, #079eb9 ); -webkit-background-clip:text; background-clip:text; color:transparent; } .hero-text{ max-width:760px; margin:auto; color:#566b67; font-size: clamp(14px,2vw,18px); line-height:1.85; font-weight:500; margin-bottom:35px; } .hero-buttons{ display:flex; justify-content:center; align-items:center; gap:12px; flex-wrap:wrap; } .btn{ min-height:57px; padding: 0 28px; border-radius:16px; display:inline-flex; justify-content:center; align-items:center; gap:11px; font-family:Poppins; font-size:13px; font-weight:700; cursor:pointer; border:0; transition:.25s; } .btn-primary{ color:white; background: linear-gradient( 100deg, #00a879, #079e9e, #079db7 ); box-shadow: 0 15px 35px rgba(0,160,130,.22); } .btn-primary:hover{ transform:translateY(-3px); } .btn-light{ background:white; color:var(--navy); border: 1px solid rgba(7,21,34,.08); box-shadow: 0 10px 30px rgba(7,21,34,.07); } .btn-light:hover{ transform:translateY(-3px); } /* ===================================================== DASHBOARD PREVIEW ===================================================== */ .preview{ max-width:1050px; margin: 65px auto 0; } .preview-shell{ padding:14px; border-radius:28px; background: rgba(255,255,255,.87); box-shadow: 0 35px 90px rgba(0,80,75,.14); } .preview-window{ overflow:hidden; border-radius:20px; background:#f7fffd; border: 1px solid rgba(7,21,34,.06); } .preview-header{ height:53px; background:white; display:flex; align-items:center; justify-content:space-between; padding:0 17px; border-bottom: 1px solid #edf2f1; } .window-dots{ display:flex; gap:6px; } .window-dots span{ width:8px; height:8px; border-radius:50%; background:#bdcbc8; } .preview-header strong{ font-family:Poppins; font-size:11px; } .preview-content{ padding:18px; } .metrics{ display:grid; grid-template-columns: repeat(4,1fr); gap:11px; } .metric{ padding:16px; border-radius:14px; background:white; border: 1px solid #e5eeec; } .metric small{ display:block; color:#84938f; font-size:9px; margin-bottom:7px; } .metric strong{ font-family:Poppins; font-size:18px; } .metric.green strong{ color:#009b79; } .metric.blue strong{ color:#079db7; } .preview-bottom{ margin-top:11px; display:grid; grid-template-columns: 1.8fr 1fr; gap:11px; } .preview-card{ background:white; border: 1px solid #e5eeec; border-radius:14px; padding:17px; } .preview-card h4{ font-family:Poppins; font-size:11px; margin-bottom:13px; } .bars{ height:135px; display:flex; align-items:flex-end; gap:8px; } .bar{ flex:1; border-radius: 5px 5px 0 0; background: linear-gradient( to top, #00a879, #62d9c1 ); } .activity{ display:flex; align-items:center; gap:9px; padding:9px 0; border-bottom: 1px solid #edf2f1; } .activity:last-child{ border:0; } .activity-icon{ width:29px; height:29px; border-radius:8px; display:grid; place-items:center; color:#008f76; background:#e5faf4; font-size:10px; } .activity span{ color:#6f807c; font-size:9px; flex:1; } .activity strong{ color:#009b79; font-size:9px; } /* ===================================================== TRUST ===================================================== */ .trust{ padding: 42px 18px; text-align:center; background:white; } .trust p{ color:#899895; font-size:10px; font-weight:800; letter-spacing:1.5px; margin-bottom:22px; } .trust-list{ display:flex; justify-content:center; flex-wrap:wrap; gap:10px; } .trust-item{ padding: 11px 17px; border: 1px solid #e4edeb; border-radius:11px; color:#50615d; font-family:Poppins; font-size:10px; font-weight:700; } /* ===================================================== SECTIONS ===================================================== */ .section{ padding: 110px 18px; } .container{ max-width:1150px; margin:auto; } .section-head{ max-width:700px; margin: 0 auto 50px; text-align:center; } .eyebrow{ color:#009b7e; font-family:Poppins; font-size:10px; font-weight:800; letter-spacing:2px; text-transform:uppercase; margin-bottom:12px; } .section-head h2{ font-family:Poppins; font-size: clamp(34px,5vw,55px); line-height:1.08; letter-spacing:-2.5px; margin-bottom:17px; } .section-head p{ color:#667873; font-size:14px; line-height:1.8; } /* ===================================================== FEATURES ===================================================== */ .features{ display:grid; grid-template-columns: repeat(3,1fr); gap:17px; } .feature{ padding:29px; background:white; border: 1px solid #e5eeec; border-radius:21px; box-shadow: 0 10px 35px rgba(7,40,35,.045); transition:.25s; } .feature:hover{ transform:translateY(-5px); box-shadow: 0 25px 55px rgba(7,40,35,.09); } .feature-icon{ width:49px; height:49px; display:grid; place-items:center; border-radius:14px; background: linear-gradient( 135deg, #e1fff7, #dffaff ); color:#008f76; margin-bottom:19px; font-size:19px; } .feature h3{ font-family:Poppins; font-size:16px; margin-bottom:9px; } .feature p{ color:#687a76; font-size:12px; line-height:1.75; } /* ===================================================== OPERATIONS ===================================================== */ .operation-section{ background: linear-gradient( 135deg, #effffb, #dffff6 ); } .operation-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:75px; align-items:center; } .operation-grid h2{ font-family:Poppins; font-size: clamp(35px,5vw,54px); line-height:1.08; letter-spacing:-2px; margin-bottom:20px; } .operation-grid p{ color:#61736f; line-height:1.8; font-size:14px; } .checks{ margin-top:25px; } .check{ display:flex; align-items:center; gap:11px; margin:14px 0; font-size:12px; font-weight:600; color:#344a46; } .check-icon{ width:24px; height:24px; display:grid; place-items:center; border-radius:50%; background:#d4faee; color:#008f76; font-size:10px; } /* ===================================================== CONTACT / SUPPORT ===================================================== */ .contact-section{ padding: 115px 18px; background:white; } .contact-grid{ max-width:1100px; margin:auto; display:grid; grid-template-columns: 1fr 1.35fr; gap:55px; align-items:center; } .contact-copy h2{ font-family:Poppins; font-size: clamp(35px,5vw,55px); line-height:1.08; letter-spacing:-2px; margin-bottom:18px; } .contact-copy p{ color:#687975; line-height:1.8; font-size:14px; max-width:470px; margin-bottom:28px; } .contact-badge{ display:inline-flex; align-items:center; gap:8px; padding: 8px 13px; border-radius:50px; background:#e7faf4; color:#008f76; font-size:9px; font-weight:800; } /* CONTACT CARDS */ .contact-options{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; } .contact-card{ display:flex; align-items:center; gap:13px; padding:18px; border: 1px solid #e4edeb; border-radius:18px; background:white; box-shadow: 0 10px 30px rgba(7,40,35,.05); transition:.25s; } .contact-card:hover{ transform:translateY(-4px); box-shadow: 0 18px 40px rgba(7,40,35,.10); } .contact-icon{ width:43px; height:43px; flex:none; display:grid; place-items:center; border-radius:13px; font-size:18px; } .whatsapp-card .contact-icon{ background:#dff9ed; } .phone-card .contact-icon{ background:#e5f0ff; } .email-card .contact-icon{ background:#eeeef8; } .demo-card .contact-icon{ background:#e2faf5; } .contact-info{ flex:1; } .contact-info strong{ display:block; font-family:Poppins; font-size:11px; margin-bottom:3px; } .contact-info span{ display:block; color:#7a8986; font-size:9px; line-height:1.4; } .contact-arrow{ color:#8a9995; font-size:16px; } /* ===================================================== DEMO CTA ===================================================== */ .demo-banner{ max-width:1100px; margin: 35px auto 0; padding: 35px; border-radius:25px; background: linear-gradient( 120deg, #071522, #123044 ); color:white; display:flex; align-items:center; justify-content:space-between; gap:25px; } .demo-banner h3{ font-family:Poppins; font-size:23px; margin-bottom:7px; } .demo-banner p{ color:#9aacaa; font-size:11px; } .demo-banner button{ flex:none; } /* ===================================================== SECURITY ===================================================== */ .security{ padding: 105px 18px; background:#071522; color:white; } .security-grid{ max-width:1100px; margin:auto; display:grid; grid-template-columns: repeat(3,1fr); gap:16px; } .security-card{ padding:29px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.045); border-radius:21px; } .security-icon{ width:48px; height:48px; display:grid; place-items:center; border-radius:14px; background: rgba(0,200,160,.12); color:#4ad7b7; margin-bottom:18px; } .security-card h3{ font-family:Poppins; font-size:16px; margin-bottom:9px; } .security-card p{ color:#91a29f; font-size:12px; line-height:1.75; } /* ===================================================== FINAL CTA ===================================================== */ .final-cta{ padding: 115px 18px; text-align:center; background: linear-gradient( 135deg, #effffb, #d8fff4 ); } .final-cta h2{ font-family:Poppins; font-size: clamp(38px,6vw,65px); line-height:1.05; letter-spacing:-3px; margin-bottom:17px; } .final-cta p{ max-width:650px; margin: 0 auto 30px; color:#647672; font-size:14px; line-height:1.8; } /* ===================================================== FOOTER ===================================================== */ footer{ background:#071522; color:white; padding: 60px 18px 25px; } .footer{ max-width:1150px; margin:auto; } .footer-grid{ display:grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap:50px; } .footer p{ color:#82928f; font-size:11px; line-height:1.8; max-width:330px; margin-top:15px; } .footer h4{ font-family:Poppins; font-size:10px; text-transform:uppercase; letter-spacing:1px; margin-bottom:16px; } .footer a{ display:block; color:#82928f; font-size:10px; margin:10px 0; } .footer a:hover{ color:#49d8b9; } .footer-bottom{ border-top: 1px solid rgba(255,255,255,.08); margin-top:45px; padding-top:20px; display:flex; justify-content:space-between; gap:20px; color:#61736f; font-size:9px; } /* ===================================================== FLOATING AGENT BUTTON ===================================================== */ .agent-button{ position:fixed; right:20px; bottom:20px; z-index:8000; border:0; cursor:pointer; display:flex; align-items:center; gap:9px; padding: 13px 17px; border-radius:17px; background: linear-gradient( 100deg, #071522, #123348 ); color:white; font-family:Poppins; font-size:11px; font-weight:700; box-shadow: 0 15px 35px rgba(7,21,34,.25); } .agent-button-icon{ width:27px; height:27px; display:grid; place-items:center; border-radius:9px; background: rgba(255,255,255,.10); } /* ===================================================== AGENT PANEL ===================================================== */ .agent-panel{ position:fixed; right:20px; bottom:82px; width:355px; z-index:8001; background:white; border-radius:24px; padding:15px; box-shadow: 0 30px 90px rgba(7,21,34,.20); border: 1px solid #e2ecea; opacity:0; visibility:hidden; transform: translateY(15px) scale(.97); transition:.25s; } .agent-panel.open{ opacity:1; visibility:visible; transform: translateY(0) scale(1); } .agent-head{ display:flex; align-items:center; gap:11px; padding: 8px; margin-bottom:10px; } .agent-avatar{ width:43px; height:43px; border-radius:50%; display:grid; place-items:center; background: linear-gradient( 145deg, #071522, #159f9d ); color:white; font-family:Poppins; font-weight:900; } .agent-head strong{ display:block; font-family:Poppins; font-size:12px; } .agent-head span{ display:block; color:#82908d; font-size:9px; margin-top:3px; } .agent-close{ margin-left:auto; width:30px; height:30px; border:0; border-radius:50%; background:#f1f5f4; cursor:pointer; font-size:18px; } .agent-intro{ padding: 8px; color:#687975; font-size:10px; line-height:1.6; margin-bottom:5px; } .agent-option{ display:flex; align-items:center; gap:11px; padding:14px; border-radius:15px; margin-top:7px; transition:.2s; } .agent-option:hover{ transform:translateX(3px); } .agent-option-icon{ width:39px; height:39px; display:grid; place-items:center; border-radius:11px; } .agent-option-text{ flex:1; } .agent-option-text strong{ display:block; font-family:Poppins; font-size:10px; } .agent-option-text span{ display:block; color:#82908d; font-size:8px; margin-top:3px; } .agent-option-arrow{ color:#889793; } .option-whatsapp{ background:#effcf7; } .option-whatsapp .agent-option-icon{ background:#d9f8e9; } .option-phone{ background:#f1f7ff; } .option-phone .agent-option-icon{ background:#dfecff; } .option-email{ background:#f6f6fa; } .option-email .agent-option-icon{ background:#e9e9f3; } .option-demo{ background:#edfbf8; } .option-demo .agent-option-icon{ background:#d8f7f0; } /* ===================================================== MODAL (DEMO ONLY) ===================================================== */ .modal-overlay{ position:fixed; inset:0; z-index:10000; background: rgba(7,21,34,.55); backdrop-filter: blur(8px); display:flex; align-items:center; justify-content:center; padding:18px; opacity:0; visibility:hidden; transition:.25s; } .modal-overlay.show{ opacity:1; visibility:visible; } .modal-box{ width:100%; max-width:480px; max-height: calc(100vh - 30px); overflow:auto; background:white; border-radius:25px; padding:25px; box-shadow: 0 30px 100px rgba(0,0,0,.25); transform: translateY(15px) scale(.97); transition:.25s; } .modal-overlay.show .modal-box{ transform: translateY(0) scale(1); } .modal-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; } .modal-header h3{ font-family:Poppins; font-size:20px; } .modal-close{ width:34px; height:34px; border:0; border-radius:50%; background:#f1f5f4; cursor:pointer; font-size:20px; } .modal-form label{ display:block; color:#465854; font-size:10px; font-weight:700; margin: 13px 0 6px; } .modal-form input, .modal-form select, .modal-form textarea{ width:100%; border: 1px solid #dfe9e7; border-radius:12px; padding: 13px; outline:none; font-size:12px; color:#071522; background:#fbfdfd; } .modal-form input:focus, .modal-form select:focus, .modal-form textarea:focus{ border-color:#00a879; box-shadow: 0 0 0 3px rgba(0,168,121,.08); } .modal-form textarea{ min-height:80px; resize:vertical; } .modal-submit{ width:100%; margin-top:20px; min-height:52px; border:0; border-radius:14px; color:white; cursor:pointer; font-family:Poppins; font-weight:700; font-size:12px; background: linear-gradient( 100deg, #00a879, #079eb7 ); } /* ===================================================== MOBILE ===================================================== */ @media(max-width:900px){ .nav-links{ display:none; } .nav-demo{ display:none; } .hero{ min-height:auto; } .metrics{ grid-template-columns: repeat(2,1fr); } .preview-bottom{ grid-template-columns:1fr; } .features{ grid-template-columns: repeat(2,1fr); } .operation-grid{ grid-template-columns:1fr; gap:45px; } .contact-grid{ grid-template-columns:1fr; } .security-grid{ grid-template-columns: repeat(2,1fr); } .footer-grid{ grid-template-columns: 2fr 1fr 1fr; } } @media(max-width:600px){ .navbar{ height:70px; } .logo-mark{ width:38px; height:38px; } .logo-name{ font-size:17px; } .nav-login{ padding: 10px 15px; font-size:10px; } .hero{ padding: 120px 15px 65px; } .trust-pill{ font-size:9px; margin-bottom:30px; } .hero h1{ font-size: clamp(42px,12vw,57px); letter-spacing:-2.8px; } .hero-text{ font-size:13px; } .hero-buttons{ flex-direction:column; width:100%; } .hero-buttons .btn{ width:100%; } .preview{ margin-top:45px; } .preview-shell{ padding:7px; border-radius:20px; } .preview-content{ padding:10px; } .metric{ padding:12px; } .metric strong{ font-size:15px; } .section{ padding:80px 15px; } .features{ grid-template-columns:1fr; } .contact-options{ grid-template-columns:1fr; } .demo-banner{ flex-direction:column; align-items:flex-start; padding:25px; } .demo-banner button{ width:100%; } .security-grid{ grid-template-columns:1fr; } .final-cta{ padding:80px 15px; } .footer-grid{ grid-template-columns: 1fr 1fr; gap:30px 20px; } .footer-brand{ grid-column:1/-1; } .footer-bottom{ flex-direction:column; } .agent-panel{ right:15px; bottom:76px; width: calc(100vw - 30px); max-width:355px; } .agent-button{ right:15px; bottom:15px; padding: 12px 15px; } } /* ===================================================== VERY SMALL PHONES ===================================================== */ @media(max-width:370px){ .logo-name{ font-size:15px; } .nav-login{ font-size:9px; padding:9px 12px; } .hero h1{ font-size:40px; } } 
+</style>
+</head>
+<body>
+
+<div class="navbar">
+  <div class="nav-inner">
+    <a href="#" class="logo">
+      <div class="logo-mark">A</div>
+      <div class="logo-name">AssetGuard</div>
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#operations">Operations</a>
+      <a href="#contact">Contact</a>
+      <a href="#security">Security</a>
+    </div>
+    <div class="nav-actions">
+      <button class="nav-demo" onclick="openDemo()">Book a Demo</button>
+      <button class="nav-login" onclick="openLogin()">Login</button>
+    </div>
+  </div>
+</div>
+
+<section class="hero">
+  <div class="hero-content">
+    <div class="trust-pill">
+      <span class="dot"></span>
+      SMART BUSINESS MANAGEMENT PLATFORM
+    </div>
+    <h1>
+      Your business,
+      <span class="hero-gradient">fully under control</span>
+    </h1>
+    <p class="hero-text">
+      One powerful platform for sales, inventory, purchases, expenses, customers, marketing operations and business intelligence. Built for businesses that demand more visibility, control and accountability.
+    </p>
+    <div class="hero-buttons">
+      <button class="btn btn-primary" onclick="openSignup()">Get Started Free &rarr;</button>
+      <button class="btn btn-light" onclick="openDemo()">Book a Demo</button>
+    </div>
+  </div>
+
+  <div class="preview">
+    <div class="preview-shell">
+      <div class="preview-window">
+        <div class="preview-header">
+          <div class="window-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <strong>AssetGuard Business Overview</strong>
+          <span></span>
+        </div>
+        <div class="preview-content">
+          <div class="metrics">
+            <div class="metric green">
+              <small>TOTAL SALES</small>
+              <strong>KSh 248K</strong>
+            </div>
+            <div class="metric">
+              <small>INVENTORY</small>
+              <strong>1,842</strong>
+            </div>
+            <div class="metric green">
+              <small>NET PROFIT</small>
+              <strong>KSh 74K</strong>
+            </div>
+            <div class="metric blue">
+              <small>CUSTOMERS</small>
+              <strong>486</strong>
+            </div>
+          </div>
+          <div class="preview-bottom">
+            <div class="preview-card">
+              <h4>Business Performance</h4>
+              <div class="bars">
+                <div class="bar" style="height:40%"></div>
+                <div class="bar" style="height:65%"></div>
+                <div class="bar" style="height:50%"></div>
+                <div class="bar" style="height:85%"></div>
+                <div class="bar" style="height:70%"></div>
+                <div class="bar" style="height:95%"></div>
+                <div class="bar" style="height:80%"></div>
+              </div>
+            </div>
+            <div class="preview-card">
+              <h4>Recent Activity</h4>
+              <div class="activity">
+                <div class="activity-icon">S</div>
+                <span>New Sale</span>
+                <strong>+12.5K</strong>
+              </div>
+              <div class="activity">
+                <div class="activity-icon">P</div>
+                <span>Purchase Added</span>
+                <strong>UPDATED</strong>
+              </div>
+              <div class="activity">
+                <div class="activity-icon">M</div>
+                <span>M-Pesa Paid</span>
+                <strong>SYNCED</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="trust">
+  <div class="container">
+    <p>EVERYTHING YOUR BUSINESS NEEDS — IN ONE PLACE</p>
+    <div class="trust-list">
+      <div class="trust-item">Sales</div>
+      <div class="trust-item">Purchases</div>
+      <div class="trust-item">Inventory</div>
+      <div class="trust-item">CRM</div>
+      <div class="trust-item">Expenses</div>
+      <div class="trust-item">Marketing</div>
+      <div class="trust-item">Reports</div>
+    </div>
+  </div>
+</section>
+
+<section id="features" class="section">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">One platform</div>
+      <h2>Everything your business needs.</h2>
+      <p>Connect your daily business operations and get a clearer picture of what's happening across your organization.</p>
+    </div>
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">▣</div>
+        <h3>Sales Management</h3>
+        <p>Manage sales transactions and monitor your business performance.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">◈</div>
+        <h3>Inventory Control</h3>
+        <p>Know your stock levels, movements and items requiring attention.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">↗</div>
+        <h3>Purchases</h3>
+        <p>Track purchases, suppliers and incoming stock from one place.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">₵</div>
+        <h3>Expenses</h3>
+        <p>Record expenses and maintain a clearer picture of business spending.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">◎</div>
+        <h3>CRM</h3>
+        <p>Organize customer information and strengthen your customer relationships.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">▥</div>
+        <h3>Business Intelligence</h3>
+        <p>Turn business data into useful information for better management decisions.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="operations" class="section operation-section">
+  <div class="container">
+    <div class="operation-grid">
+      <div>
+        <div class="eyebrow">Built for control</div>
+        <h2>See your entire operation at a glance.</h2>
+        <p>AssetGuard connects the most important parts of your business so your team can work from the same source of information.</p>
+        <div class="checks">
+          <div class="check"><div class="check-icon">✓</div> Monitor sales and purchases</div>
+          <div class="check"><div class="check-icon">✓</div> Keep inventory under control</div>
+          <div class="check"><div class="check-icon">✓</div> Track expenses and payments</div>
+          <div class="check"><div class="check-icon">✓</div> Manage customers and operations</div>
+          <div class="check"><div class="check-icon">✓</div> Monitor marketing activities</div>
+        </div>
+      </div>
+      <div class="preview-card" style="background:white;">
+        <h4>Business Activity</h4>
+        <div class="activity">
+          <div class="activity-icon">S</div>
+          <span>Sales Terminal</span>
+          <strong>+ KSh 12,500</strong>
+        </div>
+        <div class="activity">
+          <div class="activity-icon">P</div>
+          <span>Purchase Hub</span>
+          <strong>UPDATED</strong>
+        </div>
+        <div class="activity">
+          <div class="activity-icon">I</div>
+          <span>Inventory</span>
+          <strong>SYNCED</strong>
+        </div>
+        <div class="activity">
+          <div class="activity-icon">M</div>
+          <span>Marketing Team</span>
+          <strong>ACTIVE</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contact" class="contact-section">
+  <div class="container">
+    <div class="contact-grid">
+      <div class="contact-copy">
+        <div class="contact-badge">● WE'RE HERE TO HELP</div>
+        <h2>Talk to an AssetGuard agent.</h2>
+        <p>Have questions about AssetGuard, want help setting up your account, or want to see how the platform can work for your business? Our team is ready to help.</p>
+        <button class="btn btn-primary" onclick="openDemo()">Book a Demo &rarr;</button>
+      </div>
+      <div class="contact-options">
+        <a href="https://wa.me/254713100424" target="_blank" class="contact-card whatsapp-card">
+          <div class="contact-icon">
+            <svg class="whatsapp-svg" viewBox="0 0 24 24">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 3.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.84 9.84 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.405 0 0 5.405 0 12.05c0 2.126.556 4.202 1.613 6.027L0 24l6.107-1.601a11.95 11.95 0 005.943 1.595h.005c6.645 0 12.05-5.405 12.05-12.05 0-3.22-1.253-6.248-3.528-8.524z"/>
+            </svg>
+          </div>
+          <div class="contact-info">
+            <strong>WhatsApp</strong>
+            <span>Chat directly with our agent</span>
+          </div>
+          <div class="contact-arrow">&rarr;</div>
+        </a>
+        <a href="tel:0713100424" class="contact-card phone-card">
+          <div class="contact-icon">📞</div>
+          <div class="contact-info">
+            <strong>Call Us</strong>
+            <span>0713 100 424</span>
+          </div>
+          <div class="contact-arrow">&rarr;</div>
+        </a>
+        <a href="mailto:assetguardinfo@gmail.com" class="contact-card email-card">
+          <div class="contact-icon">✉</div>
+          <div class="contact-info">
+            <strong>Email</strong>
+            <span>assetguardinfo@gmail.com</span>
+          </div>
+          <div class="contact-arrow">&rarr;</div>
+        </a>
+        <div class="contact-card demo-card" onclick="openDemo()" style="cursor:pointer;">
+          <div class="contact-icon">📅</div>
+          <div class="contact-info">
+            <strong>Book a Demo</strong>
+            <span>Schedule a walkthrough</span>
+          </div>
+          <div class="contact-arrow">&rarr;</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="security" class="security">
+  <div class="container">
+    <div class="section-head" style="color:white;">
+      <div class="eyebrow" style="color:#4ad7b7;">Control & security</div>
+      <h2>Designed for accountable teams.</h2>
+      <p style="color:#91a29f;">Give your team the tools they need while maintaining visibility over your business operations.</p>
+    </div>
+    <div class="security-grid">
+      <div class="security-card">
+        <div class="security-icon"></div>
+        <h3>Controlled Access</h3>
+        <p>Organize access according to the responsibilities of your team.</p>
+      </div>
+      <div class="security-card">
+        <div class="security-icon"></div>
+        <h3>Field Operations</h3>
+        <p>Support location-aware marketing and field operation workflows.</p>
+      </div>
+      <div class="security-card">
+        <div class="security-icon"></div>
+        <h3>Management Visibility</h3>
+        <p>Bring important business information together for better decisions.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="final-cta">
+  <div class="container">
+    <h2>Your business. One platform.</h2>
+    <p>Ready to take control? Start managing your sales, inventory, purchases, expenses, customers and operations with AssetGuard.</p>
+    <div class="hero-buttons">
+      <button class="btn btn-primary" onclick="openSignup()">Get Started Free &rarr;</button>
+      <button class="btn btn-light" onclick="openDemo()">Book a Demo</button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer">
+    <div class="footer-grid">
+      <div>
+        <a href="#" class="logo" style="color:white;">
+          <div class="logo-mark">A</div>
+          <div class="logo-name">AssetGuard</div>
+        </a>
+        <p>A modern business management platform connecting sales, inventory, purchases, customers, expenses and operations.</p>
+      </div>
+      <div>
+        <h4>Platform</h4>
+        <a href="#features">Features</a>
+        <a href="#operations">Operations</a>
+        <a href="#security">Security</a>
+      </div>
+      <div>
+        <h4>Business</h4>
+        <a href="#">Sales</a>
+        <a href="#">Inventory</a>
+        <a href="#">CRM</a>
+        <a href="#">Reports</a>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <a href="https://wa.me/254713100424" target="_blank">WhatsApp</a>
+        <a href="tel:0713100424">0713 100 424</a>
+        <a href="mailto:assetguardinfo@gmail.com">Email</a>
+        <a href="#" onclick="openDemo()">Book a Demo</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 AssetGuard. All rights reserved.</span>
+      <span>Sales • Inventory • Operations • Business Intelligence</span>
+    </div>
+  </div>
+</footer>
+
+<button class="agent-button" onclick="toggleAgent()">
+  <div class="agent-button-icon">
+    <svg class="whatsapp-svg" viewBox="0 0 24 24" style="width:16px; height:16px;">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 3.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.84 9.84 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.405 0 0 5.405 0 12.05c0 2.126.556 4.202 1.613 6.027L0 24l6.107-1.601a11.95 11.95 0 005.943 1.595h.005c6.645 0 12.05-5.405 12.05-12.05 0-3.22-1.253-6.248-3.528-8.524z"/>
+    </svg>
+  </div>
+  Talk to an Agent
+</button>
+
+<div class="agent-panel" id="agentPanel">
+  <div class="agent-head">
+    <div class="agent-avatar">A</div>
+    <div>
+      <strong>AssetGuard Support</strong>
+      <span>We're ready to help</span>
+    </div>
+    <button class="agent-close" onclick="toggleAgent()">&times;</button>
+  </div>
+  <div class="agent-intro">Choose how you would like to contact the AssetGuard team.</div>
+  
+  <a href="https://wa.me/254713100424" target="_blank" class="agent-option option-whatsapp">
+    <div class="agent-option-icon">
+      <svg class="whatsapp-svg" viewBox="0 0 24 24" style="width:18px; height:18px;">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 3.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.84 9.84 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.405 0 0 5.405 0 12.05c0 2.126.556 4.202 1.613 6.027L0 24l6.107-1.601a11.95 11.95 0 005.943 1.595h.005c6.645 0 12.05-5.405 12.05-12.05 0-3.22-1.253-6.248-3.528-8.524z"/>
+      </svg>
+    </div>
+    <div class="agent-option-text">
+      <strong>WhatsApp</strong>
+      <span>Chat directly with an agent</span>
+    </div>
+    <div class="agent-option-arrow">&rarr;</div>
+  </a>
+
+  <a href="tel:0713100424" class="agent-option option-phone">
+    <div class="agent-option-icon">📞</div>
+    <div class="agent-option-text">
+      <strong>Call an Agent</strong>
+      <span>0713 100 424</span>
+    </div>
+    <div class="agent-option-arrow">&rarr;</div>
+  </a>
+
+  <a href="mailto:assetguardinfo@gmail.com" class="agent-option option-email">
+    <div class="agent-option-icon">✉</div>
+    <div class="agent-option-text">
+      <strong>Email</strong>
+      <span>assetguardinfo@gmail.com</span>
+    </div>
+    <div class="agent-option-arrow">&rarr;</div>
+  </a>
+
+  <div class="agent-option option-demo" onclick="toggleAgent(); openDemo();" style="cursor:pointer;">
+    <div class="agent-option-icon">📅</div>
+    <div class="agent-option-text">
+      <strong>Book a Demo</strong>
+      <span>Request a walkthrough</span>
+    </div>
+    <div class="agent-option-arrow">&rarr;</div>
+  </div>
+</div>
+
+<!-- DEMO MODAL -->
+<div class="modal-overlay" id="demoModal" onclick="outsideModal(event, 'demoModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Book an AssetGuard Demo</h3>
+      <button class="modal-close" onclick="closeDemo()">&times;</button>
+    </div>
+    <form class="modal-form" onsubmit="submitDemo(event)">
+      <label>Your Name</label>
+      <input type="text" id="demoName" required placeholder="">
+      
+      <label>Business / Company Name</label>
+      <input type="text" id="demoCompany" required placeholder="">
+      
+      <label>Phone Number</label>
+      <input type="tel" id="demoPhone" required placeholder="">
+      
+      <label>Preferred Demo Time</label>
+      <select id="demoTime">
+        <option>Morning — 8:00 AM to 12:00 PM</option>
+        <option>Afternoon — 12:00 PM to 4:00 PM</option>
+        <option>Evening — 4:00 PM to 7:00 PM</option>
+      </select>
+
+      <label>What would you like to see?</label>
+      <textarea id="demoMessage" placeholder="Mention features or workflows you want highlighted..."></textarea>
+      
+      <button type="submit" class="modal-submit">Send Demo Request on WhatsApp &rarr;</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function toggleAgent(){
+  const panel = document.getElementById("agentPanel");
+  panel.classList.toggle("open");
+}
+
+function openDemo(){
+  document.getElementById("demoModal").classList.add("show");
+}
+
+function closeDemo(){
+  document.getElementById("demoModal").classList.remove("show");
+}
+
+function openSignup(){
+  // Takes user directly to the login.html file with the signup route
+  window.location.href = "login.html#signup";
+}
+
+function openLogin(){
+  // Takes user directly to the login.html file with the login route
+  window.location.href = "login.html#login";
+}
+
+function outsideModal(event, modalId){
+  if(event.target.id === modalId){
+    document.getElementById(modalId).classList.remove("show");
+  }
+}
+
+function submitDemo(event){
+  event.preventDefault();
+  const name = document.getElementById("demoName").value.trim();
+  const company = document.getElementById("demoCompany").value.trim();
+  const phone = document.getElementById("demoPhone").value.trim();
+  const time = document.getElementById("demoTime").value;
+  const message = document.getElementById("demoMessage").value.trim();
+  
+  const whatsappMessage = `Hello AssetGuard Support 👋 I would like to book an AssetGuard demo.\n\nName: ${name}\nBusiness/Company: ${company}\nPhone: ${phone}\nPreferred Time: ${time}\nWhat I would like to see: ${message || "General AssetGuard platform demonstration."}\n\nThank you.`;
+  const url = "https://wa.me/254713100424?text=" + encodeURIComponent(whatsappMessage);
+  window.open(url, "_blank");
+  closeDemo();
+}
+
+document.addEventListener("click", function(event){
+  const panel = document.getElementById("agentPanel");
+  const button = document.querySelector(".agent-button");
+  if(panel.classList.contains("open") && !panel.contains(event.target) && !button.contains(event.target)){
+    panel.classList.remove("open");
+  }
+});
+</script>
+
+</body>
+</html>

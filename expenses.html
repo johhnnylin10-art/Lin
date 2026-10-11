@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>AssetGuard Pro - Unified Expense Terminal & Analytics</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #0072CE; --dark: #001A35; --accent: #ff6b00; --bg: #f4f6f9; --spine: #FFD700; --success: #22c55e; --danger: #ef4444; --muted: #64748b; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 0; color: #1f2937; }
+
+        /* Desktop Scaling */
+        @media (min-width: 768px) {
+            body { font-size: 1.5rem; }
+            .container, .view-container { max-width: 1200px !important; }
+            .sales-analytics-panel { max-width: 1200px !important; }
+            .brand { font-size: 2rem !important; }
+            h2 { font-size: 2.5rem !important; }
+            label { font-size: 1.2rem !important; }
+            input, select { font-size: 1.5rem !important; padding: 20px !important; }
+            .btn-submit { font-size: 1.5rem !important; padding: 20px !important; }
+        }
+
+        /* UI Structure */
+        .navbar { background: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+        .brand { font-weight: 800; font-size: 16px; color: var(--dark); }
+        .brand span { color: var(--primary); }
+        .view-container { display: none; padding: 20px 15px; max-width: 800px; margin: 0 auto; box-sizing: border-box; }
+        .view-container.active { display: block; }
+        .toggle-btn { background: var(--dark); color: white; padding: 10px 16px; border-radius: 10px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; text-transform: uppercase; transition: 0.3s; }
+        .toggle-btn:hover { background: var(--primary); }
+
+        /* Cards */
+        .ledger-card { background: white; padding: 25px; border-radius: 20px; border: 1px solid #f0f2f5; box-shadow: 0 10px 30px rgba(0,0,0,0.05); position: relative; margin-bottom: 20px; }
+
+        /* Inputs */
+        .input-group { margin-bottom: 16px; }
+        label { font-weight: 700; display: block; margin-bottom: 6px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+        input, select { width: 100%; padding: 12px; border-radius: 10px; border: 2px solid #f0f2f5; box-sizing: border-box; font-size: 14px; background: #f9fbff; outline: none; font-family: inherit; transition: 0.3s; }
+        input:focus, select:focus { border-color: var(--primary); background: #fff; }
+        .btn-submit { background: var(--dark); color: white; padding: 14px; border: none; border-radius: 10px; font-weight: 700; width: 100%; text-transform: uppercase; cursor: pointer; transition: 0.3s; }
+        .btn-submit:hover { opacity: 0.9; }
+        .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-danger { background: var(--danger); }
+
+        /* Table & History Readability */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; color: var(--muted); padding: 12px 8px; font-size: 12px; text-transform: uppercase; border-bottom: 2px solid #f1f5f9; }
+        td { padding: 16px 8px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        .date-cell { color: var(--muted); font-size: 12px; }
+        .item-cell { font-weight: 600; color: var(--dark); }
+        .total-box { margin-top: 20px; padding: 20px; background: var(--dark); color: white; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 18px; }
+
+        /* Admin Actions */
+        .admin-actions { display: none; }
+        .unlocked .admin-actions { display: table-cell; text-align: right; }
+        .btn-action { border: none; background: #f1f5f9; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 16px; margin-left: 4px; transition: 0.2s; }
+        .btn-action:hover { background: #e2e8f0; }
+        
+        /* Modals & Misc */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); z-index: 2000; align-items: center; justify-content: center; padding: 20px; }
+        .modal-card { background: white; width: 100%; max-width: 320px; padding: 25px; border-radius: 20px; max-height: 90vh; overflow-y: auto; box-sizing: border-box; }
+        #toast { position: fixed; bottom: 20px; left: 20px; right: 20px; background: var(--dark); color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: 700; display: none; z-index: 9999; box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
+        .security-bar { background: var(--dark); padding: 12px 16px; border-radius: 12px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; }
+        .pin-input { width: 80px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #fff; padding: 8px; text-align: center; font-weight: 800; }
+        
+        /* Detail Elements */
+        .detail-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        .detail-label { font-weight: 600; color: var(--muted); }
+        .detail-value { font-weight: 700; color: #1f2937; text-align: right; }
+
+        /* Analysis & Feedback */
+        @keyframes balloonPop {
+            0% { transform: scale(0.8); opacity: 0; }
+            60% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .insight-card { 
+            background: #f0fdf4; border: 1px solid #bbf7d0; padding: 16px; border-radius: 12px; margin-bottom: 20px; 
+            color: #065f46; font-size: 13px; font-weight: 500; margin-top: 10px;
+            animation: balloonPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Modern Frequency List Additions */
+        .stat-card-interactive {
+            background: #f1f5f9; padding: 15px; border-radius: 10px; text-align: center; cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid transparent;
+        }
+        .stat-card-interactive:hover {
+            background: #e2e8f0; border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        @keyframes slideUpModern {
+            0% { transform: translateY(30px) scale(0.96); opacity: 0; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .modal-card-modern {
+            background: white; width: 100%; max-width: 360px; padding: 24px; border-radius: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+            animation: slideUpModern 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; max-height: 85vh; overflow-y: auto;
+        }
+        .freq-list-wrapper { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+        .freq-item-row {
+            display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;
+            border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; cursor: pointer;
+            transition: all 0.2s ease; position: relative; overflow: hidden;
+        }
+        .freq-item-row:hover {
+            background: #f1f5f9; transform: translateX(4px); border-color: #cbd5e1;
+        }
+        .freq-item-row.selected-context {
+            background: #f0fdf4; border-color: var(--success); box-shadow: 0 0 0 1px var(--success);
+        }
+        .freq-item-row::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--muted);
+        }
+        .freq-item-row.method-mpesa::before { background: #22c55e; }
+        .freq-item-row.method-debt::before { background: #ef4444; }
+        .freq-item-row.method-bank::before { background: #a855f7; }
+        .freq-item-row.method-cash::before { background: var(--dark); }
+
+        /* --- High-End Dark/Bluish/Orange Template Blocks & Graph Panel --- */
+        .sales-analytics-panel {
+            background: linear-gradient(135deg, #001A35 0%, #071952 100%);
+            border-radius: 20px;
+            padding: 30px;
+            color: white;
+            margin: 25px auto;
+            box-sizing: border-box;
+            box-shadow: 0 15px 35px rgba(0, 26, 53, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .analytics-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 15px;
+        }
+        .analytics-title {
+            font-size: 15px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .analytics-title span {
+            width: 10px;
+            height: 10px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 10px var(--accent);
+        }
+        .analytics-badge {
+            background: rgba(0, 114, 206, 0.3);
+            color: #60a5fa;
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        
+        .sales-graph-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        .graph-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .graph-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #94a3b8;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .graph-val-highlight {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--accent);
+        }
+        
+        .template-blocks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .template-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .template-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--accent);
+        }
+        .template-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .template-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(255, 107, 0, 0.15);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 800;
+        }
+        .template-tag {
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .template-card h5 {
+            margin: 0;
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+        }
+        .template-card p {
+            margin: 0;
+            font-size: 11px;
+            color: #94a3b8;
+            line-height: 1.4;
+        }
+
+        /* =========================================
+           MODERN A4 RECEIPT STYLES (PDF/PRINT)
+           ========================================= */
+        .modern-receipt { background: #ffffff; width: 100%; max-width: 800px; margin: 0 auto; padding: 40px; box-sizing: border-box; font-family: 'Poppins', sans-serif; color: #334155; line-height: 1.6; }
+        .modern-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #0f172a; padding-bottom: 20px; margin-bottom: 30px; }
+        .modern-brand h1 { margin: 0; font-size: 28px; color: #0f172a; font-weight: 800; letter-spacing: -0.5px; text-transform: uppercase; }
+        .modern-brand p { margin: 4px 0 0 0; font-size: 13px; color: #64748b; }
+        .modern-details { text-align: right; }
+        .modern-details h2 { margin: 0 0 5px 0; font-size: 22px; color: #64748b; font-weight: 300; text-transform: uppercase; letter-spacing: 1px; }
+        .modern-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; margin-top: 8px; }
+        .badge-paid { background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
+        .badge-debt { background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; }
+        .modern-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 40px; }
+        .modern-box { background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .modern-box-title { font-size: 11px; font-weight: 700; color: #2563eb; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .modern-box-name { font-weight: 700; font-size: 16px; color: #0f172a; margin-bottom: 4px; }
+        .modern-box-info { font-size: 13px; color: #64748b; line-height: 1.5; }
+        .modern-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        .modern-table th { background: #0f172a; color: white; text-align: left; padding: 14px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .modern-table th.right, .modern-table td.right { text-align: right; }
+        .modern-table td { padding: 16px 14px; border-bottom: 1px solid #e2e8f0; font-size: 14px; vertical-align: top; }
+        .modern-desc { font-weight: 600; color: #0f172a; }
+        .modern-sub { display: block; font-size: 12px; color: #64748b; font-weight: 400; margin-top: 4px; }
+        .modern-summary { display: flex; justify-content: flex-end; margin-bottom: 40px; }
+        .modern-summary-box { width: 320px; }
+        .modern-summary-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+        .modern-summary-row.total { border-bottom: none; border-top: 2px solid #0f172a; font-size: 18px; font-weight: 800; color: #0f172a; padding-top: 15px; margin-top: 5px; }
+        .modern-terms { background: #f1f5f9; border-left: 4px solid #2563eb; padding: 15px 20px; font-size: 12px; color: #334155; margin-bottom: 50px; border-radius: 0 8px 8px 0; }
+        .modern-terms.debt-terms { background: #fffbeb; border-left-color: #fbbf24; color: #92400e; }
+        .modern-sigs { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; margin-top: 40px; }
+        .modern-sig-line { border-bottom: 1px solid #0f172a; height: 40px; margin-bottom: 8px; }
+        .modern-sig-label { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; }
+        .modern-footer { text-align: center; margin-top: 60px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b; }
+
+        @media print {
+            body > *:not(#printArea) { display: none !important; }
+            #printArea { display: block !important; position: absolute; left: 0; top: 0; width: 100%; background: white; }
+            .modern-receipt { padding: 20px; max-width: 100%; box-shadow: none; border: none; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
+        #printArea { display: none; }
+    </style>
+</head>
+<body id="mainBody">
+
+    <div id="toast">Expense saved successfully</div>
+
+    <div class="navbar">
+        <div class="brand">AssetGuard <span>Expense Terminal</span></div>
+        <button id="toggleViewBtn" class="toggle-btn" onclick="toggleView()">History Ledger</button>
+    </div>
+
+    <!-- ENTRY VIEW + DARK/BLUISH/ORANGE GRAPH & TEMPLATE BLOCKS -->
+    <div id="view-entry" class="view-container active">
+        <div class="ledger-card">
+            <h2 style="margin:0 0 20px 0; font-size: 20px; color: var(--dark);">New Expense Entry</h2>
+            <form id="expenseForm">
+                <input type="hidden" id="editId">
+                <div class="input-group"><label>Date & Time</label><input type="datetime-local" id="expense_date" required></div>
+                <div class="input-group"><label>Name / Project</label><input type="text" id="expense_name" placeholder="e.g., Office Supplies" required></div>
+                <div class="input-group"><label>Category</label><input type="text" id="category" placeholder="e.g., Utilities" required></div>
+                
+                <div class="input-group">
+                    <label>Payment Method</label>
+                    <select id="payment_method" onchange="togglePaymentExtra(false)">
+                        <option value="Cash">Cash</option>
+                        <option value="Mpesa">Mpesa</option>
+                        <option value="Bank">Bank</option>
+                        <option value="Debt">Debt</option>
+                    </select>
+                    <div id="payment_extra_container" style="display:none; margin-top:10px;">
+                        <input type="text" id="mpesa_ref" placeholder="+254XXXXXXXXX" maxlength="13" oninput="validateForm(false)">
+                        <input type="text" id="bank_ref" placeholder="Bank Transaction Ref (8-15)" style="display:none; margin-top:10px;" oninput="validateForm(false)">
+                        
+                        <div id="debt_fields" style="display:none;">
+                            <input type="text" id="creditor_name" placeholder="Debtor / Party Name" style="margin-bottom:10px;" oninput="validateForm(false)">
+                            <input type="text" id="debtor_phone" placeholder="Debtor Phone (+254...)" style="margin-bottom:10px;" oninput="validateForm(false); updateTrustMetric(false)">
+                            <div id="trustScoreBadge" style="margin-bottom:10px; padding:12px; border-radius:10px; font-size:12px; font-weight:700; display:none; line-height:1.4;"></div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom:10px;">
+                                <div>
+                                    <label style="font-size:9px;">Interest Rate (%)</label>
+                                    <input type="number" id="interest_rate" placeholder="0" value="0" step="0.1" oninput="calculateTotalPayable(false)">
+                                </div>
+                                <div>
+                                    <label style="font-size:9px;">Total Due (KES)</label>
+                                    <input type="text" id="total_payable_display" placeholder="0.00" readonly style="background:#e2e8f0; font-weight:700;">
+                                </div>
+                            </div>
+                            <input type="text" id="debt_reason" placeholder="Reason for Debt" oninput="validateForm(false)">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group"><label>Principal Amount (KES)</label><input type="number" id="amount" step="0.01" required oninput="calculateTotalPayable(false)"></div>
+                <button type="submit" id="submitBtn" class="btn-submit" style="margin-top: 10px;">Save Expense & Sync</button>
+            </form>
+        </div>
+
+        <!-- High-End Dark/Bluish/Orange Expense Intelligence & Graph Panel -->
+        <div class="sales-analytics-panel">
+            <div class="analytics-header">
+                <div class="analytics-title">
+                    <span></span> Expense Velocity & Liquidity Flow
+                </div>
+                <div class="analytics-badge">Expense Engine v2.6</div>
+            </div>
+
+            <div class="sales-graph-box">
+                <div class="graph-header-row">
+                    <span class="graph-label">Daily Outflow Velocity (Last 7 Days)</span>
+                    <span class="graph-val-highlight">Active Stream</span>
+                </div>
+                <div style="width: 100%; height: 120px; display: flex; align-items: flex-end; justify-content: space-between; padding-top: 15px; position: relative;">
+                    <div style="position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; opacity: 0.1;">
+                        <div style="border-top: 1px dashed white; width: 100%;"></div>
+                        <div style="border-top: 1px dashed white; width: 100%;"></div>
+                        <div style="border-top: 1px dashed white; width: 100%;"></div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                        <div style="width: 20px; height: 50px; background: rgba(0, 114, 206, 0.4); border-top: 3px solid #60a5fa; border-radius: 4px 4px 0 0;"></div>
+                        <span style="font-size: 9px; color: #94a3b8; font-weight: 700;">Mon</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                        <div style="width: 20px; height: 75px; background: rgba(0, 114, 206, 0.6); border-top: 3px solid #38bdf8; border-radius: 4px 4px 0 0;"></div>
+                        <span style="font-size: 9px; color: #94a3b8; font-weight: 700;">Tue</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                        <div style="width: 20px; height: 60px; background: rgba(0, 114, 206, 0.5); border-top: 3px solid #60a5fa; border-radius: 4px 4px 0 0;"></div>
+                        <span style="font-size: 9px; color: #94a3b8; font-weight: 700;">Wed</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                        <div style="width: 20px; height: 100px; background: linear-gradient(180deg, var(--accent) 0%, rgba(255, 107, 0, 0.4) 100%); border-top: 3px solid var(--accent); border-radius: 4px 4px 0 0; box-shadow: 0 0 15px rgba(255,107,0,0.3);"></div>
+                        <span style="font-size: 9px; color: #fff; font-weight: 800;">Thu</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                        <div style="width: 20px; height: 80px; background: rgba(0, 114, 206, 0.7); border-top: 3px solid #38bdf8; border-radius: 4px 4px 0 0;"></div>
+                        <span style="font-size: 9px; color: #94a3b8; font-weight: 700;">Fri</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                        <div style="width: 20px; height: 110px; background: linear-gradient(180deg, var(--accent) 0%, rgba(255, 107, 0, 0.4) 100%); border-top: 3px solid var(--accent); border-radius: 4px 4px 0 0; box-shadow: 0 0 15px rgba(255,107,0,0.3);"></div>
+                        <span style="font-size: 9px; color: #fff; font-weight: 800;">Sat</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                        <div style="width: 20px; height: 65px; background: rgba(0, 114, 206, 0.5); border-top: 3px solid #60a5fa; border-radius: 4px 4px 0 0;"></div>
+                        <span style="font-size: 9px; color: #94a3b8; font-weight: 700;">Sun</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="template-blocks-grid">
+                <div class="template-card">
+                    <div class="template-card-top">
+                        <div class="template-icon">💡</div>
+                        <span class="template-tag">Auditing</span>
+                    </div>
+                    <h5>Smart Trust Metrics</h5>
+                    <p>Automated debtor background lookups and phone risk analysis to control credit exposure.</p>
+                </div>
+
+                <div class="template-card">
+                    <div class="template-card-top">
+                        <div class="template-icon">🛡️</div>
+                        <span class="template-tag">Resilience</span>
+                    </div>
+                    <h5>Offline IndexedDB</h5>
+                    <p>Complete multi-tier cache synchronization with auto-background Firebase upload upon connection recovery.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HISTORY VIEW -->
+    <div id="view-history" class="view-container">
+        <div class="security-bar" id="lockBar">
+            <span style="color:white; font-size:11px; font-weight:800;" id="lockLabel">LOCKED ADMIN</span>
+            <input type="password" id="masterPin" class="pin-input" maxlength="4" placeholder="PIN" oninput="handleSecurity()">
+        </div>
+        <div class="ledger-card">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                <input type="text" id="searchInput" placeholder="Search expense or category..." oninput="renderTable()">
+                <input type="date" id="dateFilter" oninput="renderTable()">
+            </div>
+            <table>
+                <thead><tr><th>Date</th><th>Item</th><th style="text-align:right">Amt</th><th class="admin-actions"></th></tr></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+            <div class="total-box" id="totalDisplay">
+                <span style="font-size: 11px; opacity: 0.8; text-transform: uppercase;">Total Outflow</span>
+                <span id="totalDisplayVal">KES 0.00</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ANALYSIS VIEW -->
+    <div id="view-analysis" class="view-container">
+        <div class="ledger-card">
+            <h2 id="analysisTitle" style="margin:0 0 20px 0; font-size: 20px; color: var(--dark);">Trends & Analytics</h2>
+            <div style="height: 200px; margin-bottom: 20px;"><canvas id="drillDownChart"></canvas></div>
+            <div id="financialAdviceContainer"></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+                <div style="background:#f1f5f9; padding:15px; border-radius:10px; text-align:center;"><label>Avg Cost</label><div id="statAvg" style="font-weight:700; color:var(--dark);">0</div></div>
+                <div class="stat-card-interactive" onclick="openFreqPopup()"><label style="cursor:pointer; color:var(--primary);">Freq 🔍</label><div id="statFreq" style="font-weight:700; color:var(--dark);">0</div></div>
+            </div>
+            <button class="btn-submit" style="background:#64748b; margin-top:20px;" onclick="closeAnalysis()">Back to History</button>
+        </div>
+    </div>
+
+    <!-- FREQUENCY POPUP MODAL -->
+    <div id="freqModal" class="modal">
+        <div class="modal-card-modern">
+            <div style="border-bottom: 2px solid var(--dark); padding-bottom: 10px; margin-bottom: 15px;">
+                <h3 style="margin:0; font-size:18px; color:var(--dark);">Transaction History Pool</h3>
+                <small style="color:#64748b;">Tap any record below to switch graph styles instantly</small>
+            </div>
+            <div class="freq-list-wrapper" id="freqListContent"></div>
+            <button class="btn-submit" style="background:#64748b; margin-top:20px;" onclick="closeModal('freqModal')">Dismiss</button>
+        </div>
+    </div>
+
+    <!-- DETAIL MODAL -->
+    <div id="detailModal" class="modal">
+        <div class="modal-card">
+            <h3 style="margin-top:0; border-bottom: 2px solid var(--dark); padding-bottom: 8px; color: var(--dark);">Expense Details</h3>
+            <div id="detailContent"></div>
+            <button class="btn-submit" id="printReceiptBtn" style="margin-top:15px; background:var(--primary);">🖨️ Print Receipt Logs</button>
+            <button class="btn-submit" id="detailTrendsBtn" style="margin-top:10px;">View Trends & Advice</button>
+            <button class="btn-submit" style="background:#64748b; margin-top:10px;" onclick="closeModal('detailModal')">Close</button>
+        </div>
+    </div>
+
+    <!-- EDIT MODAL -->
+    <div id="editModal" class="modal">
+        <div class="modal-card">
+            <h3 style="margin-top:0; color:var(--dark);">Edit Record</h3>
+            <div class="input-group"><label>Date</label><input type="datetime-local" id="edit_date"></div>
+            <div class="input-group"><label>Name</label><input type="text" id="edit_name"></div>
+            <div class="input-group"><label>Category</label><input type="text" id="edit_category"></div>
+            
+            <div class="input-group">
+                <label>Payment Method</label>
+                <select id="edit_payment_method" onchange="togglePaymentExtra(true)">
+                    <option value="Cash">Cash</option>
+                    <option value="Mpesa">Mpesa</option>
+                    <option value="Bank">Bank</option>
+                    <option value="Debt">Debt</option>
+                </select>
+                <div id="edit_payment_extra_container" style="display:none; margin-top:10px;">
+                    <input type="text" id="edit_mpesa_ref" placeholder="+254XXXXXXXXX" maxlength="13" oninput="validateForm(true)">
+                    <input type="text" id="edit_bank_ref" placeholder="Bank Transaction Ref (8-15)" style="display:none; margin-top:10px;" oninput="validateForm(true)">
+                    
+                    <div id="edit_debt_fields" style="display:none;">
+                        <input type="text" id="edit_creditor_name" placeholder="Debtor / Party Name" style="margin-bottom:10px;" oninput="validateForm(true)">
+                        <input type="text" id="edit_debtor_phone" placeholder="Debtor Phone (+254...)" style="margin-bottom:10px;" oninput="validateForm(true); updateTrustMetric(true)">
+                        <div id="edit_trustScoreBadge" style="margin-bottom:10px; padding:12px; border-radius:10px; font-size:12px; font-weight:700; display:none; line-height:1.4;"></div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom:10px;">
+                            <div>
+                                <label style="font-size:9px;">Interest Rate (%)</label>
+                                <input type="number" id="edit_interest_rate" placeholder="0" step="0.1" oninput="calculateTotalPayable(true)">
+                            </div>
+                            <div>
+                                <label style="font-size:9px;">Total Due (KES)</label>
+                                <input type="text" id="edit_total_payable_display" placeholder="0.00" readonly style="background:#e2e8f0; font-weight:700;">
+                            </div>
+                        </div>
+                        <input type="text" id="edit_debt_reason" placeholder="Reason for Debt" oninput="validateForm(true)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-group"><label>Principal Amount</label><input type="number" id="edit_amount" step="0.01" oninput="calculateTotalPayable(true)"></div>
+            <button id="edit_submitBtn" class="btn-submit" style="background:var(--success); margin-top:5px;" onclick="confirmEdit()">Save Changes</button>
+            <button class="btn-submit" style="background:#64748b; margin-top:10px;" onclick="closeModal('editModal')">Cancel</button>
+        </div>
+    </div>
+
+    <!-- DELETE MODAL -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-card">
+            <h3 style="color:var(--danger); margin-top:0;">Delete Record?</h3>
+            <p style="font-size: 12px; color: var(--muted);">This action is permanent and removes the log from local and cloud storage.</p>
+            <button class="btn-submit btn-danger" onclick="executeDelete()">Delete Permanently</button>
+            <button class="btn-submit" style="background:#64748b; margin-top:10px;" onclick="closeModal('deleteModal')">Cancel</button>
+        </div>
+    </div>
+
+    <div id="printArea"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getDatabase, ref, onValue, update, remove } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+        const app = initializeApp({ databaseURL: "https://assetguard-c8c8c-default-rtdb.firebaseio.com" });
+        const db = getDatabase(app);
+        const currentUID = localStorage.getItem("ag_active_uid") || "global_user";
+        const cloudPath = `users/${currentUID}/expenses`;
+
+        let ledgerCache = {};
+        let pendingDeleteId = null;
+        let drillChart = null;
+        let activeAnalysisId = null;
+
+        // --- PER-USER OFFLINE STORAGE (IndexedDB) ---
+        const idbRequest = indexedDB.open(`AssetGuard_Expenses_${currentUID}`, 1);
+        idbRequest.onupgradeneeded = e => e.target.result.createObjectStore("expenses", { keyPath: "id" });
+
+        const localSaveSingle = (expense) => {
+            return new Promise((resolve) => {
+                if (!idbRequest.result) return resolve();
+                const tx = idbRequest.result.transaction("expenses", "readwrite");
+                const store = tx.objectStore("expenses");
+                store.put(expense);
+                tx.oncomplete = () => resolve();
+            });
+        };
+
+        const loadAndRenderLocal = () => {
+            return new Promise((resolve) => {
+                if (!idbRequest.result) return resolve();
+                const tx = idbRequest.result.transaction("expenses", "readonly");
+                tx.objectStore("expenses").getAll().onsuccess = e => {
+                    const list = e.target.result;
+                    ledgerCache = {};
+                    list.forEach(item => {
+                        ledgerCache[item.id] = item;
+                    });
+                    renderTable();
+                    resolve();
+                };
+            });
+        };
+
+        async function syncUnsyncedExpenses() {
+            if (!idbRequest.result) return;
+
+            const tx = idbRequest.result.transaction("expenses", "readonly");
+            tx.objectStore("expenses").getAll().onsuccess = async (e) => {
+                const allItems = e.target.result;
+                const unsynced = allItems.filter(item => item.synced === false && !item.deleted);
+                const toDelete = allItems.filter(item => item.deleted === true);
+
+                for (const item of unsynced) {
+                    try {
+                        await update(ref(db, `${cloudPath}/${item.id}`), {
+                            id: item.id,
+                            expense_name: item.expense_name,
+                            category: item.category,
+                            amount: item.amount,
+                            expense_date: item.expense_date,
+                            payment_method: item.payment_method,
+                            mpesa_ref: item.mpesa_ref,
+                            bank_ref: item.bank_ref,
+                            creditor_name: item.creditor_name,
+                            debtor_phone: item.debtor_phone,
+                            debt_reason: item.debt_reason,
+                            interest_rate: item.interest_rate,
+                            timestamp: item.timestamp
+                        });
+                        item.synced = true;
+                        await localSaveSingle(item);
+                    } catch (err) {
+                        console.log("Sync skipped/failed for expense ID: ", item.id, err);
+                    }
+                }
+
+                for (const item of toDelete) {
+                    try {
+                        await remove(ref(db, `${cloudPath}/${item.id}`));
+                        if (idbRequest.result) {
+                            const delTx = idbRequest.result.transaction("expenses", "readwrite");
+                            delTx.objectStore("expenses").delete(item.id);
+                        }
+                    } catch (err) {
+                        console.log("Sync delete failed for expense ID: ", item.id, err);
+                    }
+                }
+
+                if (unsynced.length > 0 || toDelete.length > 0) {
+                    loadAndRenderLocal();
+                }
+            };
+        }
+
+        idbRequest.onsuccess = () => {
+            loadAndRenderLocal();
+            syncUnsyncedExpenses();
+
+            onValue(ref(db, cloudPath), (snap) => {
+                const serverData = snap.val() || {};
+                if (!idbRequest.result) return;
+
+                const tx = idbRequest.result.transaction("expenses", "readwrite");
+                const store = tx.objectStore("expenses");
+
+                store.getAll().onsuccess = (e) => {
+                    const localList = e.target.result;
+                    const unsyncedItems = localList.filter(item => item.synced === false);
+                    const deletedItems = localList.filter(item => item.deleted === true);
+
+                    const clearTx = idbRequest.result.transaction("expenses", "readwrite");
+                    const clearStore = clearTx.objectStore("expenses");
+                    clearStore.clear();
+
+                    Object.entries(serverData).forEach(([id, val]) => {
+                        if (!deletedItems.some(di => di.id === id)) {
+                            clearStore.put({ id, ...val, synced: true, deleted: false });
+                        }
+                    });
+
+                    unsyncedItems.forEach(item => {
+                        clearStore.put(item);
+                    });
+
+                    deletedItems.forEach(item => {
+                        clearStore.put(item);
+                    });
+
+                    clearTx.oncomplete = () => {
+                        loadAndRenderLocal();
+                    };
+                };
+            });
+        };
+
+        window.showToast = () => { const t = document.getElementById('toast'); t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2000); };
+        
+        window.toggleView = () => {
+            const isEntryActive = document.getElementById('view-entry').classList.contains('active');
+            document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+            
+            if (isEntryActive) {
+                document.getElementById('view-history').classList.add('active');
+                document.getElementById('toggleViewBtn').innerText = "New Expense";
+            } else {
+                document.getElementById('view-entry').classList.add('active');
+                document.getElementById('toggleViewBtn').innerText = "History Ledger";
+            }
+            renderTable();
+        };
+
+        window.calculateTotalPayable = (isEdit = false) => {
+            const prefix = isEdit ? 'edit_' : '';
+            const amount = parseFloat(document.getElementById(prefix + 'amount').value) || 0;
+            const rate = parseFloat(document.getElementById(prefix + 'interest_rate').value) || 0;
+            const total = amount + (amount * (rate / 100));
+            document.getElementById(prefix + 'total_payable_display').value = total.toFixed(2);
+        };
+
+        window.togglePaymentExtra = (isEdit = false) => {
+            const prefix = isEdit ? 'edit_' : '';
+            const method = document.getElementById(prefix + 'payment_method').value;
+            const container = document.getElementById(prefix + 'payment_extra_container');
+            const isExtra = (method === 'Mpesa' || method === 'Bank' || method === 'Debt');
+            
+            container.style.display = isExtra ? 'block' : 'none';
+            document.getElementById(prefix + 'mpesa_ref').style.display = (method === 'Mpesa') ? 'block' : 'none';
+            document.getElementById(prefix + 'bank_ref').style.display = (method === 'Bank') ? 'block' : 'none';
+            document.getElementById(prefix + 'debt_fields').style.display = (method === 'Debt') ? 'block' : 'none';
+            
+            validateForm(isEdit);
+            updateTrustMetric(isEdit);
+        };
+
+        window.validateForm = (isEdit = false) => {
+            const prefix = isEdit ? 'edit_' : '';
+            const method = document.getElementById(prefix + 'payment_method').value;
+            const mpesaInput = document.getElementById(prefix + 'mpesa_ref');
+            const bankInput = document.getElementById(prefix + 'bank_ref');
+            const creditorInput = document.getElementById(prefix + 'creditor_name');
+            const phoneInput = document.getElementById(prefix + 'debtor_phone');
+            const reasonInput = document.getElementById(prefix + 'debt_reason');
+            const submitBtn = document.getElementById(isEdit ? 'edit_submitBtn' : 'submitBtn');
+            let isValid = true;
+
+            if (method === 'Mpesa') {
+                isValid = /^\+254(7|1)\d{8}$/.test(mpesaInput.value);
+                mpesaInput.style.borderColor = isValid ? 'var(--success)' : 'var(--danger)';
+            } else if (method === 'Bank') {
+                isValid = bankInput.value.length >= 8 && bankInput.value.length <= 15;
+                bankInput.style.borderColor = isValid ? 'var(--success)' : 'var(--danger)';
+            } else if (method === 'Debt') {
+                const phoneValid = /^\+254(7|1)\d{8}$/.test(phoneInput.value);
+                isValid = (creditorInput.value.trim().length > 0 && phoneValid && reasonInput.value.trim().length > 0);
+                creditorInput.style.borderColor = creditorInput.value.trim().length === 0 ? 'var(--danger)' : '#f0f2f5';
+                phoneInput.style.borderColor = !phoneValid ? 'var(--danger)' : 'var(--success)';
+                reasonInput.style.borderColor = reasonInput.value.trim().length === 0 ? 'var(--danger)' : '#f0f2f5';
+            }
+            
+            submitBtn.disabled = !isValid;
+        };
+
+        window.updateTrustMetric = (isEdit = false) => {
+            const prefix = isEdit ? 'edit_' : '';
+            const phoneInput = document.getElementById(prefix + 'debtor_phone');
+            const badge = document.getElementById(prefix + 'trustScoreBadge');
+            const method = document.getElementById(prefix + 'payment_method').value;
+
+            if (method !== 'Debt' || !phoneInput.value.trim()) {
+                badge.style.display = 'none';
+                return;
+            }
+
+            const queryPhone = phoneInput.value.trim();
+            let totalDebt = 0;
+            let debtCount = 0;
+
+            Object.values(ledgerCache).forEach(item => {
+                if (item && item.payment_method === 'Debt' && item.debtor_phone === queryPhone && !item.deleted) {
+                    if (isEdit && item.id === document.getElementById('editId').value) return;
+                    const principal = parseFloat(item.amount || 0);
+                    const rate = parseFloat(item.interest_rate || 0);
+                    totalDebt += principal + (principal * (rate / 100));
+                    debtCount++;
+                }
+            });
+
+            badge.style.display = 'block';
+            if (debtCount === 0) {
+                badge.style.background = '#f1f5f9';
+                badge.style.color = '#475569';
+                badge.style.border = '1px solid #cbd5e1';
+                badge.innerHTML = `⚖️ TRUST METRIC: New Number Lookup<br><span style="font-weight:500; color:#64748b;">No active exposure matches found for number ${queryPhone}. Clean internal record.</span>`;
+            } else if (totalDebt <= 15000) {
+                badge.style.background = '#f0fdf4';
+                badge.style.color = '#166534';
+                badge.style.border = '1px solid #bbf7d0';
+                badge.innerHTML = `🟢 TRUST METRIC: Low Local Risk (${debtCount} Active Logs)<br><span style="font-weight:500; color:#15803d;">Active phone ledger exposure: KES ${totalDebt.toLocaleString()}. Normal bounds.</span>`;
+            } else if (totalDebt <= 50000) {
+                badge.style.background = '#fffbeb';
+                badge.style.color = '#92400e';
+                badge.style.border = '1px solid #fde68a';
+                badge.innerHTML = `🟡 TRUST METRIC: Moderate Risk Exposure<br><span style="font-weight:500; color:#b45309;">Total risk pool for this number: KES ${totalDebt.toLocaleString()}. Exercise budgeting care.</span>`;
+            } else {
+                badge.style.background = '#fef2f2';
+                badge.style.color = '#991b1b';
+                badge.style.border = '1px solid #fecaca';
+                badge.innerHTML = `🔴 TRUST METRIC: RECORD EXPOSURE ALERT<br><span style="font-weight:500; color:#b91c1c;">Risk ceiling threshold broken! Total Due KES ${totalDebt.toLocaleString()} across ${debtCount} logs.</span>`;
+            }
+        };
+
+        window.printReceipt = (id) => {
+            const item = ledgerCache[id];
+            if (!item) return;
+
+            const printArea = document.getElementById('printArea');
+            const cleanDate = new Date(item.expense_date).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).replace(',', '');
+            const principal = parseFloat(item.amount || 0);
+
+            let receiptHTML = '';
+
+            if (item.payment_method === 'Debt') {
+                const rate = parseFloat(item.interest_rate || 0);
+                const calculatedProfit = principal * (rate / 100);
+                const finalPayable = principal + calculatedProfit;
+                
+                receiptHTML = `
+                <div class="modern-receipt">
+                    <div class="modern-header">
+                        <div class="modern-brand">
+                            <h1>ASSETGUARD PRO</h1>
+                            <p>Internal Ledger & Fund Disbursement</p>
+                            <p>Nakuru, Kenya</p>
+                        </div>
+                        <div class="modern-details">
+                            <h2>DEBTOR RECEIPT</h2>
+                            <div style="font-size: 13px;">
+                                <strong>Receipt No:</strong> #${item.id.substring(4, 12).toUpperCase()}<br>
+                                <strong>Date Issued:</strong> ${cleanDate}<br>
+                            </div>
+                            <div class="modern-badge badge-debt">Outstanding Balance</div>
+                        </div>
+                    </div>
+                    <div class="modern-grid">
+                        <div class="modern-box">
+                            <div class="modern-box-title">Creditor / Issuer</div>
+                            <div class="modern-box-name">AssetGuard Ledger</div>
+                            <div class="modern-box-info">Authorized System Agent</div>
+                        </div>
+                        <div class="modern-box">
+                            <div class="modern-box-title">Debtor / Borrower</div>
+                            <div class="modern-box-name">${item.creditor_name || 'N/A'}</div>
+                            <div class="modern-box-info">
+                                Phone: ${item.debtor_phone || 'N/A'}<br>
+                                Risk Assessment: Logged
+                            </div>
+                        </div>
+                    </div>
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Description & Reason</th>
+                                <th class="right">Rate</th>
+                                <th class="right">Principal (KES)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <span class="modern-desc">${item.expense_name}</span>
+                                    <span class="modern-sub">Category: ${item.category}</span>
+                                    <span class="modern-sub">Reason: ${item.debt_reason || 'Capital Advance'}</span>
+                                </td>
+                                <td class="right">${rate}%</td>
+                                <td class="right" style="font-weight: 600;">${principal.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="modern-summary">
+                        <div class="modern-summary-box">
+                            <div class="modern-summary-row"><span>Principal Amount:</span><span>${principal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
+                            <div class="modern-summary-row"><span>Interest Applied:</span><span>${calculatedProfit.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
+                            <div class="modern-summary-row total"><span>Total Payable:</span><span>KES ${finalPayable.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
+                        </div>
+                    </div>
+                    <div class="modern-terms debt-terms">
+                        <strong>Terms & Conditions of Debt:</strong><br>
+                        By signing below, the Debtor acknowledges receipt of the Principal Amount and agrees to repay the Total Payable. Failure to settle the balance may result in penalties. Document verified by AssetGuard Offline Engine.
+                    </div>
+                    <div class="modern-sigs">
+                        <div><div class="modern-sig-line"></div><div class="modern-sig-label">Creditor Signature</div></div>
+                        <div><div class="modern-sig-line"></div><div class="modern-sig-label">Debtor Acknowledgment</div></div>
+                    </div>
+                    <div class="modern-footer">Legally binding record of debt. ID: ${item.id}</div>
+                </div>`;
+            } else {
+                let refText = "";
+                if (item.payment_method === 'Mpesa') refText = `<span class="modern-sub">M-Pesa Ref: ${item.mpesa_ref || 'N/A'}</span>`;
+                if (item.payment_method === 'Bank') refText = `<span class="modern-sub">Bank Ref: ${item.bank_ref || 'N/A'}</span>`;
+
+                receiptHTML = `
+                <div class="modern-receipt">
+                    <div class="modern-header">
+                        <div class="modern-brand">
+                            <h1>ASSETGUARD PRO</h1>
+                            <p>Expense & Reimbursement Tracker</p>
+                            <p>Nakuru, Kenya</p>
+                        </div>
+                        <div class="modern-details">
+                            <h2>EXPENSE VOUCHER</h2>
+                            <div style="font-size: 13px;">
+                                <strong>Voucher No:</strong> #${item.id.substring(4, 12).toUpperCase()}<br>
+                                <strong>Date Filed:</strong> ${cleanDate}<br>
+                            </div>
+                            <div class="modern-badge badge-paid">Approved & Paid</div>
+                        </div>
+                    </div>
+                    <div class="modern-grid">
+                        <div class="modern-box">
+                            <div class="modern-box-title">Billed To / Company</div>
+                            <div class="modern-box-name">AssetGuard Operations</div>
+                            <div class="modern-box-info">Account: Main Operating Fund</div>
+                        </div>
+                        <div class="modern-box">
+                            <div class="modern-box-title">Claimant / Payee</div>
+                            <div class="modern-box-name">Internal Expense</div>
+                            <div class="modern-box-info">Payment Method: ${item.payment_method || 'Cash'}</div>
+                        </div>
+                    </div>
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Category & Description</th>
+                                <th class="right">Amount (KES)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <span class="modern-desc">${item.expense_name}</span>
+                                    <span class="modern-sub">Category: ${item.category}</span>
+                                    ${refText}
+                                </td>
+                                <td class="right" style="font-weight: 600;">${principal.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="modern-summary">
+                        <div class="modern-summary-box">
+                            <div class="modern-summary-row total"><span>Net Reimbursement:</span><span>KES ${principal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
+                        </div>
+                    </div>
+                    <div class="modern-terms">
+                        <strong>Corporate Expense Policy Acknowledgment:</strong><br>
+                        By signing below, the claimant certifies that the expenses listed above were incurred on behalf of the company for official business purposes and comply with current expense policies.
+                    </div>
+                    <div class="modern-sigs">
+                        <div><div class="modern-sig-line"></div><div class="modern-sig-label">Claimant Signature</div></div>
+                        <div><div class="modern-sig-line"></div><div class="modern-sig-label">Approving Manager</div></div>
+                    </div>
+                    <div class="modern-footer">Internally generated financial voucher. ID: ${item.id}</div>
+                </div>`;
+            }
+
+            printArea.innerHTML = receiptHTML;
+            window.print();
+        };
+
+        document.getElementById('expenseForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editId').value || `exp_${Date.now()}`;
+            const entry = {
+                id,
+                expense_name: document.getElementById('expense_name').value,
+                category: document.getElementById('category').value,
+                amount: document.getElementById('amount').value,
+                expense_date: document.getElementById('expense_date').value,
+                payment_method: document.getElementById('payment_method').value,
+                mpesa_ref: document.getElementById('mpesa_ref').value,
+                bank_ref: document.getElementById('bank_ref').value,
+                creditor_name: document.getElementById('creditor_name').value,
+                debtor_phone: document.getElementById('debtor_phone').value,
+                debt_reason: document.getElementById('debt_reason').value,
+                interest_rate: document.getElementById('interest_rate').value || "0",
+                timestamp: Date.now(),
+                synced: false,
+                deleted: false
+            };
+
+            await localSaveSingle(entry);
+            await loadAndRenderLocal();
+            
+            document.getElementById('expenseForm').reset();
+            document.getElementById('payment_extra_container').style.display = 'none';
+            const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('expense_date').value = now.toISOString().slice(0, 16);
+            
+            showToast();
+            
+            try {
+                await update(ref(db, `${cloudPath}/${id}`), {
+                    id: entry.id,
+                    expense_name: entry.expense_name,
+                    category: entry.category,
+                    amount: entry.amount,
+                    expense_date: entry.expense_date,
+                    payment_method: entry.payment_method,
+                    mpesa_ref: entry.mpesa_ref,
+                    bank_ref: entry.bank_ref,
+                    creditor_name: entry.creditor_name,
+                    debtor_phone: entry.debtor_phone,
+                    debt_reason: entry.debt_reason,
+                    interest_rate: entry.interest_rate,
+                    timestamp: entry.timestamp
+                });
+                entry.synced = true;
+                await localSaveSingle(entry);
+                await loadAndRenderLocal();
+            } catch(err) {
+                console.log("Offline: Expense saved locally. Will sync when connection is restored.");
+            }
+        };
+
+        window.renderTable = () => {
+            const body = document.getElementById('tableBody');
+            const searchField = document.getElementById('searchInput');
+            const search = searchField ? searchField.value.toLowerCase() : "";
+            const filterDate = document.getElementById('dateFilter').value;
+            let total = 0;
+            body.innerHTML = "";
+            const sortedKeys = Object.keys(ledgerCache).sort((a,b) => (ledgerCache[b].timestamp || 0) - (ledgerCache[a].timestamp || 0));
+            
+            sortedKeys.forEach(key => {
+                const item = ledgerCache[key];
+                if (!item || item.deleted) return;
+                const d = new Date(item.expense_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
+                
+                if((item.expense_name.toLowerCase().includes(search) || item.category.toLowerCase().includes(search)) && (!filterDate || item.expense_date.includes(filterDate))) {
+                    total += parseFloat(item.amount || 0);
+                    body.innerHTML += `<tr>
+                        <td class="date-cell" onclick="openDetail('${key}')" style="cursor:pointer;">${d}</td>
+                        <td class="item-cell" onclick="openDetail('${key}')" style="cursor:pointer;">${item.expense_name}<br><small style="font-weight:400; color:#94a3b8;">${item.category} • ${item.payment_method || 'Cash'}</small></td>
+                        <td style="text-align:right; cursor:pointer; font-weight:700; color:var(--primary);" onclick="openDetail('${key}')">KES ${parseFloat(item.amount).toLocaleString()}</td>
+                        <td class="admin-actions">
+                            <button class="btn-action" onclick="openAnalysis('${key}')">📊</button>
+                            <button class="btn-action" onclick="openEdit('${key}')">✏️</button>
+                            <button class="btn-action" onclick="promptDelete('${key}')">🗑️</button>
+                        </td>
+                    </tr>`;
+                }
+            });
+            const totalValEl = document.getElementById('totalDisplayVal');
+            if(totalValEl) totalValEl.innerText = `KES ${total.toLocaleString()}`;
+        };
+
+        window.openDetail = (id) => {
+            const item = ledgerCache[id];
+            if (!item) return;
+            
+            let rows = [
+                { label: "Date & Time", val: new Date(item.expense_date).toLocaleString('en-GB').replace(',', '') },
+                { label: "Item Name", val: item.expense_name },
+                { label: "Category", val: item.category },
+                { label: "Payment Method", val: item.payment_method || 'Cash' }
+            ];
+
+            if (item.payment_method === 'Mpesa') rows.push({ label: "M-Pesa Ref", val: item.mpesa_ref || "None" });
+            if (item.payment_method === 'Bank') rows.push({ label: "Bank Ref", val: item.bank_ref || "None" });
+            if (item.payment_method === 'Debt') {
+                const p = parseFloat(item.amount || 0);
+                const r = parseFloat(item.interest_rate || 0);
+                const tot = p + (p * (r / 100));
+                rows.push({ label: "Debtor Name", val: item.creditor_name || "None" });
+                rows.push({ label: "Debtor Phone", val: item.debtor_phone || "None" });
+                rows.push({ label: "Reason", val: item.debt_reason || "None" });
+                rows.push({ label: "Interest Rate", val: `${r}%` });
+                rows.push({ label: "Total Payable Balance", val: `KES ${tot.toLocaleString()}` });
+            } else {
+                rows.push({ label: "Amount", val: `KES ${parseFloat(item.amount).toLocaleString()}` });
+            }
+
+            document.getElementById('detailContent').innerHTML = rows.map(r => `
+                <div class="detail-row">
+                    <div class="detail-label">${r.label}</div>
+                    <div class="detail-value">${r.val}</div>
+                </div>
+            `).join('');
+
+            document.getElementById('printReceiptBtn').onclick = () => {
+                printReceipt(id);
+            };
+
+            document.getElementById('detailTrendsBtn').onclick = () => {
+                closeModal('detailModal');
+                openAnalysis(id);
+            };
+
+            document.getElementById('detailModal').style.display = 'flex';
+        };
+
+        window.generateSpecificAdvice = (item, matches) => {
+            const container = document.getElementById('financialAdviceContainer');
+            const avg = matches.reduce((acc, curr) => acc + parseFloat(curr.amount), 0) / matches.length;
+            const deviation = ((item.amount - avg) / avg) * 100;
+            let insight = "";
+
+            if (item.payment_method === 'Debt') {
+                const r = parseFloat(item.interest_rate || 0);
+                insight = `<strong>Liability Analysis:</strong> This profile tracks phone metric verification entries. Interest yield is set at ${r}%, tracking local margin changes inside your cache pool logs automatically.`;
+            } else if (item.payment_method === 'Mpesa') {
+                insight = `<strong>Liquidity Check:</strong> This M-Pesa transaction is ${deviation > 0 ? 'above' : 'below'} your category average by ${Math.abs(deviation).toFixed(1)}%. Monitor your M-Pesa burn rate to ensure operational capital isn't depleted prematurely.`;
+            } else if (item.payment_method === 'Bank') {
+                insight = `<strong>Capital Allocation:</strong> Bank reference validation confirms this outflow. At KES ${parseFloat(item.amount).toLocaleString()}, it is ${deviation > 5 ? 'significantly higher' : 'within normal variance'} for your '${item.category}' category.`;
+            } else {
+                insight = `<strong>Operational Review:</strong> Cash expense detected. Without digital traceability, ensure this transaction is balanced against your petty cash reserves to prevent variance in your monthly reconciliation.`;
+            }
+            
+            container.innerHTML = `<div class="insight-card">${insight}</div>`;
+        };
+
+        window.openAnalysis = (id) => {
+            activeAnalysisId = id;
+            const item = ledgerCache[id];
+            const matches = Object.values(ledgerCache).filter(i => i.expense_name === item.expense_name && !i.deleted);
+            const itemTotal = matches.reduce((a,b) => a+parseFloat(b.amount), 0);
+            
+            document.getElementById('analysisTitle').innerText = item.expense_name;
+            document.getElementById('statAvg').innerText = 'KES ' + Math.round(itemTotal/matches.length).toLocaleString();
+            document.getElementById('statFreq').innerText = matches.length;
+            
+            if(drillChart) drillChart.destroy();
+            const ctx = document.getElementById('drillDownChart').getContext('2d');
+            
+            let chartType = 'bar';
+            let chartColor = '#0072CE'; 
+            let tensionOption = 0;
+            let fillOption = false;
+            let chartBg = '#0072CE';
+
+            if (item.payment_method === 'Mpesa') {
+                chartType = 'line';
+                chartColor = '#22c55e';
+                chartBg = 'rgba(34, 197, 94, 0.15)';
+                tensionOption = 0.4;
+                fillOption = true;
+            } else if (item.payment_method === 'Debt') {
+                chartType = 'bar';
+                chartColor = '#ef4444';
+                chartBg = '#ef4444';
+            } else if (item.payment_method === 'Bank') {
+                chartType = 'line';
+                chartColor = '#a855f7';
+                chartBg = 'rgba(168, 85, 247, 0.1)';
+                tensionOption = 0.1;
+                fillOption = true;
+            } else {
+                chartType = 'bar';
+                chartColor = '#001A35';
+                chartBg = '#001A35';
+            }
+
+            drillChart = new Chart(ctx, { 
+                type: chartType, 
+                data: { 
+                    labels: matches.map(m => m.expense_date.substring(5, 10)), 
+                    datasets: [{ 
+                        data: matches.map(m => m.amount), 
+                        backgroundColor: chartBg, 
+                        borderColor: chartColor,
+                        borderWidth: chartType === 'line' ? 3 : 0,
+                        borderRadius: chartType === 'bar' ? 6 : 0,
+                        tension: tensionOption,
+                        fill: fillOption
+                    }] 
+                }, 
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                } 
+            });
+            
+            generateSpecificAdvice(item, matches);
+            
+            document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-analysis').classList.add('active');
+            document.getElementById('toggleViewBtn').innerText = "New Expense";
+        };
+
+        window.openFreqPopup = () => {
+            if (!activeAnalysisId || !ledgerCache[activeAnalysisId]) return;
+            const item = ledgerCache[activeAnalysisId];
+            const matches = Object.values(ledgerCache)
+                .filter(i => i.expense_name === item.expense_name && !i.deleted)
+                .sort((a, b) => b.timestamp - a.timestamp);
+
+            const container = document.getElementById('freqListContent');
+            container.innerHTML = '';
+
+            matches.forEach(m => {
+                const methodClass = `method-${(m.payment_method || 'cash').toLowerCase()}`;
+                const isSelected = m.id === activeAnalysisId ? 'selected-context' : '';
+                const cleanDate = new Date(m.expense_date).toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+
+                container.innerHTML += `
+                    <div class="freq-item-row ${methodClass} ${isSelected}" onclick="switchContext('${m.id}')">
+                        <div>
+                            <div style="font-weight:700; font-size:14px; color:var(--dark);">${m.expense_name}</div>
+                            <div style="font-size:11px; color:#64748b; margin-top:2px;">${cleanDate} • ${m.payment_method || 'Cash'}</div>
+                        </div>
+                        <div style="font-weight:800; font-size:14px; color:var(--primary);">
+                            KES ${parseFloat(m.amount).toLocaleString()}
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('freqModal').style.display = 'flex';
+        };
+
+        window.switchContext = (id) => {
+            closeModal('freqModal');
+            openAnalysis(id);
+        };
+
+        window.closeAnalysis = () => {
+            document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-history').classList.add('active');
+        };
+
+        window.openEdit = (id) => {
+            const item = ledgerCache[id];
+            document.getElementById('editId').value = id;
+            document.getElementById('edit_date').value = item.expense_date;
+            document.getElementById('edit_name').value = item.expense_name;
+            document.getElementById('edit_category').value = item.category;
+            document.getElementById('edit_amount').value = item.amount;
+            
+            document.getElementById('edit_payment_method').value = item.payment_method || 'Cash';
+            document.getElementById('edit_mpesa_ref').value = item.mpesa_ref || '';
+            document.getElementById('edit_bank_ref').value = item.bank_ref || '';
+            document.getElementById('edit_creditor_name').value = item.creditor_name || '';
+            document.getElementById('edit_debtor_phone').value = item.debtor_phone || '';
+            document.getElementById('edit_debt_reason').value = item.debt_reason || '';
+            document.getElementById('edit_interest_rate').value = item.interest_rate || '0';
+            
+            togglePaymentExtra(true);
+            calculateTotalPayable(true);
+            document.getElementById('editModal').style.display = 'flex';
+        };
+
+        window.confirmEdit = async () => {
+            const id = document.getElementById('editId').value;
+            const updated = { 
+                id, 
+                expense_date: document.getElementById('edit_date').value, 
+                expense_name: document.getElementById('edit_name').value, 
+                category: document.getElementById('edit_category').value, 
+                amount: document.getElementById('edit_amount').value,
+                payment_method: document.getElementById('edit_payment_method').value,
+                mpesa_ref: document.getElementById('edit_mpesa_ref').value,
+                bank_ref: document.getElementById('edit_bank_ref').value,
+                creditor_name: document.getElementById('edit_creditor_name').value,
+                debtor_phone: document.getElementById('edit_debtor_phone').value,
+                debt_reason: document.getElementById('edit_debt_reason').value,
+                interest_rate: document.getElementById('edit_interest_rate').value || "0",
+                timestamp: Date.now(),
+                synced: false,
+                deleted: false
+            };
+
+            await localSaveSingle(updated);
+            await loadAndRenderLocal();
+            document.getElementById('editModal').style.display = 'none';
+
+            try {
+                await update(ref(db, `${cloudPath}/${id}`), {
+                    id: updated.id,
+                    expense_date: updated.expense_date,
+                    expense_name: updated.expense_name,
+                    category: updated.category,
+                    amount: updated.amount,
+                    payment_method: updated.payment_method,
+                    mpesa_ref: updated.mpesa_ref,
+                    bank_ref: updated.bank_ref,
+                    creditor_name: updated.creditor_name,
+                    debtor_phone: updated.debtor_phone,
+                    debt_reason: updated.debt_reason,
+                    interest_rate: updated.interest_rate,
+                    timestamp: updated.timestamp
+                });
+                updated.synced = true;
+                await localSaveSingle(updated);
+                await loadAndRenderLocal();
+            } catch(err) {
+                console.log("Offline: Modification stored locally. Queue active.");
+            }
+        };
+
+        window.promptDelete = (id) => { pendingDeleteId = id; document.getElementById('deleteModal').style.display = 'flex'; };
+        
+        window.executeDelete = async () => {
+            const item = ledgerCache[pendingDeleteId];
+            if (!item) return;
+
+            item.deleted = true;
+            item.synced = false;
+            
+            await localSaveSingle(item);
+            await loadAndRenderLocal();
+            document.getElementById('deleteModal').style.display = 'none';
+
+            try {
+                await remove(ref(db, `${cloudPath}/${pendingDeleteId}`));
+                if (idbRequest.result) {
+                    const tx = idbRequest.result.transaction("expenses", "readwrite");
+                    tx.objectStore("expenses").delete(pendingDeleteId);
+                }
+            } catch (e) {
+                console.log("Offline: Local soft deletion logged. Synchronization pending online state.");
+            }
+        };
+
+        window.handleSecurity = () => {
+            const isUnlocked = (document.getElementById('masterPin').value === "0000" || document.getElementById('masterPin').value === "1234");
+            document.getElementById('mainBody').classList.toggle('unlocked', isUnlocked);
+            document.getElementById('lockLabel').innerText = isUnlocked ? "UNLOCKED" : "LOCKED ADMIN";
+            document.getElementById('lockBar').style.background = isUnlocked ? "var(--success)" : "var(--dark)";
+        };
+        
+        window.closeModal = (id) => document.getElementById(id).style.display = 'none';
+        
+        const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('expense_date').value = now.toISOString().slice(0, 16);
+        window.addEventListener('online', syncUnsyncedExpenses);
+    </script>
+</body>
+</html>

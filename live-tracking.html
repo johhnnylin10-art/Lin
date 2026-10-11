@@ -1,0 +1,4160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Master Tracker Pro | Enterprise Telemetry V7.0</title>
+
+<script src="ag-context-guard.js"></script>
+<script type="module" src="auth-guard.js"></script>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+:root{
+    --navy:#001e3c;
+    --blue:#00a3e0;
+    --cyan:#28d7ff;
+    --green:#00c07d;
+    --red:#ff4d5a;
+    --orange:#ff9f43;
+    --purple:#8067e8;
+    --dark:#07131f;
+    --dark2:#0c1d2b;
+    --dark3:#102638;
+    --text:#e9f6ff;
+    --muted:#8ca6b8;
+    --border:rgba(255,255,255,.10);
+    --panel:rgba(7,19,31,.97);
+}
+
+*{
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    font-family:"Segoe UI",Arial,sans-serif;
+    background:#050b10;
+}
+
+button,input,select{
+    font-family:inherit;
+}
+
+button{
+    cursor:pointer;
+}
+
+#map{
+    position:absolute;
+    inset:0;
+    z-index:1;
+    background:#111;
+}
+
+#statusToast{
+    position:fixed;
+    top:-100px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:50000;
+    min-width:280px;
+    max-width:90%;
+    padding:14px 25px;
+    border-radius:50px;
+    background:rgba(0,20,38,.96);
+    border:1px solid var(--cyan);
+    color:#fff;
+    font-size:12px;
+    font-weight:800;
+    text-align:center;
+    box-shadow:0 15px 50px rgba(0,0,0,.6);
+    transition:.4s;
+}
+
+#statusToast.show{
+    top:24px;
+}
+
+#deadBlockOverlay{
+    position:absolute;
+    right:0;
+    bottom:0;
+    z-index:999;
+    padding:6px 14px;
+    background:#001e3c;
+    color:var(--blue);
+    font:9px Consolas,monospace;
+    letter-spacing:1px;
+    border-top-left-radius:8px;
+    pointer-events:none;
+}
+
+#panel{
+    position:absolute;
+    top:10px;
+    left:10px;
+    z-index:2000;
+    width:310px;
+    max-height:94vh;
+    overflow-y:auto;
+    padding:15px;
+    border-radius:16px;
+    background:rgba(255,255,255,.96);
+    color:#1c2b39;
+    box-shadow:0 15px 50px rgba(0,0,0,.45);
+    transition:.3s ease;
+}
+
+#panel.hidden{
+    transform:translateX(-340px);
+}
+
+#hoverBtn{
+    position:absolute;
+    top:10px;
+    right:10px;
+    z-index:2500;
+    width:52px;
+    height:52px;
+    border-radius:50%;
+    background:var(--navy);
+    color:#fff;
+    border:2px solid var(--blue);
+    font-size:26px;
+    line-height:48px;
+    text-align:center;
+}
+
+#speedHud{
+    position:absolute;
+    bottom:30px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:2000;
+    padding:10px 28px;
+    border-radius:50px;
+    background:rgba(0,0,0,.88);
+    border:2px solid var(--blue);
+    color:#fff;
+    font-size:24px;
+    font-weight:900;
+    pointer-events:none;
+}
+
+#speedHud.blinking{
+    color:var(--red);
+    border-color:var(--red);
+    animation:pulse .8s infinite;
+}
+
+@keyframes pulse{
+    50%{opacity:.35}
+}
+
+#statusHeader{
+    padding:10px;
+    margin-bottom:12px;
+    border-radius:8px;
+    color:#fff;
+    text-align:center;
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:1px;
+}
+
+.online{
+    background:var(--green);
+    box-shadow:0 0 18px rgba(0,192,125,.5);
+}
+
+.offline{
+    background:var(--red);
+}
+
+.stat-row{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    padding:7px 0;
+    border-bottom:1px solid rgba(0,0,0,.06);
+    font-size:11px;
+}
+
+.stat-row b{
+    color:var(--blue);
+}
+
+.control-group{
+    margin-bottom:9px;
+    padding:9px;
+    border-radius:9px;
+    background:rgba(0,0,0,.04);
+    border:1px solid rgba(0,0,0,.05);
+}
+
+.control-label{
+    display:block;
+    margin-bottom:5px;
+    color:var(--blue);
+    font-size:8px;
+    font-weight:900;
+    text-transform:uppercase;
+    letter-spacing:.8px;
+}
+
+.grid-2{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:7px;
+}
+
+button{
+    width:100%;
+    padding:10px;
+    border:0;
+    border-radius:8px;
+    background:#1c2b39;
+    color:#fff;
+    font-size:10px;
+    font-weight:800;
+}
+
+button:active{
+    transform:scale(.97);
+}
+
+.btn-primary{background:var(--blue)}
+.btn-green{background:var(--green)}
+.btn-red{background:var(--red)}
+.btn-orange{background:var(--orange)}
+.btn-purple{background:var(--purple)}
+
+input,select{
+    width:100%;
+    padding:10px;
+    border:2px solid #ccc;
+    border-radius:7px;
+    outline:none;
+    background:#fff;
+    color:#111!important;
+    font-size:12px;
+    font-weight:700;
+}
+
+#logDisplay{
+    margin-top:10px;
+    max-height:85px;
+    overflow:auto;
+    padding:8px;
+    border-radius:7px;
+    background:rgba(0,0,0,.05);
+    color:#666;
+    font:9px Consolas,monospace;
+}
+
+/* =========================================================
+   ENTERPRISE ANALYTICS
+   ========================================================= */
+
+#analyticsModal{
+    position:fixed;
+    inset:0;
+    z-index:30000;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(1,7,13,.88);
+    backdrop-filter:blur(14px);
+    padding:20px;
+}
+
+#analyticsModal.visible{
+    display:flex;
+}
+
+.analytics-shell{
+    width:min(1250px,96vw);
+    height:min(900px,94vh);
+    min-height:600px;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    border:1px solid rgba(0,163,224,.35);
+    border-radius:20px;
+    background:
+        radial-gradient(circle at 90% 0%,rgba(0,163,224,.12),transparent 30%),
+        linear-gradient(145deg,#07131f,#091b29 55%,#06111b);
+    color:var(--text);
+    box-shadow:
+        0 30px 100px rgba(0,0,0,.75),
+        inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+.analytics-top{
+    flex:0 0 auto;
+    padding:17px 20px;
+    border-bottom:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:15px;
+}
+
+.analytics-brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.analytics-logo{
+    width:42px;
+    height:42px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:11px;
+    background:linear-gradient(135deg,var(--blue),#006fa0);
+    box-shadow:0 0 25px rgba(0,163,224,.25);
+    font-size:20px;
+}
+
+.analytics-title{
+    font-size:15px;
+    font-weight:900;
+    letter-spacing:.7px;
+}
+
+.analytics-subtitle{
+    margin-top:3px;
+    color:var(--muted);
+    font:9px Consolas,monospace;
+}
+
+.analytics-live{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    margin-top:5px;
+    color:var(--green);
+    font-size:8px;
+    font-weight:900;
+}
+
+.live-dot{
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:var(--green);
+    box-shadow:0 0 10px var(--green);
+    animation:livepulse 1.2s infinite;
+}
+
+@keyframes livepulse{
+    50%{opacity:.3;transform:scale(.7)}
+}
+
+.analytics-close{
+    width:40px;
+    height:40px;
+    padding:0;
+    border-radius:50%;
+    background:#182b3a;
+    border:1px solid var(--border);
+    font-size:17px;
+}
+
+.analytics-nav{
+    flex:0 0 auto;
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:7px;
+    padding:10px 14px;
+    border-bottom:1px solid var(--border);
+    background:rgba(0,0,0,.16);
+}
+
+.analytics-nav button{
+    min-height:48px;
+    border:1px solid var(--border);
+    background:rgba(255,255,255,.025);
+    color:#8199aa;
+    position:relative;
+}
+
+.analytics-nav button.active{
+    color:#fff;
+    background:rgba(0,163,224,.14);
+    border-color:rgba(0,163,224,.6);
+    box-shadow:inset 0 -2px 0 var(--blue);
+}
+
+.analytics-nav small{
+    display:block;
+    margin-top:3px;
+    color:inherit;
+    opacity:.65;
+    font-size:7px;
+}
+
+.analytics-content{
+    flex:1;
+    min-height:0;
+    overflow:auto;
+    padding:16px;
+}
+
+.analytics-page{
+    display:none;
+    animation:pageIn .22s ease;
+}
+
+.analytics-page.active{
+    display:block;
+}
+
+@keyframes pageIn{
+    from{opacity:0;transform:translateY(8px)}
+    to{opacity:1;transform:none}
+}
+
+.analytics-back{
+    display:none;
+    width:auto;
+    margin-bottom:12px;
+    padding:9px 15px;
+    background:#162b3b;
+    border:1px solid var(--border);
+}
+
+.analytics-page.expanded .analytics-back{
+    display:inline-block;
+}
+
+.analytics-page.expanded .page-grid{
+    grid-template-columns:1fr;
+}
+
+.analytics-page.expanded .metric-grid{
+    grid-template-columns:repeat(4,1fr);
+}
+
+.page-heading{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:13px;
+}
+
+.page-heading h2{
+    margin:0;
+    font-size:17px;
+}
+
+.page-heading span{
+    color:var(--muted);
+    font:9px Consolas,monospace;
+}
+
+.page-grid{
+    display:grid;
+    grid-template-columns:1.5fr 1fr;
+    gap:12px;
+}
+
+.metric-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:8px;
+    margin-bottom:12px;
+}
+
+.metric{
+    min-height:75px;
+    padding:11px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    background:rgba(255,255,255,.025);
+}
+
+.metric-label{
+    color:#7790a1;
+    font-size:8px;
+    font-weight:800;
+    text-transform:uppercase;
+}
+
+.metric-value{
+    margin-top:8px;
+    font-size:18px;
+    font-weight:900;
+    color:#fff;
+}
+
+.metric-value.blue{color:var(--cyan)}
+.metric-value.green{color:var(--green)}
+.metric-value.orange{color:var(--orange)}
+.metric-value.red{color:var(--red)}
+.metric-value.purple{color:#a998ff}
+
+.metric-note{
+    margin-top:3px;
+    color:#688092;
+    font-size:7px;
+}
+
+.analytics-card{
+    margin-bottom:12px;
+    padding:13px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:rgba(255,255,255,.025);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.02);
+}
+
+.analytics-card h3{
+    margin:0 0 10px;
+    font-size:10px;
+    color:#cde7f7;
+    letter-spacing:.5px;
+}
+
+.chart-wrap{
+    position:relative;
+    width:100%;
+    height:270px;
+}
+
+.chart-wrap.small{
+    height:210px;
+}
+
+.signal-row{
+    display:grid;
+    grid-template-columns:145px 1fr 70px;
+    align-items:center;
+    gap:10px;
+    padding:9px 0;
+    border-bottom:1px solid rgba(255,255,255,.05);
+    font-size:9px;
+}
+
+.signal-row:last-child{
+    border-bottom:0;
+}
+
+.signal-name{
+    color:#a9bfcd;
+}
+
+.signal-bar{
+    height:6px;
+    border-radius:20px;
+    background:#132838;
+    overflow:hidden;
+}
+
+.signal-fill{
+    height:100%;
+    border-radius:20px;
+    background:linear-gradient(90deg,var(--blue),var(--cyan));
+}
+
+.signal-value{
+    text-align:right;
+    color:#fff;
+    font-weight:900;
+}
+
+.data-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:9px;
+}
+
+.data-table th{
+    padding:9px;
+    color:#668092;
+    text-align:left;
+    font-size:7px;
+    text-transform:uppercase;
+    border-bottom:1px solid var(--border);
+}
+
+.data-table td{
+    padding:9px;
+    border-bottom:1px solid rgba(255,255,255,.05);
+}
+
+.status-pill{
+    display:inline-flex;
+    padding:4px 7px;
+    border-radius:20px;
+    font-size:7px;
+    font-weight:900;
+    text-transform:uppercase;
+}
+
+.status-ok{
+    color:#6ff0bf;
+    background:rgba(0,192,125,.12);
+}
+
+.status-warn{
+    color:#ffc278;
+    background:rgba(255,159,67,.12);
+}
+
+.status-danger{
+    color:#ff8790;
+    background:rgba(255,77,90,.12);
+}
+
+.status-neutral{
+    color:#9db4c4;
+    background:rgba(157,180,196,.08);
+}
+
+.event-stream{
+    max-height:370px;
+    overflow:auto;
+}
+
+.event{
+    display:grid;
+    grid-template-columns:75px 12px 1fr;
+    gap:8px;
+    padding:9px 0;
+    border-bottom:1px solid rgba(255,255,255,.05);
+    font:8px Consolas,monospace;
+}
+
+.event-time{
+    color:#647d8e;
+}
+
+.event-dot{
+    width:7px;
+    height:7px;
+    margin-top:2px;
+    border-radius:50%;
+    background:var(--blue);
+}
+
+.event.good .event-dot{background:var(--green)}
+.event.warn .event-dot{background:var(--orange)}
+.event.bad .event-dot{background:var(--red)}
+
+.empty-state{
+    min-height:160px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    text-align:center;
+    color:#718a9c;
+}
+
+.empty-icon{
+    width:45px;
+    height:45px;
+    margin-bottom:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:50%;
+    border:1px solid var(--border);
+    background:rgba(255,255,255,.03);
+    font-size:18px;
+}
+
+.empty-state strong{
+    color:#b8ccd8;
+    font-size:11px;
+}
+
+.empty-state span{
+    max-width:420px;
+    margin-top:6px;
+    font-size:8px;
+    line-height:1.5;
+}
+
+.data-freshness{
+    padding:8px 11px;
+    border-radius:7px;
+    background:rgba(0,192,125,.06);
+    border:1px solid rgba(0,192,125,.12);
+    color:#7edcb8;
+    font:8px Consolas,monospace;
+    margin-bottom:10px;
+}
+
+@media(max-width:850px){
+    .analytics-shell{
+        width:100%;
+        height:100%;
+        max-height:none;
+        border-radius:0;
+        min-height:0;
+    }
+
+    #analyticsModal{
+        padding:0;
+    }
+
+    .analytics-nav{
+        grid-template-columns:repeat(4,1fr);
+        overflow-x:auto;
+    }
+
+    .analytics-nav button{
+        min-width:105px;
+    }
+
+    .page-grid{
+        grid-template-columns:1fr;
+    }
+
+    .metric-grid{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .analytics-page.expanded .metric-grid{
+        grid-template-columns:repeat(2,1fr);
+    }
+}
+
+@media(max-width:520px){
+    .analytics-top{
+        padding:12px;
+    }
+
+    .analytics-content{
+        padding:10px;
+    }
+
+    .analytics-title{
+        font-size:12px;
+    }
+
+    .analytics-subtitle{
+        font-size:7px;
+    }
+
+    .analytics-logo{
+        width:35px;
+        height:35px;
+        font-size:16px;
+    }
+
+    .metric-grid{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .signal-row{
+        grid-template-columns:105px 1fr 60px;
+    }
+
+    .chart-wrap{
+        height:230px;
+    }
+}
+
+/* ADMIN */
+.tactical-modal{
+    position:fixed;
+    inset:0;
+    z-index:40000;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,.85);
+    backdrop-filter:blur(10px);
+}
+
+.modal-box{
+    width:92%;
+    max-width:400px;
+    padding:24px;
+    border-radius:18px;
+    background:var(--navy);
+    color:#fff;
+    border:1px solid var(--blue);
+    box-shadow:0 25px 70px rgba(0,0,0,.7);
+    text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="statusToast">SYSTEM ACTIVE</div>
+
+<!-- ADMIN -->
+<div id="adminModal" class="tactical-modal">
+    <div class="modal-box">
+        <h3 id="modalTitle" style="margin:0 0 10px;color:var(--red);">SECURITY CLEARANCE</h3>
+        <p id="modalDesc" style="font-size:10px;opacity:.75;">Verification Required</p>
+        <input type="password" id="adminPass" placeholder="Internal Passcode" style="margin:15px 0;text-align:center;">
+        <div class="grid-2">
+            <button id="modalConfirmBtn" class="btn-red">CONFIRM</button>
+            <button onclick="window.closeAdmin()" style="background:#444;">CANCEL</button>
+        </div>
+    </div>
+</div>
+
+<!-- GEOFENCE -->
+<div id="fenceModal" class="tactical-modal">
+    <div class="modal-box" style="border-color:var(--green);">
+        <h3 style="margin:0;color:var(--green);">GEOFENCE ENGINE</h3>
+        <p style="font-size:9px;opacity:.7;">RADIUS IN METERS</p>
+        <input type="number" id="fenceInput" value="300" style="text-align:center;font-size:22px;margin:12px 0;">
+        <div class="grid-2">
+            <button onclick="window.confirmFence()" class="btn-green">ACTIVATE</button>
+            <button onclick="document.getElementById('fenceModal').style.display='none'" style="background:#444;">CANCEL</button>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================
+     ENTERPRISE TELEMETRY COMMAND CENTER
+     ========================================================= -->
+<div id="analyticsModal">
+
+    <div class="analytics-shell">
+
+        <div class="analytics-top">
+            <div class="analytics-brand">
+                <div class="analytics-logo">◈</div>
+
+                <div>
+                    <div class="analytics-title">
+                        ENTERPRISE TELEMETRY COMMAND CENTER
+                    </div>
+
+                    <div class="analytics-subtitle">
+                        MASTER TRACKER // CAR_01 // REAL-TIME OPERATIONS
+                    </div>
+
+                    <div class="analytics-live">
+                        <span class="live-dot"></span>
+                        LIVE TELEMETRY STREAM
+                        <span id="analyticsLastUpdate" style="color:#6b8494;margin-left:5px;">
+                            WAITING FOR DATA
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="analytics-close" onclick="window.closeAnalytics()">✕</button>
+        </div>
+
+        <div class="analytics-nav">
+
+            <button class="active" data-page="overview"
+                    onclick="window.openAnalyticsPage('overview',this)">
+                ◈ OVERVIEW
+                <small>LIVE COMMAND</small>
+            </button>
+
+            <button data-page="driver"
+                    onclick="window.openAnalyticsPage('driver',this)">
+                ◉ DRIVER AUDIT
+                <small>BEHAVIOR</small>
+            </button>
+
+            <button data-page="diagnostics"
+                    onclick="window.openAnalyticsPage('diagnostics',this)">
+                ⌁ DIAGNOSTICS
+                <small>VEHICLE DATA</small>
+            </button>
+
+            <button data-page="events"
+                    onclick="window.openAnalyticsPage('events',this)">
+                ◎ EVENTS
+                <small>ACTIVITY STREAM</small>
+            </button>
+
+        </div>
+
+        <div class="analytics-content">
+
+            <!-- OVERVIEW -->
+            <section id="analytics-overview" class="analytics-page active">
+
+                <button class="analytics-back" onclick="window.collapseAnalyticsPage()">
+                    ← BACK TO COMMAND CENTER
+                </button>
+
+                <div class="page-heading">
+                    <div>
+                        <h2>Fleet Command Overview</h2>
+                        <span>CONTINUOUS TELEMETRY ANALYSIS</span>
+                    </div>
+                </div>
+
+                <div class="metric-grid">
+
+                    <div class="metric">
+                        <div class="metric-label">Current Speed</div>
+                        <div id="anSpeed" class="metric-value blue">0 km/h</div>
+                        <div class="metric-note">GPS velocity</div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="metric-label">Signal Age</div>
+                        <div id="anSignalAge" class="metric-value green">--</div>
+                        <div class="metric-note">Last received position</div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="metric-label">Position Accuracy</div>
+                        <div id="anAccuracy" class="metric-value purple">--</div>
+                        <div class="metric-note">Reported GPS accuracy</div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="metric-label">Trip Distance</div>
+                        <div id="anDistance" class="metric-value blue">--</div>
+                        <div class="metric-note">Current telemetry session</div>
+                    </div>
+
+                </div>
+
+                <div class="page-grid">
+
+                    <div>
+
+                        <div class="analytics-card">
+                            <h3>VELOCITY TELEMETRY — LIVE</h3>
+
+                            <div class="chart-wrap">
+                                <canvas id="liveSpeedChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="analytics-card">
+                            <h3>POSITION QUALITY</h3>
+
+                            <div class="signal-row">
+                                <div class="signal-name">GPS Accuracy</div>
+                                <div class="signal-bar">
+                                    <div id="accuracyBar" class="signal-fill" style="width:0%"></div>
+                                </div>
+                                <div id="accuracySignal" class="signal-value">--</div>
+                            </div>
+
+                            <div class="signal-row">
+                                <div class="signal-name">Signal Health</div>
+                                <div class="signal-bar">
+                                    <div id="signalBar" class="signal-fill" style="width:0%"></div>
+                                </div>
+                                <div id="signalSignal" class="signal-value">--</div>
+                            </div>
+
+                            <div class="signal-row">
+                                <div class="signal-name">Movement State</div>
+                                <div class="signal-bar">
+                                    <div id="movementBar" class="signal-fill" style="width:0%"></div>
+                                </div>
+                                <div id="movementSignal" class="signal-value">--</div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div>
+
+                        <div class="analytics-card">
+                            <h3>LIVE VEHICLE STATE</h3>
+
+                            <table class="data-table">
+                                <tr>
+                                    <td>Latitude</td>
+                                    <td id="anLat">--</td>
+                                </tr>
+                                <tr>
+                                    <td>Longitude</td>
+                                    <td id="anLng">--</td>
+                                </tr>
+                                <tr>
+                                    <td>Velocity</td>
+                                    <td id="anVelocity">--</td>
+                                </tr>
+                                <tr>
+                                    <td>Heading</td>
+                                    <td id="anHeading">--</td>
+                                </tr>
+                                <tr>
+                                    <td>GPS Accuracy</td>
+                                    <td id="anGpsAccuracy">--</td>
+                                </tr>
+                                <tr>
+                                    <td>Telemetry Time</td>
+                                    <td id="anTelemetryTime">--</td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <div class="analytics-card">
+                            <h3>OPERATIONAL STATUS</h3>
+
+                            <div class="signal-row">
+                                <div class="signal-name">Connection</div>
+                                <div></div>
+                                <div id="connectionStatus" class="status-pill status-neutral">WAITING</div>
+                            </div>
+
+                            <div class="signal-row">
+                                <div class="signal-name">Speed Governance</div>
+                                <div></div>
+                                <div id="governanceStatus" class="status-pill status-neutral">OFF</div>
+                            </div>
+
+                            <div class="signal-row">
+                                <div class="signal-name">Geofence</div>
+                                <div></div>
+                                <div id="geofenceStatus" class="status-pill status-neutral">OFF</div>
+                            </div>
+
+                            <div class="signal-row">
+                                <div class="signal-name">Route</div>
+                                <div></div>
+                                <div id="routeStatus" class="status-pill status-neutral">NONE</div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- DRIVER -->
+            <section id="analytics-driver" class="analytics-page">
+
+                <button class="analytics-back" onclick="window.collapseAnalyticsPage()">
+                    ← BACK TO COMMAND CENTER
+                </button>
+
+                <div class="page-heading">
+                    <div>
+                        <h2>Driver Behavior Intelligence</h2>
+                        <span>DERIVED FROM ACTUAL POSITION TELEMETRY</span>
+                    </div>
+                </div>
+
+                <div class="metric-grid">
+
+                    <div class="metric">
+                        <div class="metric-label">Harsh Acceleration</div>
+                        <div id="driverAccel" class="metric-value green">0</div>
+                        <div class="metric-note">Detected events</div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="metric-label">Harsh Braking</div>
+                        <div id="driverBrake" class="metric-value green">0</div>
+                        <div class="metric-note">Detected events</div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="metric-label">Overspeed Events</div>
+                        <div id="driverOverspeed" class="metric-value orange">0</div>
+                        <div class="metric-note">Current session</div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="metric-label">Driving Score</div>
+                        <div id="driverScore" class="metric-value blue">--</div>
+                        <div class="metric-note">Telemetry-derived</div>
+                    </div>
+
+                </div>
+
+                <div class="page-grid">
+
+                    <div class="analytics-card">
+                        <h3>DRIVING SPEED PROFILE</h3>
+
+                        <div class="chart-wrap">
+                            <canvas id="driverChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div>
+
+                        <div class="analytics-card">
+                            <h3>BEHAVIOR ANALYSIS</h3>
+
+                            <div class="signal-row">
+                                <div class="signal-name">Acceleration Control</div>
+                                <div class="signal-bar">
+                                    <div id="accelScoreBar" class="signal-fill" style="width:0%"></div>
+                                </div>
+                                <div id="accelScore" class="signal-value">--</div>
+                            </div>
+
+                            <div class="signal-row">
+                                <div class="signal-name">Braking Control</div>
+                                <div class="signal-bar">
+                                    <div id="brakeScoreBar" class="signal-fill" style="width:0%"></div>
+                                </div>
+                                <div id="brakeScore" class="signal-value">--</div>
+                            </div>
+
+                            <div class="signal-row">
+                                <div class="signal-name">Speed Compliance</div>
+                                <div class="signal-bar">
+                                    <div id="speedScoreBar" class="signal-fill" style="width:0%"></div>
+                                </div>
+                                <div id="speedScore" class="signal-value">--</div>
+                            </div>
+
+                        </div>
+
+                        <div class="analytics-card">
+                            <h3>LIVE BEHAVIOR STATE</h3>
+                            <div id="driverState" class="empty-state" style="min-height:110px;">
+                                <strong>COLLECTING TELEMETRY</strong>
+                                <span>
+                                    Driver behavior indicators will update as genuine
+                                    movement telemetry becomes available.
+                                </span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- DIAGNOSTICS -->
+            <section id="analytics-diagnostics" class="analytics-page">
+
+                <button class="analytics-back" onclick="window.collapseAnalyticsPage()">
+                    ← BACK TO COMMAND CENTER
+                </button>
+
+                <div class="page-heading">
+                    <div>
+                        <h2>Vehicle Diagnostics</h2>
+                        <span>RAW VEHICLE SIGNALS</span>
+                    </div>
+                </div>
+
+                <div class="data-freshness" id="diagnosticFreshness">
+                    NO VEHICLE DIAGNOSTIC SIGNALS RECEIVED
+                </div>
+
+                <div class="metric-grid">
+
+                    <div class="metric">
+                        <div class="metric-label">Battery</div>
+                        <div id="obdBattery" class="metric-value">--</div>
+                        <div class="metric-note">Vehicle telemetry</div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="metric-label">Engine Temp</div>
+                        <div id="obdTemp" class="metric-value">--</div>
+                        <div class="metric-note">Vehicle telemetry</div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="metric-label">RPM</div>
+                        <div id="obdRpm" class="metric-value">--</div>
+                        <div class="metric-note">Vehicle telemetry</div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="metric-label">Fuel Level</div>
+                        <div id="obdFuel" class="metric-value">--</div>
+                        <div class="metric-note">Vehicle telemetry</div>
+                    </div>
+
+                </div>
+
+                <div class="page-grid">
+
+                    <div class="analytics-card">
+                        <h3>ENGINE TELEMETRY</h3>
+
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Value</th>
+                                    <th>State</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+                                <tr>
+                                    <td>Battery Voltage</td>
+                                    <td id="diagBattery">--</td>
+                                    <td id="diagBatteryState">
+                                        <span class="status-pill status-neutral">NO DATA</span>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td>Engine Temperature</td>
+                                    <td id="diagTemp">--</td>
+                                    <td id="diagTempState">
+                                        <span class="status-pill status-neutral">NO DATA</span>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td>Engine RPM</td>
+                                    <td id="diagRpm">--</td>
+                                    <td id="diagRpmState">
+                                        <span class="status-pill status-neutral">NO DATA</span>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td>Fuel Level</td>
+                                    <td id="diagFuel">--</td>
+                                    <td id="diagFuelState">
+                                        <span class="status-pill status-neutral">NO DATA</span>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td>Engine Load</td>
+                                    <td id="diagLoad">--</td>
+                                    <td id="diagLoadState">
+                                        <span class="status-pill status-neutral">NO DATA</span>
+                                    </td>
+                                </tr>
+
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="analytics-card">
+                        <h3>FAULT MONITOR</h3>
+
+                        <div id="faultMonitor" class="empty-state">
+                            <div class="empty-icon">⌁</div>
+                            <strong>NO DIAGNOSTIC FAULT STREAM</strong>
+                            <span>
+                                Waiting for genuine vehicle diagnostic fault information.
+                            </span>
+                        </div>
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- EVENTS -->
+            <section id="analytics-events" class="analytics-page">
+
+                <button class="analytics-back" onclick="window.collapseAnalyticsPage()">
+                    ← BACK TO COMMAND CENTER
+                </button>
+
+                <div class="page-heading">
+                    <div>
+                        <h2>Operational Event Stream</h2>
+                        <span>LIVE POSITION & SYSTEM EVENTS</span>
+                    </div>
+                </div>
+
+                <div class="page-grid">
+
+                    <div class="analytics-card">
+
+                        <h3>REAL-TIME EVENT STREAM</h3>
+
+                        <div id="eventStream" class="event-stream">
+
+                            <div class="empty-state">
+                                <div class="empty-icon">◎</div>
+                                <strong>WAITING FOR EVENTS</strong>
+                                <span>
+                                    Live operational events will appear here as they occur.
+                                </span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div>
+
+                        <div class="analytics-card">
+                            <h3>EVENT COUNTERS</h3>
+
+                            <div class="metric" style="margin-bottom:8px;">
+                                <div class="metric-label">Total Events</div>
+                                <div id="eventTotal" class="metric-value blue">0</div>
+                            </div>
+
+                            <div class="metric" style="margin-bottom:8px;">
+                                <div class="metric-label">Warnings</div>
+                                <div id="eventWarnings" class="metric-value orange">0</div>
+                            </div>
+
+                            <div class="metric">
+                                <div class="metric-label">Critical</div>
+                                <div id="eventCritical" class="metric-value red">0</div>
+                            </div>
+
+                        </div>
+
+                        <div class="analytics-card">
+                            <h3>LAST POSITION</h3>
+
+                            <table class="data-table">
+                                <tr>
+                                    <td>Latitude</td>
+                                    <td id="eventLat">--</td>
+                                </tr>
+                                <tr>
+                                    <td>Longitude</td>
+                                    <td id="eventLng">--</td>
+                                </tr>
+                                <tr>
+                                    <td>Speed</td>
+                                    <td id="eventSpeed">--</td>
+                                </tr>
+                                <tr>
+                                    <td>Updated</td>
+                                    <td id="eventUpdated">--</td>
+                                </tr>
+                            </table>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </div>
+    </div>
+</div>
+
+
+<div id="map"></div>
+
+<div id="deadBlockOverlay">
+    POWERED BY ASSETGUARD
+</div>
+
+<div id="hoverBtn">≡</div>
+
+<div id="speedHud">0 KM/H</div>
+
+
+<div id="panel">
+
+    <a href="marketing-team.html"
+       style="display:block;text-align:center;text-decoration:none;margin-bottom:12px;padding:10px;border-radius:8px;font-size:11px;font-weight:700;background:var(--navy);color:#fff;border:1px solid var(--blue);">
+        ← Back to Marketing Team
+    </a>
+
+    <div id="statusHeader" class="offline">
+        GPS: SEARCHING
+    </div>
+
+    <div class="stat-row">
+        <span>Velocity:</span>
+        <b id="spdVal">0 km/h</b>
+    </div>
+
+    <div class="stat-row">
+        <span>Area Speed:</span>
+        <b id="areaLimit" style="color:var(--red)">-- km/h</b>
+    </div>
+
+    <div class="stat-row">
+        <span>Route ETA:</span>
+        <b id="etaDist">-- / --</b>
+    </div>
+
+    <hr style="border:0;border-top:1px solid #eee;margin:12px 0;">
+
+    <button onclick="window.openAnalytics()" class="btn-purple" style="margin-bottom:8px;">
+        ◈ ENTERPRISE TELEMETRY COMMAND
+    </button>
+
+    <div class="control-group">
+        <span class="control-label">Tactical Orientation</span>
+
+        <div class="grid-2">
+            <button id="rotateBtn" onclick="window.toggleRotation()" style="background:var(--navy)">
+                MAP: FIXED
+            </button>
+
+            <button onclick="window.resetNorth()" style="background:#444">
+                RESET NORTH
+            </button>
+        </div>
+    </div>
+
+    <div class="control-group">
+
+        <span class="control-label">Speed Governance</span>
+
+        <div style="display:flex;gap:4px;height:38px;">
+
+            <input type="number"
+                   id="maxSpeedLimit"
+                   placeholder="KM/H"
+                   style="flex:2;height:100%;">
+
+            <button id="speedSetBtn"
+                    onclick="window.secureSpeedSet()"
+                    style="flex:1;background:var(--navy);height:100%;">
+                SET
+            </button>
+
+            <button onclick="window.openSpeedClear()"
+                    class="btn-red"
+                    style="width:50px;font-size:9px;">
+                CLR
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="grid-2">
+        <button onclick="window.secureAddFence()" style="background:#1c2b39">
+            + FENCE
+        </button>
+
+        <button onclick="window.clearGeofence()" style="background:#444">
+            CLR FENCE
+        </button>
+    </div>
+
+    <div class="control-group">
+
+        <span class="control-label">History Archive</span>
+
+        <input type="date" id="historyDate" style="margin-bottom:5px;">
+
+        <div class="grid-2">
+
+            <button id="historyBtn" class="btn-purple">
+                RENDER
+            </button>
+
+            <button onclick="window.clearHistoryMap()" style="background:#444">
+                CLEAR
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="control-group">
+
+        <span class="control-label">Tactical Layers</span>
+
+        <select id="mapStyle" onchange="window.switchMap(this.value)">
+            <option value="googleTraffic" selected>Standard Traffic</option>
+            <option value="esriWorld">Live Terrain</option>
+            <option value="dark">Stealth Night</option>
+            <option value="googleSat">Satellite Alpha</option>
+        </select>
+
+    </div>
+
+    <div class="grid-2">
+
+        <button onclick="window.goToCar()" style="background:var(--navy)">
+            CAR
+        </button>
+
+        <button onclick="window.centerDestination()" class="btn-green">
+            DEST
+        </button>
+
+    </div>
+
+    <div class="grid-2">
+
+        <button id="followBtn" class="btn-primary">
+            FOLLOW: ON
+        </button>
+
+        <button id="lockRouteBtn" class="btn-orange">
+            LOCK: OFF
+        </button>
+
+    </div>
+
+    <hr style="border:0;border-top:1px solid #eee;margin:12px 0;">
+
+    <input id="search"
+           placeholder="Search Destination..."
+           style="margin-bottom:5px;">
+
+    <button onclick="window.searchPlace()"
+            class="btn-primary"
+            style="margin-bottom:5px;">
+        INITIATE ROUTE
+    </button>
+
+    <button onclick="window.openSystemReset()"
+            style="background:var(--red);font-size:9px;opacity:.6;">
+        SYSTEM RESET
+    </button>
+
+    <div id="logDisplay">
+        System Ready.
+    </div>
+
+</div>
+
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
+import {
+    getDatabase,
+    ref,
+    update,
+    push,
+    onValue,
+    set
+}
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+import AGPasscode from "./ag-passcode.js";
+
+
+/* =========================================================
+   DATA CONNECTION
+   ========================================================= */
+
+const firebaseConfig = {
+    apiKey:"AIzaSyC3zyNPQibIk-XTrUcKGfQOfu0-td55SSM",
+    databaseURL:"https://cartracker-cd47c-default-rtdb.firebaseio.com",
+    projectId:"cartracker-cd47c"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const carRef = ref(db,"cars/car_01");
+
+
+/* =========================================================
+   MAP
+   ========================================================= */
+
+const layers = {
+
+    googleTraffic:
+        L.tileLayer(
+            "https://{s}.google.com/vt/lyrs=m,traffic&x={x}&y={y}&z={z}",
+            {
+                subdomains:["mt0","mt1","mt2","mt3"]
+            }
+        ),
+
+    googleSat:
+        L.tileLayer(
+            "https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+            {
+                subdomains:["mt0","mt1","mt2","mt3"]
+            }
+        ),
+
+    dark:
+        L.tileLayer(
+            "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        ),
+
+    esriWorld:
+        L.tileLayer(
+            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+        )
+};
+
+
+const map = L.map("map",{
+    layers:[layers.googleTraffic],
+    center:[0,0],
+    zoom:15,
+    zoomControl:false,
+    attributionControl:false,
+    rotate:true,
+    touchRotate:true,
+    bearing:0
+});
+
+
+const carIcon = L.icon({
+    iconUrl:"https://cdn-icons-png.flaticon.com/512/744/744465.png",
+    iconSize:[40,40],
+    iconAnchor:[20,20]
+});
+
+
+const carMarker =
+    L.marker([0,0],{icon:carIcon}).addTo(map);
+
+const historyLayer =
+    L.layerGroup().addTo(map);
+
+
+/* =========================================================
+   STATE
+   ========================================================= */
+
+let lastPos = null;
+let previousTelemetry = null;
+
+let follow = true;
+let routeLocked = false;
+let activeLimit = null;
+let mapRotationActive = false;
+
+let routeLine = null;
+let destMarker = null;
+let fenceCircle = null;
+
+let lastPushTime = 0;
+let lastSpeedUpdate = 0;
+
+let liveSpeedChart = null;
+let driverChart = null;
+
+let speedSamples = [];
+let driverSpeedSamples = [];
+
+let harshAcceleration = 0;
+let harshBraking = 0;
+let overspeedEvents = 0;
+
+let eventTotal = 0;
+let eventWarnings = 0;
+let eventCritical = 0;
+
+
+/* =========================================================
+   TOAST
+   ========================================================= */
+
+window.sendPush = msg => {
+
+    const now = Date.now();
+
+    if(now-lastPushTime < 12000) return;
+
+    lastPushTime = now;
+
+    const toast =
+        document.getElementById("statusToast");
+
+    toast.innerText =
+        String(msg).toUpperCase();
+
+    toast.classList.add("show");
+
+    setTimeout(
+        ()=>toast.classList.remove("show"),
+        4000
+    );
+};
+
+
+/* =========================================================
+   ENTERPRISE ANALYTICS NAVIGATION
+   ========================================================= */
+
+window.openAnalytics = () => {
+
+    document
+        .getElementById("analyticsModal")
+        .classList.add("visible");
+
+    document.body.style.overflow="hidden";
+
+    initializeAnalyticsCharts();
+    updateAnalyticsFromCurrentTelemetry();
+};
+
+
+window.closeAnalytics = () => {
+
+    document
+        .getElementById("analyticsModal")
+        .classList.remove("visible");
+
+    document.body.style.overflow="hidden";
+};
+
+
+window.openAnalyticsPage = (page,button) => {
+
+    document
+        .querySelectorAll(".analytics-page")
+        .forEach(pageElement => {
+
+            pageElement.classList.remove("active");
+            pageElement.classList.remove("expanded");
+
+        });
+
+
+    document
+        .querySelectorAll(".analytics-nav button")
+        .forEach(btn =>
+            btn.classList.remove("active")
+        );
+
+
+    const target =
+        document.getElementById(
+            "analytics-"+page
+        );
+
+    if(!target) return;
+
+
+    target.classList.add("active");
+    target.classList.add("expanded");
+
+    button.classList.add("active");
+
+
+    if(page==="overview"){
+        setTimeout(()=>{
+            initializeAnalyticsCharts();
+            updateAnalyticsFromCurrentTelemetry();
+        },50);
+    }
+
+    if(page==="driver"){
+        setTimeout(()=>{
+            initializeDriverChart();
+            updateDriverAnalytics();
+        },50);
+    }
+
+    if(page==="diagnostics"){
+        updateDiagnosticAnalytics();
+    }
+
+    if(page==="events"){
+        renderEventSummary();
+    }
+};
+
+
+window.collapseAnalyticsPage = () => {
+
+    document
+        .querySelectorAll(".analytics-page")
+        .forEach(p=>{
+            p.classList.remove("expanded");
+            p.classList.remove("active");
+        });
+
+
+    const overview =
+        document.getElementById(
+            "analytics-overview"
+        );
+
+    overview.classList.add("active");
+
+
+    document
+        .querySelectorAll(".analytics-nav button")
+        .forEach(b=>b.classList.remove("active"));
+
+
+    document
+        .querySelector(
+            '.analytics-nav button[data-page="overview"]'
+        )
+        .classList.add("active");
+
+
+    initializeAnalyticsCharts();
+    updateAnalyticsFromCurrentTelemetry();
+};
+
+
+/* =========================================================
+   CHART CONFIGURATION
+   ========================================================= */
+
+function chartBaseOptions(){
+
+    return {
+
+        responsive:true,
+        maintainAspectRatio:false,
+
+        animation:false,
+
+        interaction:{
+            intersect:false,
+            mode:"index"
+        },
+
+        plugins:{
+            legend:{
+                labels:{
+                    color:"#9eb5c4",
+                    font:{
+                        size:9
+                    },
+                    boxWidth:10
+                }
+            },
+
+            tooltip:{
+                backgroundColor:"#07131f",
+                borderColor:"rgba(0,163,224,.4)",
+                borderWidth:1
+            }
+        },
+
+        scales:{
+
+            x:{
+                ticks:{
+                    color:"#718999",
+                    font:{
+                        size:8
+                    },
+                    maxTicksLimit:8
+                },
+
+                grid:{
+                    color:"rgba(255,255,255,.035)"
+                }
+            },
+
+            y:{
+                ticks:{
+                    color:"#718999",
+                    font:{
+                        size:8
+                    }
+                },
+
+                grid:{
+                    color:"rgba(255,255,255,.035)"
+                }
+            }
+
+        }
+    };
+}
+
+
+/* =========================================================
+   LIVE SPEED CHART
+   ========================================================= */
+
+function initializeAnalyticsCharts(){
+
+    const canvas =
+        document.getElementById("liveSpeedChart");
+
+    if(!canvas) return;
+
+
+    if(liveSpeedChart){
+        liveSpeedChart.destroy();
+    }
+
+
+    liveSpeedChart =
+        new Chart(canvas.getContext("2d"),{
+
+            type:"line",
+
+            data:{
+                labels:speedSamples.map(x=>x.time),
+
+                datasets:[{
+
+                    label:"Actual GPS Speed",
+
+                    data:speedSamples.map(x=>x.speed),
+
+                    borderColor:"#00a3e0",
+
+                    backgroundColor:
+                        "rgba(0,163,224,.08)",
+
+                    fill:true,
+
+                    tension:.25,
+
+                    borderWidth:2,
+
+                    pointRadius:1.5
+
+                }]
+
+            },
+
+            options:chartBaseOptions()
+
+        });
+}
+
+
+/* =========================================================
+   DRIVER CHART
+   ========================================================= */
+
+function initializeDriverChart(){
+
+    const canvas =
+        document.getElementById("driverChart");
+
+    if(!canvas) return;
+
+
+    if(driverChart){
+        driverChart.destroy();
+    }
+
+
+    driverChart =
+        new Chart(canvas.getContext("2d"),{
+
+            type:"line",
+
+            data:{
+                labels:driverSpeedSamples.map(x=>x.time),
+
+                datasets:[{
+
+                    label:"Actual Vehicle Speed",
+
+                    data:driverSpeedSamples.map(x=>x.speed),
+
+                    borderColor:"#8067e8",
+
+                    backgroundColor:
+                        "rgba(128,103,232,.08)",
+
+                    fill:true,
+
+                    tension:.25,
+
+                    borderWidth:2,
+
+                    pointRadius:1.5
+
+                }]
+
+            },
+
+            options:chartBaseOptions()
+
+        });
+}
+
+
+/* =========================================================
+   TELEMETRY CHART UPDATE
+   ========================================================= */
+
+function pushSpeedSample(speed){
+
+    const now =
+        new Date();
+
+    const time =
+        now.toLocaleTimeString([],{
+            hour:"2-digit",
+            minute:"2-digit",
+            second:"2-digit"
+        });
+
+
+    speedSamples.push({
+        time,
+        speed
+    });
+
+
+    driverSpeedSamples.push({
+        time,
+        speed
+    });
+
+
+    if(speedSamples.length>80)
+        speedSamples.shift();
+
+    if(driverSpeedSamples.length>80)
+        driverSpeedSamples.shift();
+
+
+    if(liveSpeedChart){
+
+        liveSpeedChart.data.labels =
+            speedSamples.map(x=>x.time);
+
+        liveSpeedChart.data.datasets[0].data =
+            speedSamples.map(x=>x.speed);
+
+        liveSpeedChart.update("none");
+    }
+
+
+    if(driverChart){
+
+        driverChart.data.labels =
+            driverSpeedSamples.map(x=>x.time);
+
+        driverChart.data.datasets[0].data =
+            driverSpeedSamples.map(x=>x.speed);
+
+        driverChart.update("none");
+    }
+}
+
+
+/* =========================================================
+   ANALYTICS CURRENT TELEMETRY
+   ========================================================= */
+
+function updateAnalyticsFromCurrentTelemetry(){
+
+    if(!previousTelemetry) return;
+
+    const data =
+        previousTelemetry;
+
+    const speed =
+        Number(data.speed)||0;
+
+
+    setText("anSpeed",
+        speed.toFixed(1)+" km/h"
+    );
+
+    setText("anLat",
+        Number(data.lat).toFixed(6)
+    );
+
+    setText("anLng",
+        Number(data.lng).toFixed(6)
+    );
+
+    setText("anVelocity",
+        speed.toFixed(1)+" km/h"
+    );
+
+
+    setText(
+        "anHeading",
+        data.heading != null
+            ? Number(data.heading).toFixed(0)+"°"
+            : "--"
+    );
+
+
+    setText(
+        "anGpsAccuracy",
+        data.accuracy != null
+            ? Number(data.accuracy).toFixed(1)+" m"
+            : "--"
+    );
+
+
+    setText(
+        "anTelemetryTime",
+        data.ts
+            ? new Date(data.ts).toLocaleString()
+            : "--"
+    );
+
+
+    if(data.ts){
+
+        const age =
+            Math.max(
+                0,
+                Date.now()-Number(data.ts)
+            );
+
+        const seconds =
+            Math.round(age/1000);
+
+        setText(
+            "anSignalAge",
+            seconds+"s"
+        );
+
+
+        const health =
+            Math.max(
+                0,
+                Math.min(
+                    100,
+                    100-(seconds*5)
+                )
+            );
+
+        setBar("signalBar",health);
+
+        setText(
+            "signalSignal",
+            health.toFixed(0)+"%"
+        );
+    }
+
+
+    if(data.accuracy != null){
+
+        const accuracy =
+            Number(data.accuracy);
+
+        const quality =
+            Math.max(
+                0,
+                Math.min(
+                    100,
+                    100-(accuracy*2)
+                )
+            );
+
+        setBar(
+            "accuracyBar",
+            quality
+        );
+
+        setText(
+            "accuracySignal",
+            accuracy.toFixed(1)+"m"
+        );
+    }
+
+
+    const movement =
+        speed>2 ? 100 : speed>0.3 ? 50 : 10;
+
+    setBar(
+        "movementBar",
+        movement
+    );
+
+    setText(
+        "movementSignal",
+        speed>2
+            ? "MOVING"
+            : speed>.3
+                ? "ROLLING"
+                : "STOPPED"
+    );
+
+
+    setText(
+        "connectionStatus",
+        data.ts &&
+        Date.now()-Number(data.ts)<15000
+            ? "LIVE"
+            : "LOST"
+    );
+
+
+    document.getElementById(
+        "connectionStatus"
+    ).className =
+        "status-pill "+
+        (
+            data.ts &&
+            Date.now()-Number(data.ts)<15000
+                ? "status-ok"
+                : "status-danger"
+        );
+
+
+    setText(
+        "governanceStatus",
+        activeLimit
+            ? activeLimit+" KM/H"
+            : "OFF"
+    );
+
+
+    setText(
+        "geofenceStatus",
+        data.geofence
+            ? "ACTIVE"
+            : "OFF"
+    );
+
+
+    setText(
+        "routeStatus",
+        data.destination
+            ? "ACTIVE"
+            : "NONE"
+    );
+
+
+    updateDiagnosticAnalytics();
+
+    updateDriverAnalytics();
+}
+
+
+/* =========================================================
+   DRIVER INTELLIGENCE
+   ========================================================= */
+
+function updateDriverAnalytics(){
+
+    setText(
+        "driverAccel",
+        harshAcceleration
+    );
+
+    setText(
+        "driverBrake",
+        harshBraking
+    );
+
+    setText(
+        "driverOverspeed",
+        overspeedEvents
+    );
+
+
+    let score = null;
+
+
+    if(driverSpeedSamples.length>=3){
+
+        let penalty =
+            harshAcceleration*4+
+            harshBraking*4+
+            overspeedEvents*5;
+
+        score =
+            Math.max(
+                0,
+                Math.min(
+                    100,
+                    100-penalty
+                )
+            );
+    }
+
+
+    setText(
+        "driverScore",
+        score===null
+            ? "--"
+            : score.toFixed(0)+"%"
+    );
+
+
+    if(driverSpeedSamples.length>=3){
+
+        const accelScore =
+            Math.max(
+                0,
+                100-(harshAcceleration*5)
+            );
+
+        const brakeScore =
+            Math.max(
+                0,
+                100-(harshBraking*5)
+            );
+
+        const speedScore =
+            activeLimit
+                ? Math.max(
+                    0,
+                    100-(overspeedEvents*5)
+                )
+                : null;
+
+
+        setBar("accelScoreBar",accelScore);
+        setText(
+            "accelScore",
+            accelScore.toFixed(0)+"%"
+        );
+
+
+        setBar("brakeScoreBar",brakeScore);
+        setText(
+            "brakeScore",
+            brakeScore.toFixed(0)+"%"
+        );
+
+
+        if(speedScore!==null){
+
+            setBar(
+                "speedScoreBar",
+                speedScore
+            );
+
+            setText(
+                "speedScore",
+                speedScore.toFixed(0)+"%"
+            );
+
+        }else{
+
+            setBar("speedScoreBar",0);
+            setText("speedScore","--");
+        }
+
+
+        const state =
+            document.getElementById(
+                "driverState"
+            );
+
+        if(state){
+
+            state.innerHTML = `
+
+                <strong>
+                    ${
+                        score>=90
+                            ? "STABLE DRIVING"
+                            : score>=75
+                                ? "MODERATE ATTENTION"
+                                : "ATTENTION REQUIRED"
+                    }
+                </strong>
+
+                <span>
+                    Current telemetry score:
+                    ${
+                        score===null
+                            ? "--"
+                            : score.toFixed(0)+"%"
+                    }
+                </span>
+
+            `;
+        }
+    }
+}
+
+
+/* =========================================================
+   DIAGNOSTICS
+   ========================================================= */
+
+function updateDiagnosticAnalytics(){
+
+    const data =
+        previousTelemetry;
+
+    if(!data) return;
+
+
+    /*
+       Only display actual diagnostic fields when
+       those fields exist in the incoming telemetry.
+    */
+
+    const battery =
+        firstValue(
+            data,
+            [
+                "batteryVoltage",
+                "battery",
+                "voltage"
+            ]
+        );
+
+    const temp =
+        firstValue(
+            data,
+            [
+                "engineTemperature",
+                "engineTemp",
+                "coolantTemperature",
+                "coolantTemp"
+            ]
+        );
+
+    const rpm =
+        firstValue(
+            data,
+            [
+                "rpm",
+                "engineRpm",
+                "engineRPM"
+            ]
+        );
+
+    const fuel =
+        firstValue(
+            data,
+            [
+                "fuelLevel",
+                "fuel"
+            ]
+        );
+
+    const load =
+        firstValue(
+            data,
+            [
+                "engineLoad",
+                "load"
+            ]
+        );
+
+    const faultCodes =
+        firstValue(
+            data,
+            [
+                "faultCodes",
+                "dtc",
+                "diagnosticCodes"
+            ]
+        );
+
+
+    setText(
+        "obdBattery",
+        battery!==null
+            ? Number(battery).toFixed(1)+" V"
+            : "--"
+    );
+
+    setText(
+        "obdTemp",
+        temp!==null
+            ? Number(temp).toFixed(1)+" °C"
+            : "--"
+    );
+
+    setText(
+        "obdRpm",
+        rpm!==null
+            ? Math.round(Number(rpm))
+            : "--"
+    );
+
+    setText(
+        "obdFuel",
+        fuel!==null
+            ? Number(fuel).toFixed(1)+"%"
+            : "--"
+    );
+
+
+    setText(
+        "diagBattery",
+        battery!==null
+            ? Number(battery).toFixed(1)+" V"
+            : "--"
+    );
+
+    setText(
+        "diagTemp",
+        temp!==null
+            ? Number(temp).toFixed(1)+" °C"
+            : "--"
+    );
+
+    setText(
+        "diagRpm",
+        rpm!==null
+            ? Math.round(Number(rpm))
+            : "--"
+    );
+
+    setText(
+        "diagFuel",
+        fuel!==null
+            ? Number(fuel).toFixed(1)+"%"
+            : "--"
+    );
+
+    setText(
+        "diagLoad",
+        load!==null
+            ? Number(load).toFixed(1)+"%"
+            : "--"
+    );
+
+
+    setDiagnosticState(
+        "diagBatteryState",
+        battery!==null
+            ? "AVAILABLE"
+            : "NO DATA",
+        battery!==null
+            ? "status-ok"
+            : "status-neutral"
+    );
+
+    setDiagnosticState(
+        "diagTempState",
+        temp!==null
+            ? "AVAILABLE"
+            : "NO DATA",
+        temp!==null
+            ? "status-ok"
+            : "status-neutral"
+    );
+
+    setDiagnosticState(
+        "diagRpmState",
+        rpm!==null
+            ? "AVAILABLE"
+            : "NO DATA",
+        rpm!==null
+            ? "status-ok"
+            : "status-neutral"
+    );
+
+    setDiagnosticState(
+        "diagFuelState",
+        fuel!==null
+            ? "AVAILABLE"
+            : "NO DATA",
+        fuel!==null
+            ? "status-ok"
+            : "status-neutral"
+    );
+
+    setDiagnosticState(
+        "diagLoadState",
+        load!==null
+            ? "AVAILABLE"
+            : "NO DATA",
+        load!==null
+            ? "status-ok"
+            : "status-neutral"
+    );
+
+
+    const hasDiagnostic =
+        [
+            battery,
+            temp,
+            rpm,
+            fuel,
+            load,
+            faultCodes
+        ].some(v=>v!==null);
+
+
+    const freshness =
+        document.getElementById(
+            "diagnosticFreshness"
+        );
+
+
+    if(hasDiagnostic){
+
+        freshness.innerText =
+            "LIVE VEHICLE DIAGNOSTIC SIGNALS DETECTED";
+
+        freshness.style.color =
+            "#7edcb8";
+
+        freshness.style.borderColor =
+            "rgba(0,192,125,.25)";
+
+
+        if(faultCodes){
+
+            document.getElementById(
+                "faultMonitor"
+            ).innerHTML = `
+
+                <strong>
+                    DIAGNOSTIC FAULT DATA RECEIVED
+                </strong>
+
+                <span>
+                    ${escapeHtml(
+                        Array.isArray(faultCodes)
+                            ? faultCodes.join(", ")
+                            : String(faultCodes)
+                    )}
+                </span>
+
+            `;
+
+        }else{
+
+            document.getElementById(
+                "faultMonitor"
+            ).innerHTML = `
+
+                <strong>
+                    NO ACTIVE FAULT DATA
+                </strong>
+
+                <span>
+                    No diagnostic fault records are currently present.
+                </span>
+
+            `;
+        }
+
+    }else{
+
+        freshness.innerText =
+            "NO VEHICLE DIAGNOSTIC SIGNALS RECEIVED";
+
+        freshness.style.color =
+            "#718a9c";
+
+        freshness.style.borderColor =
+            "rgba(255,255,255,.08)";
+    }
+}
+
+
+/* =========================================================
+   EVENT STREAM
+   ========================================================= */
+
+function addEvent(
+    text,
+    type="good"
+){
+
+    const container =
+        document.getElementById(
+            "eventStream"
+        );
+
+    if(!container) return;
+
+
+    const empty =
+        container.querySelector(
+            ".empty-state"
+        );
+
+    if(empty)
+        empty.remove();
+
+
+    const time =
+        new Date().toLocaleTimeString();
+
+
+    const item =
+        document.createElement("div");
+
+    item.className =
+        "event "+type;
+
+
+    item.innerHTML = `
+
+        <div class="event-time">
+            ${time}
+        </div>
+
+        <div class="event-dot"></div>
+
+        <div>
+            ${escapeHtml(text)}
+        </div>
+
+    `;
+
+
+    container.prepend(item);
+
+
+    while(container.children.length>100)
+        container.removeChild(
+            container.lastChild
+        );
+
+
+    eventTotal++;
+
+    if(type==="warn")
+        eventWarnings++;
+
+    if(type==="bad")
+        eventCritical++;
+
+
+    renderEventSummary();
+}
+
+
+function renderEventSummary(){
+
+    setText(
+        "eventTotal",
+        eventTotal
+    );
+
+    setText(
+        "eventWarnings",
+        eventWarnings
+    );
+
+    setText(
+        "eventCritical",
+        eventCritical
+    );
+
+
+    if(previousTelemetry){
+
+        setText(
+            "eventLat",
+            Number(previousTelemetry.lat).toFixed(6)
+        );
+
+        setText(
+            "eventLng",
+            Number(previousTelemetry.lng).toFixed(6)
+        );
+
+        setText(
+            "eventSpeed",
+            (Number(previousTelemetry.speed)||0)
+                .toFixed(1)+" km/h"
+        );
+
+        setText(
+            "eventUpdated",
+            previousTelemetry.ts
+                ? new Date(
+                    previousTelemetry.ts
+                  ).toLocaleTimeString()
+                : "--"
+        );
+    }
+}
+
+
+/* =========================================================
+   TELEMETRY EVENT PROCESSOR
+   ========================================================= */
+
+function processTelemetry(data){
+
+    if(!data) return;
+
+    const speed =
+        Number(data.speed)||0;
+
+
+    if(previousTelemetry){
+
+        const previousSpeed =
+            Number(previousTelemetry.speed)||0;
+
+
+        const delta =
+            speed-previousSpeed;
+
+
+        /*
+           Approximate behavioral detection from
+           actual consecutive GPS speed samples.
+        */
+
+        if(delta>=12){
+
+            harshAcceleration++;
+
+            addEvent(
+                "Rapid acceleration detected: +"+
+                delta.toFixed(1)+
+                " km/h sample change.",
+                "warn"
+            );
+        }
+
+
+        if(delta<=-15){
+
+            harshBraking++;
+
+            addEvent(
+                "Rapid deceleration detected: "+
+                delta.toFixed(1)+
+                " km/h sample change.",
+                "warn"
+            );
+        }
+
+
+        if(
+            activeLimit &&
+            speed>activeLimit &&
+            previousSpeed<=activeLimit
+        ){
+
+            overspeedEvents++;
+
+            addEvent(
+                "Speed governance threshold exceeded.",
+                "bad"
+            );
+        }
+    }
+
+
+    pushSpeedSample(speed);
+
+
+    if(
+        !previousTelemetry ||
+        Math.abs(
+            speed-
+            (Number(previousTelemetry.speed)||0)
+        )>=5
+    ){
+
+        addEvent(
+            "Vehicle velocity updated to "+
+            speed.toFixed(1)+
+            " km/h.",
+            "good"
+        );
+    }
+
+
+    previousTelemetry =
+        {...data};
+
+
+    updateAnalyticsFromCurrentTelemetry();
+}
+
+
+/* =========================================================
+   GPS SOURCE
+   ========================================================= */
+
+if("geolocation" in navigator){
+
+    navigator.geolocation.watchPosition(
+
+        p=>{
+
+            const dateKey =
+                new Date()
+                    .toISOString()
+                    .split("T")[0];
+
+
+            const coords = {
+
+                lat:p.coords.latitude,
+
+                lng:p.coords.longitude,
+
+                ts:Date.now(),
+
+                accuracy:
+                    p.coords.accuracy ?? null,
+
+                altitude:
+                    p.coords.altitude ?? null,
+
+                heading:
+                    p.coords.heading ?? null,
+
+                speed:
+                    p.coords.speed != null
+                        ? p.coords.speed*3.6
+                        : 0
+            };
+
+
+            update(
+                carRef,
+                coords
+            );
+
+
+            push(
+                ref(
+                    db,
+                    "cars/car_01/history/"+dateKey
+                ),
+                coords
+            );
+
+
+            document.getElementById(
+                "logDisplay"
+            ).innerText =
+                "GPS Lock acquired: Lat "+
+                coords.lat.toFixed(5)+
+                ", Lng "+
+                coords.lng.toFixed(5);
+
+
+            processTelemetry(coords);
+        },
+
+
+        err=>{
+
+            let msg =
+                "GPS Error: "+err.message;
+
+
+            if(err.code===1)
+                msg =
+                    "GPS Error: Permission denied.";
+
+            else if(err.code===2)
+                msg =
+                    "GPS Error: Position unavailable.";
+
+            else if(err.code===3)
+                msg =
+                    "GPS Warning: Position timeout. Searching...";
+
+
+            document.getElementById(
+                "logDisplay"
+            ).innerText=msg;
+
+            console.warn(msg);
+        },
+
+
+        {
+            enableHighAccuracy:true,
+            maximumAge:3000,
+            timeout:15000
+        }
+    );
+
+}else{
+
+    document.getElementById(
+        "logDisplay"
+    ).innerText =
+        "Geolocation is not supported.";
+}
+
+
+/* =========================================================
+   MAIN LIVE VEHICLE LISTENER
+   ========================================================= */
+
+onValue(
+
+    carRef,
+
+    snap=>{
+
+        const data =
+            snap.val();
+
+        if(!data) return;
+
+
+        processTelemetry(data);
+
+
+        const lat =
+            Number(data.lat);
+
+        const lng =
+            Number(data.lng);
+
+
+        if(
+            !Number.isFinite(lat) ||
+            !Number.isFinite(lng)
+        ) return;
+
+
+        const pos =
+            [lat,lng];
+
+
+        if(
+            mapRotationActive &&
+            lastPos
+        ){
+
+            const bearing =
+                Math.atan2(
+                    pos[1]-lastPos[1],
+                    pos[0]-lastPos[0]
+                )*
+                180/
+                Math.PI;
+
+
+            map.setBearing(
+                bearing
+            );
+        }
+
+
+        carMarker.setLatLng(pos);
+
+
+        const spd =
+            Number(data.speed)||0;
+
+
+        document.getElementById(
+            "spdVal"
+        ).innerText =
+            spd.toFixed(1)+
+            " km/h";
+
+
+        document.getElementById(
+            "speedHud"
+        ).innerText =
+            spd.toFixed(1)+
+            " KM/H";
+
+
+        if(
+            activeLimit &&
+            spd>activeLimit
+        ){
+
+            document
+                .getElementById("speedHud")
+                .classList.add("blinking");
+
+            window.sendPush(
+                "SPEED BREACH"
+            );
+
+        }else{
+
+            document
+                .getElementById("speedHud")
+                .classList.remove("blinking");
+        }
+
+
+        /* GEOFENCE */
+
+        if(data.geofence){
+
+            if(!fenceCircle){
+
+                fenceCircle =
+                    L.circle(
+
+                        [
+                            data.geofence.lat,
+                            data.geofence.lng
+                        ],
+
+                        {
+                            radius:data.geofence.radius,
+                            color:"#00a3e0",
+                            fillOpacity:.1
+                        }
+
+                    ).addTo(map);
+
+            }else{
+
+                fenceCircle.setLatLng([
+                    data.geofence.lat,
+                    data.geofence.lng
+                ]);
+
+                fenceCircle.setRadius(
+                    data.geofence.radius
+                );
+            }
+
+
+            const distance =
+                L.latLng(pos).distanceTo(
+                    L.latLng(
+                        data.geofence.lat,
+                        data.geofence.lng
+                    )
+                );
+
+
+            fenceCircle.setStyle({
+
+                color:
+                    distance >
+                    data.geofence.radius
+                        ? "red"
+                        : "#00c07d"
+            });
+
+
+            if(
+                distance >
+                data.geofence.radius
+            ){
+
+                window.sendPush(
+                    "GEOFENCE BREACH"
+                );
+            }
+        }
+
+
+        /* SIGNAL */
+
+        const online =
+            data.ts &&
+            Date.now()-Number(data.ts)<15000;
+
+
+        const status =
+            document.getElementById(
+                "statusHeader"
+            );
+
+
+        status.className =
+            online
+                ? "online"
+                : "offline";
+
+
+        status.innerText =
+            online
+                ? "SIGNAL: LIVE"
+                : "SIGNAL: LOST";
+
+
+        /* FOLLOW */
+
+        if(follow)
+            map.panTo(pos);
+
+
+        /* DESTINATION */
+
+        if(data.destination){
+
+            const dPos = [
+
+                Number(data.destination.lat),
+
+                Number(data.destination.lng)
+
+            ];
+
+
+            if(!destMarker){
+
+                destMarker =
+                    L.marker(dPos)
+                    .addTo(map);
+
+            }else{
+
+                destMarker.setLatLng(
+                    dPos
+                );
+            }
+
+
+            drawRoute(
+                pos,
+                dPos
+            );
+
+
+            if(routeLocked){
+
+                follow=false;
+
+                document.getElementById(
+                    "followBtn"
+                ).innerText =
+                    "FOLLOW: OFF";
+
+
+                map.fitBounds(
+                    L.latLngBounds([
+                        pos,
+                        dPos
+                    ]),
+                    {
+                        padding:[70,70]
+                    }
+                );
+            }
+        }
+
+
+        if(
+            !lastPos ||
+            L.latLng(lastPos)
+                .distanceTo(pos)>50
+        ){
+
+            updateAreaSpeed(
+                pos[0],
+                pos[1]
+            );
+        }
+
+
+        lastPos =
+            pos;
+
+
+        updateAnalyticsFromCurrentTelemetry();
+
+    }
+);
+
+
+/* =========================================================
+   SPEED LIMIT
+   ========================================================= */
+
+async function updateAreaSpeed(
+    lat,
+    lng
+){
+
+    try{
+
+        const query =
+            `[out:json];way(around:35,${lat},${lng})[highway];out tags;`;
+
+
+        const res =
+            await fetch(
+                "https://overpass-api.de/api/interpreter?data="+
+                encodeURIComponent(query)
+            );
+
+
+        const data =
+            await res.json();
+
+
+        let speed =
+            "50";
+
+
+        if(
+            data.elements &&
+            data.elements.length
+        ){
+
+            const way =
+                data.elements.find(
+                    el =>
+                        el.tags &&
+                        el.tags.maxspeed
+                );
+
+
+            if(way){
+
+                speed =
+                    way.tags.maxspeed;
+
+            }else{
+
+                const h =
+                    data.elements[0]
+                        .tags.highway;
+
+
+                const defaults = {
+
+                    motorway:110,
+                    trunk:90,
+                    primary:70,
+                    secondary:50,
+                    residential:30
+
+                };
+
+
+                speed =
+                    defaults[h]||50;
+            }
+        }
+
+
+        document.getElementById(
+            "areaLimit"
+        ).innerText =
+            String(speed)
+                .replace(/\D/g,"")+
+            " km/h";
+
+    }catch(e){
+
+        document.getElementById(
+            "areaLimit"
+        ).innerText =
+            "50 km/h";
+    }
+}
+
+
+/* =========================================================
+   HISTORY
+   ========================================================= */
+
+document.getElementById(
+    "historyBtn"
+).onclick=()=>{
+
+    const d =
+        document.getElementById(
+            "historyDate"
+        ).value;
+
+
+    if(!d) return;
+
+
+    onValue(
+
+        ref(
+            db,
+            "cars/car_01/history/"+d
+        ),
+
+        snap=>{
+
+            const val =
+                snap.val();
+
+            if(!val) return;
+
+
+            historyLayer.clearLayers();
+
+
+            const pts =
+                Object.values(val)
+                    .sort(
+                        (a,b)=>
+                            a.ts-b.ts
+                    )
+                    .map(
+                        p=>[
+                            p.lat,
+                            p.lng
+                        ]
+                    );
+
+
+            if(pts.length>1){
+
+                const poly =
+                    L.polyline(
+                        pts,
+                        {
+                            color:"#8067e8",
+                            weight:4,
+                            dashArray:"5,10"
+                        }
+                    ).addTo(
+                        historyLayer
+                    );
+
+
+                map.fitBounds(
+                    poly.getBounds(),
+                    {
+                        padding:[50,50]
+                    }
+                );
+            }
+
+        },
+
+        {
+            onlyOnce:true
+        }
+    );
+};
+
+
+window.clearHistoryMap=()=>{
+    historyLayer.clearLayers();
+};
+
+
+/* =========================================================
+   ROTATION
+   ========================================================= */
+
+window.toggleRotation=()=>{
+
+    mapRotationActive =
+        !mapRotationActive;
+
+
+    const btn =
+        document.getElementById(
+            "rotateBtn"
+        );
+
+
+    btn.innerText =
+        mapRotationActive
+            ? "MAP: AUTO-ROTATE"
+            : "MAP: FIXED";
+
+
+    btn.style.background =
+        mapRotationActive
+            ? "var(--blue)"
+            : "var(--navy)";
+
+
+    if(!mapRotationActive)
+        map.setBearing(0);
+};
+
+
+window.resetNorth=()=>{
+
+    mapRotationActive=false;
+
+    map.setBearing(0);
+
+    document.getElementById(
+        "rotateBtn"
+    ).innerText =
+        "MAP: FIXED";
+};
+
+
+/* =========================================================
+   ROUTING
+   ========================================================= */
+
+window.searchPlace=()=>{
+
+    const q =
+        document.getElementById(
+            "search"
+        ).value.trim();
+
+
+    if(!q) return;
+
+
+    fetch(
+        "https://nominatim.openstreetmap.org/search?format=json&q="+
+        encodeURIComponent(q)
+    )
+    .then(r=>r.json())
+    .then(res=>{
+
+        if(res.length){
+
+            update(
+
+                carRef,
+
+                {
+                    destination:{
+                        lat:Number(res[0].lat),
+                        lng:Number(res[0].lon)
+                    }
+                }
+
+            );
+        }
+    });
+};
+
+
+async function drawRoute(
+    car,
+    dest
+){
+
+    try{
+
+        const r =
+            await fetch(
+                "https://router.project-osrm.org/route/v1/driving/"+
+                car[1]+","+car[0]+";"+
+                dest[1]+","+dest[0]+
+                "?overview=full&geometries=geojson"
+            );
+
+
+        const d =
+            await r.json();
+
+
+        if(
+            d.routes &&
+            d.routes[0]
+        ){
+
+            if(routeLine)
+                map.removeLayer(
+                    routeLine
+                );
+
+
+            routeLine =
+                L.polyline(
+
+                    d.routes[0]
+                        .geometry
+                        .coordinates
+                        .map(
+                            c=>[
+                                c[1],
+                                c[0]
+                            ]
+                        ),
+
+                    {
+                        color:"#00a3e0",
+                        weight:5
+                    }
+
+                ).addTo(map);
+
+
+            document.getElementById(
+                "etaDist"
+            ).innerText =
+                Math.round(
+                    d.routes[0]
+                        .duration/60
+                )+
+                "m / "+
+                (
+                    d.routes[0]
+                        .distance/1000
+                ).toFixed(1)+
+                "km";
+        }
+
+    }catch(e){
+
+        console.warn(
+            "Route calculation failed",
+            e
+        );
+    }
+}
+
+
+/* =========================================================
+   UI CONTROLS
+   ========================================================= */
+
+window.switchMap=v=>{
+
+    Object.values(layers)
+        .forEach(
+            l=>map.removeLayer(l)
+        );
+
+
+    layers[v].addTo(map);
+};
+
+
+window.goToCar=()=>{
+
+    if(lastPos){
+
+        map.setView(
+            lastPos,
+            18
+        );
+
+        follow=true;
+
+        document.getElementById(
+            "followBtn"
+        ).innerText =
+            "FOLLOW: ON";
+    }
+};
+
+
+window.centerDestination=()=>{
+
+    if(destMarker){
+
+        map.setView(
+            destMarker.getLatLng(),
+            16
+        );
+
+        follow=false;
+
+        document.getElementById(
+            "followBtn"
+        ).innerText =
+            "FOLLOW: OFF";
+    }
+};
+
+
+/* =========================================================
+   ADMIN
+   ========================================================= */
+
+window.openAdminModal=(
+    title,
+    desc,
+    callback
+)=>{
+
+    document.getElementById(
+        "modalTitle"
+    ).innerText =
+        title;
+
+
+    document.getElementById(
+        "modalDesc"
+    ).innerText =
+        desc;
+
+
+    document.getElementById(
+        "adminModal"
+    ).style.display =
+        "flex";
+
+
+    document.getElementById(
+        "modalConfirmBtn"
+    ).onclick=async ()=>{
+
+        const attempt =
+            await AGPasscode.verify(
+                document.getElementById(
+                    "adminPass"
+                ).value
+            );
+
+        if(attempt.ok){
+
+            callback();
+
+            window.closeAdmin();
+
+        }else{
+
+            window.sendPush(
+                attempt.message
+            );
+        }
+    };
+};
+
+
+window.closeAdmin=()=>{
+
+    document.getElementById(
+        "adminModal"
+    ).style.display =
+        "none";
+
+
+    document.getElementById(
+        "adminPass"
+    ).value="";
+};
+
+
+/* =========================================================
+   SPEED GOVERNANCE
+   ========================================================= */
+
+window.secureSpeedSet=()=>{
+
+    const input =
+        document.getElementById(
+            "maxSpeedLimit"
+        );
+
+
+    if(input.disabled){
+
+        window.openAdminModal(
+            "OVERRIDE",
+            "Change speed governance?",
+            ()=>{
+
+                input.disabled=false;
+
+                document.getElementById(
+                    "speedSetBtn"
+                ).innerText="SET";
+            }
+        );
+
+    }else{
+
+        if(!input.value) return;
+
+
+        window.openAdminModal(
+
+            "LOCK LIMIT",
+
+            "Activate "+
+            input.value+
+            " km/h speed governance?",
+
+            ()=>{
+
+                input.disabled=true;
+
+                document.getElementById(
+                    "speedSetBtn"
+                ).innerText="EDIT";
+
+                activeLimit =
+                    Number(input.value);
+
+
+                addEvent(
+                    "Speed governance activated at "+
+                    activeLimit+
+                    " km/h.",
+                    "good"
+                );
+            }
+        );
+    }
+};
+
+
+window.openSpeedClear=()=>{
+
+    window.openAdminModal(
+
+        "BYPASS",
+
+        "Remove speed governance?",
+
+        ()=>{
+
+            const input =
+                document.getElementById(
+                    "maxSpeedLimit"
+                );
+
+
+            input.disabled=false;
+
+            input.value="";
+
+            activeLimit=null;
+
+
+            addEvent(
+                "Speed governance disabled.",
+                "warn"
+            );
+        }
+    );
+};
+
+
+/* =========================================================
+   GEOFENCE
+   ========================================================= */
+
+window.secureAddFence=()=>{
+
+    if(!lastPos) return;
+
+
+    window.openAdminModal(
+
+        "GEOFENCE",
+
+        "Deploy geofence at current position?",
+
+        ()=>{
+
+            document.getElementById(
+                "fenceModal"
+            ).style.display =
+                "flex";
+        }
+    );
+};
+
+
+window.confirmFence=()=>{
+
+    if(!lastPos) return;
+
+
+    const radius =
+        Number(
+            document.getElementById(
+                "fenceInput"
+            ).value
+        );
+
+
+    if(!radius || radius<=0)
+        return;
+
+
+    update(
+
+        carRef,
+
+        {
+            geofence:{
+                lat:lastPos[0],
+                lng:lastPos[1],
+                radius
+            }
+        }
+
+    );
+
+
+    document.getElementById(
+        "fenceModal"
+    ).style.display =
+        "none";
+
+
+    addEvent(
+        "Geofence deployed with "+
+        radius+
+        " meter radius.",
+        "good"
+    );
+};
+
+
+window.clearGeofence=()=>{
+
+    window.openAdminModal(
+
+        "REMOVE GEOFENCE",
+
+        "Remove active geofence?",
+
+        ()=>{
+
+            update(
+                carRef,
+                {
+                    geofence:null
+                }
+            );
+
+
+            if(fenceCircle){
+
+                map.removeLayer(
+                    fenceCircle
+                );
+
+                fenceCircle=null;
+            }
+
+
+            addEvent(
+                "Geofence removed.",
+                "warn"
+            );
+        }
+    );
+};
+
+
+/* =========================================================
+   SYSTEM RESET
+   ========================================================= */
+
+window.openSystemReset=()=>{
+
+    window.openAdminModal(
+
+        "PURGE",
+
+        "Reset vehicle tracking state?",
+
+        ()=>{
+
+            set(
+                ref(
+                    db,
+                    "cars/car_01"
+                ),
+
+                {
+                    lat:0,
+                    lng:0,
+                    speed:0,
+                    ts:Date.now()
+                }
+            );
+
+
+            location.reload();
+        }
+    );
+};
+
+
+/* =========================================================
+   PANEL CONTROLS
+   ========================================================= */
+
+document.getElementById(
+    "hoverBtn"
+).onclick=()=>{
+
+    document.getElementById(
+        "panel"
+    ).classList.toggle(
+        "hidden"
+    );
+};
+
+
+document.getElementById(
+    "followBtn"
+).onclick=function(){
+
+    follow=!follow;
+
+    this.innerText =
+        "FOLLOW: "+
+        (follow?"ON":"OFF");
+};
+
+
+document.getElementById(
+    "lockRouteBtn"
+).onclick=function(){
+
+    routeLocked=!routeLocked;
+
+    this.innerText =
+        "LOCK: "+
+        (routeLocked?"ON":"OFF");
+
+
+    if(
+        routeLocked &&
+        lastPos &&
+        destMarker
+    ){
+
+        follow=false;
+
+        document.getElementById(
+            "followBtn"
+        ).innerText =
+            "FOLLOW: OFF";
+
+
+        map.fitBounds(
+            L.latLngBounds([
+                lastPos,
+                destMarker.getLatLng()
+            ]),
+            {
+                padding:[70,70]
+            }
+        );
+    }
+};
+
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+function setText(
+    id,
+    value
+){
+
+    const el =
+        document.getElementById(id);
+
+    if(el)
+        el.innerText=value;
+}
+
+
+function setBar(
+    id,
+    value
+){
+
+    const el =
+        document.getElementById(id);
+
+    if(el){
+
+        el.style.width =
+            Math.max(
+                0,
+                Math.min(
+                    100,
+                    Number(value)||0
+                )
+            )+"%";
+    }
+}
+
+
+function setDiagnosticState(
+    id,
+    text,
+    className
+){
+
+    const el =
+        document.getElementById(id);
+
+    if(!el) return;
+
+
+    el.innerHTML =
+        `<span class="status-pill ${className}">
+            ${escapeHtml(text)}
+        </span>`;
+}
+
+
+function firstValue(
+    object,
+    keys
+){
+
+    for(
+        const key of keys
+    ){
+
+        if(
+            object[key] !== undefined &&
+            object[key] !== null &&
+            object[key] !== ""
+        ){
+
+            return object[key];
+        }
+    }
+
+    return null;
+}
+
+
+function escapeHtml(value){
+
+    return String(value)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+}
+
+
+/* =========================================================
+   REAL-TIME ANALYTICS REFRESH
+   ========================================================= */
+
+setInterval(()=>{
+
+    if(!previousTelemetry)
+        return;
+
+
+    const age =
+        previousTelemetry.ts
+            ? Date.now()-
+              Number(previousTelemetry.ts)
+            : Infinity;
+
+
+    setText(
+        "analyticsLastUpdate",
+        age<1000
+            ? "JUST NOW"
+            : Math.round(age/1000)+"s AGO"
+    );
+
+
+    updateAnalyticsFromCurrentTelemetry();
+
+},1000);
+
+
+/* =========================================================
+   INITIALIZE
+   ========================================================= */
+
+document.getElementById(
+    "historyDate"
+).value =
+    new Date()
+        .toISOString()
+        .split("T")[0];
+
+
+initializeAnalyticsCharts();
+
+</script>
+
+</body>
+</html>

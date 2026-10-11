@@ -1,0 +1,2028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="error-utils.js"></script>
+<script src="ag-utils.js"></script>
+<script src="ag-config.js"></script>
+<script src="ag-context-guard.js"></script>
+<script type="module" src="auth-guard.js"></script>
+<script>
+    // Keep the protected UI invisible until Firebase has resolved the session.
+    document.documentElement.classList.add('auth-pending');
+</script>
+<script>
+    // Role-based navigation: Fixed Area users can use every module except Marketing Team.
+    window.AGCanAccessPage = function (pageName) {
+        const role = String(localStorage.getItem("ag_user_role") || "").toLowerCase();
+        return pageName !== "marketing-team" || role !== "fixed_area";
+    };
+
+    window.AGUpdateRoleNavigation = function () {
+        const marketingLink = document.getElementById("marketingTeamNav");
+        if (!marketingLink) return;
+
+        const canAccess = window.AGCanAccessPage("marketing-team");
+        marketingLink.style.display = canAccess ? "" : "none";
+        marketingLink.setAttribute("aria-hidden", canAccess ? "false" : "true");
+    };
+
+    document.addEventListener("DOMContentLoaded", window.AGUpdateRoleNavigation);
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AssetGuard Pro - The Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+    --primary: #0052cc;
+    --primary-dark: #071952;
+    --accent: #ff6b00;
+    --whatsapp: #25D366;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --mpesa: #00a859;
+    --bg-light: #f8fafc;
+    --card-bg: #ffffff;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --border-color: #e2e8f0;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg-light);display:flex;height:100vh;overflow:hidden;color:var(--text-main);user-select:none;}
+
+/* Prevent a protected page flash while Firebase restores the session. */
+html.auth-pending { background: var(--bg-light); }
+html.auth-pending body { visibility: hidden; }
+html.auth-pending #auth-loading-screen { visibility: visible; }
+html.auth-ready body { visibility: visible; }
+#auth-loading-screen {
+    position: fixed; inset: 0; z-index: 99999;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg-light);
+}
+#auth-loading-screen .auth-loading-card {
+    width: min(300px, calc(100vw - 40px)); padding: 24px;
+    border: 1px solid var(--border-color); border-radius: 16px;
+    background: var(--card-bg); box-shadow: 0 12px 35px rgba(15,23,42,.08);
+    text-align: center; color: var(--text-muted); font-size: 13px;
+}
+#auth-loading-screen .auth-loading-spinner {
+    width: 26px; height: 26px; margin: 0 auto 12px;
+    border: 3px solid #dbeafe; border-top-color: var(--primary);
+    border-radius: 50%; animation: auth-spin .8s linear infinite;
+}
+@keyframes auth-spin { to { transform: rotate(360deg); } }
+
+/* Absolute Lock Shield Class */
+body.app-locked .sidebar,
+body.app-locked .floating-menu-btn,
+body.app-locked .notification-bell-btn,
+body.app-locked .chat-widget-btn,
+body.app-locked .chat-sub-btn,
+body.app-locked main,
+body.app-locked iframe {
+    pointer-events: none !important;
+    user-select: none !important;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+.floating-menu-btn {
+    position: fixed; top: 15px; left: 15px; z-index: 1100;
+    background: var(--primary); color: white; border: none;
+    width: 44px; height: 44px; border-radius: 12px;
+    cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,82,204,0.3);
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+}
+
+@media (min-width: 1024px) {
+    .floating-menu-btn { display: none; }
+}
+
+.notification-bell-btn {
+    position: fixed; top: 90px; right: 20px; z-index: 1100;
+    background: white; color: var(--primary-dark); border: 1px solid var(--border-color);
+    width: 44px; height: 44px; border-radius: 12px;
+    cursor: grab; box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none; user-select: none;
+    transition: background 0.2s, border-color 0.2s;
+}
+.notification-bell-btn:active { cursor: grabbing; }
+.notification-bell-btn:hover { background: #f8fafc; border-color: var(--primary); }
+.notification-bell-btn svg { width: 20px; height: 20px; fill: var(--primary-dark); pointer-events: none; }
+
+.sidebar {
+    width: 270px; background: var(--primary-dark); color: white;
+    position: fixed; left: 0; top: 0; bottom: 0;
+    display: flex; flex-direction: column; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1200; box-shadow: 10px 0 30px rgba(0,0,0,0.25);
+}
+
+@media (max-width: 1023px) {
+    .sidebar { left: -290px; top: 0; bottom: 0; border-radius: 0 20px 20px 0; }
+    .sidebar.active { left: 0; }
+}
+
+.sidebar-header { padding: 22px 20px; font-size: 17px; font-weight: 800; background: rgba(0,0,0,0.25); text-align: center; letter-spacing: 0.5px; }
+@media (max-width: 1023px) {
+    .sidebar-header { border-radius: 0 20px 0 0; }
+}
+
+.menu-section { flex: 1; overflow-y: auto; padding: 10px 0; -webkit-overflow-scrolling: touch; }
+.label { padding: 12px 22px 4px; font-size: 10px; text-transform: uppercase; color: #93c5fd; font-weight: 800; letter-spacing: 0.5px; }
+.nav-link { padding: 11px 22px; cursor: pointer; font-size: 13px; color: #d1d8e0; transition: 0.2s; display: block; text-decoration: none; font-weight: 500;}
+.nav-link:hover { background: rgba(255,255,255,0.1); color: white; padding-left: 26px; }
+
+.sidebar-footer { border-top: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.25); padding: 5px 0; }
+@media (max-width: 1023px) {
+    .sidebar-footer { border-radius: 0 0 20px 0; }
+}
+.notebook-link { color: #fbd38d !important; font-weight: 700; }
+.logout-link { color: #fca5a5 !important; font-weight: 700; }
+
+.main { flex: 1; width: 100%; height: 100vh; position: relative; display: flex; flex-direction: column; }
+@media (min-width: 1024px) {
+    .main { margin-left: 270px; width: calc(100% - 270px); }
+}
+
+iframe { width: 100%; height: 100%; border: none; display: none; }
+
+.overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.65); backdrop-filter: blur(4px); z-index: 1050; }
+.overlay.active { display: block; }
+@media (min-width: 1024px) {
+    .overlay.active { display: none; }
+}
+
+.custom-modal {
+    display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: white; padding: 25px; border-radius: 16px; z-index: 2000;
+    width: 90%; max-width: 420px; text-align: left; color: var(--text-main);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+}
+.custom-modal.active { display: block; }
+.modal-btns { display: flex; gap: 12px; margin-top: 20px; }
+.btn { padding: 10px 18px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; flex: 1; transition: 0.2s; text-decoration: none; display: inline-block; text-align: center; font-size: 13px;}
+.btn-primary { background: var(--accent); color: white; box-shadow: 0 4px 12px rgba(255,107,0,0.3); }
+.btn-primary:hover { background: #e05e00; }
+.btn-cancel { background: #f1f5f9; color: var(--text-muted); }
+.btn-mpesa { background: var(--mpesa); color: white; }
+
+.dashboard-wrapper { flex: 1; padding: 75px 20px 30px; overflow-y: auto; width: 100%; }
+@media (min-width: 1024px) {
+    .dashboard-wrapper { padding: 35px 35px 35px; }
+}
+
+.dashboard-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; max-width: 1300px; margin: 0 auto; }
+
+.col-12 { grid-column: span 12; }
+.col-6 { grid-column: span 6; }
+.col-4 { grid-column: span 4; }
+.col-3 { grid-column: span 3; }
+
+@media (max-width: 1024px) {
+    .col-6, .col-4, .col-3 { grid-column: span 12; }
+}
+
+.broker-hero {
+    background: linear-gradient(135deg, #071952 0%, #0b2545 100%);
+    color: white; border-radius: 18px; padding: 35px;
+    box-shadow: 0 15px 35px rgba(7, 25, 82, 0.2);
+    display: flex; flex-direction: column; gap: 16px; position: relative; overflow: hidden;
+}
+.broker-hero::after {
+    content: ''; position: absolute; right: -50px; bottom: -50px; width: 250px; height: 250px;
+    background: radial-gradient(circle, rgba(255,107,0,0.15) 0%, transparent 70%); border-radius: 50%; pointer-events: none;
+}
+.broker-hero h1 { font-size: 26px; font-weight: 800; line-height: 1.25; max-width: 700px; }
+.broker-hero h1 span { color: var(--accent); }
+.broker-hero p { font-size: 14px; color: #cbd5e1; max-width: 600px; line-height: 1.5; }
+.hero-cta-group { display: flex; gap: 12px; margin-top: 5px; }
+
+.stats-hub-card {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: white; border-radius: 16px; padding: 28px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; border: 1px solid rgba(255,255,255,0.05);
+}
+.stats-hub-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #38bdf8; font-weight: 800; margin-bottom: 6px; }
+.stats-hub-value { font-size: 40px; font-weight: 800; color: #ffffff; margin-bottom: 4px; }
+.stats-hub-desc { font-size: 12px; color: #94a3b8; font-weight: 600; }
+
+.asset-card {
+    background: var(--card-bg); border-radius: 16px; padding: 22px;
+    border: 1px solid var(--border-color); box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+    display: flex; flex-direction: column; gap: 10px; transition: transform 0.2s, border-color 0.2s;
+}
+.asset-card:hover { transform: translateY(-3px); border-color: var(--primary); }
+.asset-icon { width: 38px; height: 38px; border-radius: 10px; background: #e0f2fe; color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.asset-title { font-size: 15px; font-weight: 800; color: var(--text-main); }
+.asset-desc { font-size: 12px; color: var(--text-muted); line-height: 1.45; }
+
+.chat-widget-btn {
+    position: fixed; bottom: 20px; right: 20px; z-index: 1400;
+    background: var(--whatsapp); color: white; border: none;
+    width: 44px; height: 44px; border-radius: 50%;
+    cursor: grab; box-shadow: 0 5px 20px rgba(37,211,102,0.5);
+    display: flex; align-items: center; justify-content: center;
+    touch-action: none; user-select: none;
+    animation: pulseGrow 2.5s infinite ease-in-out;
+    transition: box-shadow 0.2s;
+}
+.chat-widget-btn:active { cursor: grabbing; }
+.chat-widget-btn:hover { animation: none; transform: scale(1.1); }
+.chat-widget-btn svg { width: 24px; height: 24px; fill: white; pointer-events: none; }
+
+@keyframes pulseGrow {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.6); }
+    50% { transform: scale(1.08); box-shadow: 0 0 0 10px rgba(37, 211, 102, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
+}
+
+.chat-sub-btn {
+    position: fixed; z-index: 1399; height: 38px; border-radius: 19px;
+    border: none; display: flex; align-items: center; gap: 8px; padding: 0 14px 0 8px;
+    cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+    opacity: 0; transform: scale(0); pointer-events: none;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s ease, background-color 0.2s;
+    color: white; font-weight: 700; font-size: 12px; white-space: nowrap;
+}
+.chat-sub-btn.active {
+    opacity: 1; transform: scale(1); pointer-events: auto;
+}
+.chat-sub-btn svg { width: 20px; height: 20px; fill: white; flex-shrink: 0; pointer-events: none; }
+.chat-sub-btn.agent-btn { background: var(--whatsapp); }
+.chat-sub-btn.ai-btn { background: var(--primary); }
+
+.chat-container {
+    position: fixed; bottom: 85px; right: 20px; z-index: 1400;
+    width: 380px; max-width: calc(100vw - 30px); height: 540px;
+    background: var(--card-bg); border-radius: 16px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+    border: 1px solid var(--border-color);
+    display: none; flex-direction: column; overflow: hidden;
+}
+.chat-container.active { display: flex; }
+.chat-header {
+    background: var(--primary-dark); color: white; padding: 12px 15px;
+    font-weight: 800; font-size: 13px; display: flex; justify-content: space-between; align-items: center;
+}
+.chat-header span {
+    background: linear-gradient(90deg, #38bdf8, #ff6b00, #25D366, #38bdf8);
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: rainbowText 6s linear infinite;
+}
+@keyframes rainbowText {
+    0% { background-position: 0% center; }
+    100% { background-position: 300% center; }
+}
+
+.chat-header-actions { display: flex; gap: 8px; align-items: center; position: relative; }
+.chat-header-actions button { background: rgba(255,255,255,0.15); border: none; color: white; font-size: 11px; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+.chat-header-actions button:hover { background: rgba(255,255,255,0.25); }
+
+.clear-dropdown-menu {
+    display: none; position: absolute; right: 0; top: 30px; background: white; color: var(--text-main);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2); border-radius: 8px; z-index: 1500; width: 140px; overflow: hidden; border: 1px solid var(--border-color);
+}
+.clear-dropdown-menu.active { display: block; }
+.clear-dropdown-item { padding: 9px 12px; font-size: 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; text-align: left; font-weight: 600; }
+.clear-dropdown-item:hover { background: #f8fafc; color: var(--primary); }
+
+.chat-messages {
+    flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; font-size: 12px; background: #f8fafc;
+}
+.chat-bubble {
+    max-width: 85%; padding: 12px 16px; border-radius: 12px; line-height: 1.45; word-wrap: break-word; position: relative;
+    touch-action: pan-y; transition: transform 0.1s ease-out, background-color 0.3s ease; user-select: none;
+}
+.chat-bubble.bot { background: white; color: var(--text-main); align-self: flex-start; border-bottom-left-radius: 2px; border: 1px solid var(--border-color); box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+.chat-bubble.user { background: var(--primary); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+.chat-bubble.agent-reply { background: #e0f2fe; color: var(--primary-dark); align-self: flex-start; border-left: 3px solid var(--primary); }
+.chat-bubble.selectable { cursor: pointer; }
+.chat-bubble.selectable.selected { border: 2px solid var(--accent); background: #fff7ed; color: var(--text-main); }
+.bubble-meta { font-size: 10px; opacity: 0.8; margin-top: 4px; display: block; text-align: right; }
+
+.chat-input-area {
+    padding: 12px; border-top: 1px solid var(--border-color); display: flex; gap: 8px; background: white; flex-direction: column;
+}
+.chat-input-row { display: flex; gap: 8px; width: 100%; }
+.chat-input-row input {
+    flex: 1; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 12px; outline: none; font-family: inherit;
+}
+.chat-input-row button {
+    background: var(--primary); color: white; border: none; padding: 9px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 12px;
+}
+.chat-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.chat-chip {
+    background: #e0f2fe; color: var(--primary); border: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; transition: 0.2s;
+}
+.chat-chip:hover { background: #bae6fd; }
+
+.ticket-selector-bar {
+    background: #f1f5f9; padding: 6px 12px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 11px;
+}
+.ticket-selector-bar select { padding: 3px 6px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 11px; outline: none; }
+
+.stk-overlay {
+    position: fixed; inset: 0; background: rgba(0, 26, 53, 0.92);
+    backdrop-filter: blur(8px); z-index: 10000000; display: none;
+    flex-direction: column; align-items: center; justify-content: center; padding: 20px;
+}
+.lock-card {
+    background: #ffffff; border-radius: 24px; padding: 30px 24px;
+    width: 100%; max-width: 380px; text-align: center; color: var(--text-main);
+    position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+}
+.modal-close-btn {
+    position: absolute; top: 16px; right: 16px; background: #f1f5f9;
+    border: none; color: var(--text-muted); cursor: pointer; padding: 8px;
+    display: flex; align-items: center; justify-content: center; border-radius: 50%;
+}
+.stk-spinner {
+    width: 44px; height: 44px; border: 4px solid #e6f0fa;
+    border-top-color: var(--mpesa); border-radius: 50%;
+    animation: spin 1s linear infinite; margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.form-field { display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.form-field label { font-size: 11px; font-weight: 700; color: #001A35; text-transform: uppercase; }
+.form-field input[type="tel"] {
+    font-family: inherit; font-size: 14px; padding: 12px 14px;
+    border: 2px solid var(--border-color); border-radius: 12px; background: #fafbfe;
+    outline: none; transition: 0.2s; color: var(--text-main); width: 100%;
+}
+.form-field input:focus { border-color: var(--mpesa); box-shadow: 0 0 0 4px rgba(0, 168, 89, 0.1); background: #fff; }
+
+.toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: #0f172a; color: white; padding: 12px 24px; border-radius: 100px;
+    font-size: 12px; font-weight: 700; z-index: 10005; opacity: 0;
+    transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; align-items: center; gap: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body class="app-locked">
+<div id="auth-loading-screen" role="status" aria-live="polite">
+    <div class="auth-loading-card">
+        <div class="auth-loading-spinner" aria-hidden="true"></div>
+        <div>Securing your session…</div>
+    </div>
+</div>
+
+<div id="hubSubscriptionBlocker" style="position: fixed; inset: 0; background: rgba(0, 26, 53, 0.98); backdrop-filter: blur(16px); z-index: 9999999; display: flex; align-items: center; justify-content: center; padding: 20px; color: #ffffff;">
+    <div style="background: #ffffff; color: #0f172a; width: 100%; max-width: 420px; border-radius: 24px; padding: 32px 24px; text-align: center; box-shadow: 0 25px 60px rgba(0,0,0,0.6);">
+        <div style="width: 64px; height: 64px; background: #fee2e2; color: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        </div>
+        <h2 id="hubBlockTitle" style="font-size:20px; font-weight:800; color:#0f172a; margin-bottom:6px;">Subscription Expired</h2>
+        <p id="hubBlockDesc" style="font-size:13px; color:#64748b; line-height:1.5; margin-bottom:20px;">Your access license has elapsed. Select a plan below to complete payment via M-Pesa or contact admin for approval.</p>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div onclick="initiateMpesaPayment(30, 1500, 'Ksh 1,500')" style="background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 14px 10px; cursor: pointer; text-align: center; transition: 0.2s;">
+                <span style="font-size: 11px; font-weight: 700; color: #64748b; display: block; text-transform: uppercase;">Monthly</span>
+                <b style="font-size: 15px; font-weight: 800; color: #0052cc; display: block; margin-top: 2px;">Ksh 1,500</b>
+            </div>
+            <div onclick="initiateMpesaPayment(365, 12000, 'Ksh 12,000')" style="background: #e6f0fa; border: 2px solid #0052cc; border-radius: 12px; padding: 14px 10px; cursor: pointer; text-align: center; transition: 0.2s;">
+                <span style="font-size: 11px; font-weight: 700; color: #64748b; display: block; text-transform: uppercase;">Yearly</span>
+                <b style="font-size: 15px; font-weight: 800; color: #0052cc; display: block; margin-top: 2px;">Ksh 12,000</b>
+            </div>
+        </div>
+        <div style="font-size: 11px; color: #94a3b8;">🔒 Requires automated payment confirmation or Admin approval.</div>
+    </div>
+</div>
+
+<div id="stkModal" class="stk-overlay">
+    <div class="lock-card">
+        <button class="modal-close-btn" onclick="closeStkModal()" id="stkCloseBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+        
+        <div style="width: 52px; height: 52px; background: #e6fdf0; color: var(--mpesa); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+        </div>
+        
+        <h2 style="font-size:18px; font-weight:800; color:#0f172a; margin-bottom:4px;">M-PESA Express</h2>
+        <p style="margin-bottom: 16px; font-size: 13px; color: var(--text-muted);">Subscription fee: <strong id="stkAmountDisplay" style="color: #0f172a;">Ksh --</strong></p>
+
+        <div id="stkInputStep">
+            <div class="form-field" style="margin-bottom: 16px;">
+                <label>Safaricom Phone Number</label>
+                <input type="tel" id="mpesaNumber" placeholder="07XXXXXXXX" inputmode="numeric" maxlength="10">
+            </div>
+            <button class="btn btn-mpesa" style="width: 100%;" onclick="processStkPush()">Send Real STK Push</button>
+        </div>
+
+        <div id="stkLoadingStep" style="display: none; padding: 10px 0;">
+            <div class="stk-spinner" id="stkSpinnerIcon"></div>
+            <h4 id="stkStatusTitle" style="font-size: 16px; color: #0f172a; font-weight: 700; margin-bottom: 4px;">Sending STK Push...</h4>
+            <p id="stkStatusDesc" style="font-size: 13px; color: var(--text-muted); line-height: 1.4; margin-bottom: 16px;">Connecting to Safaricom API...</p>
+            <button class="btn btn-secondary" id="stkRetryBtn" style="display: none; width: 100%; font-size: 13px;" onclick="resetStkModal()">Try Again</button>
+        </div>
+    </div>
+</div>
+
+<button class="floating-menu-btn" onclick="toggleMenu()">☰</button>
+
+<button class="notification-bell-btn" id="notificationBellBtn" title="System Announcements & Direct Notices">
+    <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
+    <span id="broadcastBadge" style="display:none; position:absolute; top:4px; right:4px; background:var(--danger); color:white; font-size:9px; font-weight:800; padding:2px 5px; border-radius:10px;">0</span>
+</button>
+
+<div class="overlay" id="overlay" onclick="closeAll()"></div>
+
+<div class="custom-modal" id="broadcastModal">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--border-color);">
+        <div style="font-size: 16px; font-weight: 800; color:var(--primary-dark);">Notifications & Direct Notices</div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <button onclick="clearAllNotifications()" style="background: #fef2f2; border: 1px solid #fecaca; color: var(--danger); font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: 0.2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">🗑️ Clear All</button>
+            <button onclick="closeBroadcastModal()" style="background:#f1f5f9; border:none; color:var(--text-muted); width: 28px; height: 28px; border-radius: 8px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">✕</button>
+        </div>
+    </div>
+    <div id="broadcastListContainer" style="max-height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;"></div>
+    <div class="modal-btns">
+        <button class="btn btn-primary" onclick="closeBroadcastModal()">Got It</button>
+    </div>
+</div>
+
+<div class="custom-modal" id="globalModal">
+    <div class="modal-title" id="modalTitle" style="font-size: 15px; font-weight: 800; margin-bottom:8px;">Notification</div>
+    <div class="modal-text" id="modalText" style="font-size: 12px; color: var(--text-muted);">Message goes here...</div>
+    <div class="modal-btns">
+        <button class="btn btn-cancel" onclick="closeAll()">Cancel</button>
+        <button class="btn btn-primary" id="modalConfirmBtn">OK</button>
+    </div>
+</div>
+
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">AssetGuard Pro</div>
+    <div class="menu-section">
+        <div class="nav-link" onclick="showDashboard()" style="border-left: 3px solid #60a5fa; padding-left: 19px; background: rgba(255,255,255,0.1);">Institutional Hub</div>
+        
+        <div class="label">Operations</div>
+        <div class="nav-link" onclick="loadPage('sales')">Sales Terminal</div>
+        <div class="nav-link" onclick="loadPage('purchases')">Purchases</div>
+        <div id="marketingTeamNav" class="nav-link" onclick="loadPage('marketing-team')">Marketing team</div>
+        
+        <div class="label">Relationships</div>
+        <div class="nav-link" onclick="loadPage('crm')" style="color:#4ade80;">Customer Registry</div>
+        
+        <div class="label">Inventory</div>
+        <div class="nav-link" onclick="loadPage('stock')">Current Stock</div>
+        
+        <div class="label">Finance</div>
+        <div class="nav-link" onclick="loadPage('expenses')">Record Expense</div>
+        <div class="nav-link" onclick="loadPage('bi_dashboard')">BI Dashboard</div>
+        <div class="nav-link" onclick="loadPage('master-ledger')">Master Ledger</div>
+        
+        <div class="label">Reports</div>
+        <div class="nav-link" onclick="loadPage('cash-report')">Cash Report</div>
+        <div class="nav-link" onclick="loadPage('mpesa-report')">M-Pesa Report</div>
+        <div class="nav-link" onclick="loadPage('credit-report')" style="border-left: 3px solid #fbd38d; padding-left: 19px;">Credit Report</div>
+    </div>
+    <div class="sidebar-footer">
+        <div class="nav-link notebook-link" onclick="loadPage('notebook')">📒 Notebook</div>
+        <div class="nav-link" onclick="loadPage('settings')">⚙️ Settings</div>
+        <div class="nav-link logout-link" onclick="customLogoutTrigger()">Logout</div>
+    </div>
+</aside>
+
+<main class="main">
+    <div class="dashboard-wrapper" id="dashboard-wrapper">
+        <div class="dashboard-grid">
+            <div class="broker-hero col-12">
+                <h1>Institutional-Grade <span>Offline Execution Hub</span></h1>
+                <p>Process retail checkouts instantly with sub-millisecond local database sync, multi-tender payment routing, and real-time inventory adjustments built for high-performance retail enterprises.</p>
+                <div class="hero-cta-group">
+                    <a href="#" onclick="loadPage('sales'); return false;" class="btn btn-primary" style="max-width: 200px;">Launch Terminal</a>
+                </div>
+            </div>
+
+            <div class="stats-hub-card col-6">
+                <div class="stats-hub-title">Local IndexedDB Sync Engine</div>
+                <div class="stats-hub-value">&lt;5ms</div>
+                <div class="stats-hub-desc">Local Database Transaction Execution Latency</div>
+            </div>
+
+            <div class="stats-hub-card col-6">
+                <div class="stats-hub-title">Offline Transaction Buffer</div>
+                <div class="stats-hub-value">100%</div>
+                <div class="stats-hub-desc">Zero Data Loss Guaranteed During Network Outages</div>
+            </div>
+
+            <div class="asset-card col-4">
+                <div class="asset-icon">⚡</div>
+                <div class="asset-title">High-Speed Terminal</div>
+                <div class="asset-desc">Execute sales seamlessly with barcode scanning, instant product lookup, and split-tender payment processing.</div>
+            </div>
+
+            <div class="asset-card col-4">
+                <div class="asset-icon"></div>
+                <div class="asset-title">Real-Time Inventory Engine</div>
+                <div class="asset-desc">Track precise stock levels, Weighted Average Costs (WAC), and automated low-stock reorder thresholds.</div>
+            </div>
+
+            <div class="asset-card col-4">
+                <div class="asset-icon"></div>
+                <div class="asset-title">Automated Master Ledger</div>
+                <div class="asset-desc">Every checkout or petty cash adjustment writes double-entry records, producing instantaneous P&L reports.</div>
+            </div>
+        </div>
+    </div>
+
+    <iframe id="main-frame" src="sales.html"></iframe>
+</main>
+
+<iframe id="sync-engine" src="local_db.html" style="display:none;"></iframe>
+
+<div id="toastBox" class="toast">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="color: var(--success);"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    <span id="toastText">Settings Updated Successfully</span>
+</div>
+
+<button class="chat-widget-btn" id="chatWidgetBtn" title="Open Support Options">
+    <svg viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01-1.87-1.87-4.36-2.9-7.01-2.9zm0 1.67c2.2 0 4.27.86 5.82 2.42 1.56 1.55 2.42 3.63 2.42 5.82 0 4.54-3.69 8.24-8.24 8.24-1.46 0-2.88-.39-4.12-1.13l-.3-.18-3.11.82.83-3.03-.19-.31c-.81-1.28-1.24-2.77-1.24-4.31 0-4.54 3.69-8.24 8.24-8.24zm4.51 5.92c-.17-.09-.98-.48-1.13-.54-.15-.06-.26-.09-.37.09-.11.17-.43.54-.53.65-.1.11-.21.13-.38.05-.17-.09-.72-.27-1.37-.84-.51-.45-.85-1-1.0-1.17-.15-.17-.02-.26.07-.35.07-.07.15-.17.23-.26.08-.09.11-.15.17-.26.06-.11.03-.2-.01-.28-.04-.09-.37-.89-.51-1.22-.13-.32-.27-.28-.37-.28h-.32c-.11 0-.28.04-.43.2-.15.17-.57.55-.57 1.34 0 .79.58 1.55.66 1.66.08.11 1.14 1.74 2.77 2.44.39.17.69.27.93.35.39.12.74.1 1.02.06.31-.05.98-.4 1.12-.79.14-.39.14-.72.1-.79-.04-.07-.15-.11-.32-.2z"/></svg>
+</button>
+
+<button class="chat-sub-btn agent-btn" id="agentSubBtn" onclick="openAgentChat()">
+    <svg viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01-1.87-1.87-4.36-2.9-7.01-2.9z"/></svg>
+    Talk to an Agent
+</button>
+<button class="chat-sub-btn ai-btn" id="aiSubBtn" onclick="openAiChat()">
+    <svg viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2M7.5 13a1.5 1.5 0 0 0-1.5 1.5A1.5 1.5 0 0 0 7.5 16a1.5 1.5 0 0 0 1.5-1.5A1.5 1.5 0 0 0 7.5 13m9 0a1.5 1.5 0 0 0-1.5 1.5a1.5 1.5 0 0 0 1.5 1.5a1.5 1.5 0 0 0 1.5-1.5a1.5 1.5 0 0 0-1.5-1.5z"/></svg>
+    Ask AI
+</button>
+
+<div class="chat-container" id="agentChatContainer">
+    <div class="chat-header">
+        <span>WhatsApp Support Agent Chat</span>
+        <div class="chat-header-actions">
+            <button onclick="toggleClearMenu('agent')" title="Clear Options">🗑️ Clear</button>
+            <div class="clear-dropdown-menu" id="agentClearMenu">
+                <div class="clear-dropdown-item" onclick="executeClear('agent', 'all')">Clear All</div>
+                <div class="clear-dropdown-item" onclick="executeClear('agent', 'selective')">Select 1 by 1</div>
+            </div>
+            <button onclick="closeAllChatContainers()">✕</button>
+        </div>
+    </div>
+    <div class="ticket-selector-bar" id="ticketSelectorBar" style="display:none;">
+        <span>Active Ticket:</span>
+        <select id="ticketSelectDropdown" onchange="switchActiveTicket(this.value)"></select>
+    </div>
+
+    <div style="background:#f1f5f9; padding:8px 12px; border-bottom:1px solid var(--border-color); display:flex; flex-direction:column; gap:4px; flex-shrink:0;">
+        <span style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Quick Support Actions:</span>
+        <div class="chat-actions" style="margin-top:0;">
+            <button class="chat-chip" onclick="handleAgentChoice('new')">New Issue</button>
+            <button class="chat-chip" onclick="handleAgentChoice('followup')">Follow-up</button>
+            <button class="chat-chip" onclick="requestHistoryRetrieval()">Request History Access</button>
+        </div>
+    </div>
+
+    <div class="chat-messages" id="agentChatMessages"></div>
+
+    <div class="chat-input-area">
+        <div id="agentReplyingBar" style="display:none; background:#e0f2fe; padding:6px 10px; border-radius:6px; font-size:11px; color:var(--primary-dark); justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span id="agentReplyingTextSnippet">Replying to message...</span>
+            <button onclick="cancelAgentReplyHighlight()" style="background:none; border:none; cursor:pointer; font-weight:bold; color:var(--danger);">✕</button>
+        </div>
+        <div id="agentEditingBar" style="display:none; background:#fef08a; padding:6px 10px; border-radius:6px; font-size:11px; color:#713f12; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span id="agentEditingTextSnippet">Editing message...</span>
+            <button onclick="cancelAgentEdit()" style="background:none; border:none; cursor:pointer; font-weight:bold; color:var(--danger);">✕</button>
+        </div>
+        <div id="agentSelectiveActionBar" style="display:none; background:#fff7ed; padding:8px 12px; border-radius:6px; font-size:11px; color:#c2410c; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span>Tap messages to select for deletion</span>
+            <button onclick="deleteSelectedAgentMessages()" class="btn btn-primary" style="padding:4px 10px; font-size:11px; flex:unset;">Delete Selected</button>
+        </div>
+        <div class="chat-input-row">
+            <input type="text" id="agentChatInputBox" placeholder="Type message to agent..." onkeypress="handleAgentKeyPress(event)">
+            <button onclick="sendAgentMessage()" id="agentSendBtn">Send</button>
+        </div>
+    </div>
+</div>
+
+<div class="chat-container" id="aiChatContainer">
+    <div class="chat-header">
+        <span>Ask AI — AssetGuard Pro Guide</span>
+        <div class="chat-header-actions">
+            <button onclick="toggleClearMenu('ai')" title="Clear AI Chat">🗑️ Clear</button>
+            <div class="clear-dropdown-menu" id="aiClearMenu">
+                <div class="clear-dropdown-item" onclick="executeClear('ai', 'all')">Clear All</div>
+                <div class="clear-dropdown-item" onclick="executeClear('ai', 'selective')">Select 1 by 1</div>
+            </div>
+            <button onclick="closeAllChatContainers()">✕</button>
+        </div>
+    </div>
+    <div class="chat-messages" id="aiChatMessages">
+        <div class="chat-bubble bot">
+            Hello! I am your AssetGuard Pro Guide. I can explain all 12 key features one by one, or answer greetings and general questions. Tap any item below or type your question:
+            <div class="chat-actions">
+                <button class="chat-chip" onclick="handleAiChoice('general')">1. General Info</button>
+                <button class="chat-chip" onclick="handleAiChoice('sales')">2. Sales Terminal</button>
+                <button class="chat-chip" onclick="handleAiChoice('purchases')">3. Purchases</button>
+                <button class="chat-chip" onclick="handleAiChoice('crm')">4. Customer Registry</button>
+                <button class="chat-chip" onclick="handleAiChoice('stock')">5. Current Stock</button>
+                <button class="chat-chip" onclick="handleAiChoice('expenses')">6. Record Expense</button>
+                <button class="chat-chip" onclick="handleAiChoice('ledger')">7. Master Ledger</button>
+                <button class="chat-chip" onclick="handleAiChoice('cash')">8. Cash Report</button>
+                <button class="chat-chip" onclick="handleAiChoice('mpesa')">9. M-Pesa Report</button>
+                <button class="chat-chip" onclick="handleAiChoice('notebook')">10. Notebook</button>
+                <button class="chat-chip" onclick="handleAiChoice('settings')">11. Settings</button>
+                <button class="chat-chip" onclick="handleAiChoice('logout')">12. Logout</button>
+            </div>
+        </div>
+    </div>
+    <div id="aiSelectiveActionBar" style="display:none; background:#fff7ed; padding:8px 12px; border-radius:6px; font-size:11px; color:#c2410c; justify-content:space-between; align-items:center; margin:8px 12px 0;">
+        <span>Tap messages to select for deletion</span>
+        <button onclick="deleteSelectedAiMessages()" class="btn btn-primary" style="padding:4px 10px; font-size:11px; flex:unset;">Delete Selected</button>
+    </div>
+    <div class="chat-input-area">
+        <div class="chat-input-row">
+            <input type="text" id="aiChatInputBox" placeholder="Ask about any feature or say hello..." onkeypress="handleAiKeyPress(event)">
+            <button onclick="sendAiMessage()">Send</button>
+        </div>
+    </div>
+</div>
+
+<script>
+if (!firebase.apps.length) {
+    firebase.initializeApp(AG_FIREBASE_CONFIG);
+}
+const rtdb = firebase.database();
+const auth = firebase.auth();
+
+const activeUID = AGUtils.getActiveUID({ fallback: "global_terminal_user", persist: true });
+
+const MASTER_CONFIG = {
+    backendUrl: "https://weathered-glade-c60b.assetguardinfo.workers.dev",
+    environment: "production",
+    accountType: "Paybill",
+    shortcode: "257471",
+    passkey: "103f80194fedeaefb352960fb340d766ef3f84a9dcb96aafdd21d0b0bb8dfbab",
+    consumerKey: "AGJGJGGktfRf8OHhos6TJXKupDMb3f2wG9pZDdF8tG5qm0qK",
+    consumerSecret: "xmd2sXJzRA6Chl1KHGvR9jG0qtSBse1oRBCdgBjb4DnO7SEi4QzPVwKNWWraubJd"
+};
+
+let pendingSubDays = 0;
+let pendingAmount = 1500;
+let pollInterval = null;
+let historyAccessGranted = true; 
+let agentHighlightedMessageId = null;
+let agentHighlightedMessageSnippet = null;
+let activeSelectedTicketId = null;
+let agentEditingMessageKey = null;
+let allUserTicketsData = {};
+let allBroadcastsCache = {};
+let allUserNotificationsCache = {};
+let isAiSelectiveMode = false;
+let isAgentSelectiveMode = false;
+let agentFlowState = null;
+
+// Security layer: Anti-tamper copy restriction
+document.addEventListener('copy', (e) => {
+    const selection = window.getSelection().toString();
+    if (selection.includes('uid=') || selection.includes('token=') || selection.includes('assetguard')) {
+        e.preventDefault();
+        triggerToast("Copying system links or auth tokens is restricted.");
+    }
+});
+
+auth.onAuthStateChanged((user) => {
+    if (!user) {
+        window.location.replace("index.html");
+        return;
+    }
+
+    // Reveal the dashboard only after Firebase has confirmed access.
+    document.documentElement.classList.remove('auth-pending');
+    document.documentElement.classList.add('auth-ready');
+    document.getElementById('auth-loading-screen')?.remove();
+});
+
+window.addEventListener('click', (e) => {
+    const aiMenu = document.getElementById('aiClearMenu');
+    const agentMenu = document.getElementById('agentClearMenu');
+    
+    if (aiMenu && !aiMenu.contains(e.target) && !e.target.closest('[onclick*="toggleClearMenu(\'ai\')"]')) {
+        aiMenu.classList.remove('active');
+    }
+    if (agentMenu && !agentMenu.contains(e.target) && !e.target.closest('[onclick*="toggleClearMenu(\'agent\')"]')) {
+        agentMenu.classList.remove('active');
+    }
+});
+
+function escapeHtml(str) {
+    return AGUtils.escapeHtml(str);
+}
+
+function pruneOldActivityLogs() {
+    const logsRef = rtdb.ref('user_activity_logs');
+    logsRef.orderByChild('timestamp').once('value', (snapshot) => {
+        if (snapshot.numChildren() > 80) {
+            let keysToDelete = [];
+            let count = 0;
+            snapshot.forEach((childSnap) => {
+                count++;
+                if (count <= snapshot.numChildren() - 80) {
+                    keysToDelete.push(childSnap.key);
+                }
+            });
+            keysToDelete.forEach(key => {
+                logsRef.child(key).remove().catch(error => AGErrors.report("activity log cleanup", error));
+            });
+        }
+    });
+}
+
+function logUserActivity(category, description) {
+    try {
+        rtdb.ref('user_activity_logs').push({
+            uid: activeUID || "Anonymous",
+            category: category,
+            description: description,
+            timestamp: Date.now(),
+            device: navigator.userAgent.substring(0, 50)
+        }).catch(error => AGErrors.report("activity log write", error));
+        pruneOldActivityLogs();
+    } catch (err) {
+        console.error("Failed to log activity:", err);
+    }
+}
+
+function initBroadcastListener() {
+    rtdb.ref('system_broadcasts').on('value', (snapshot) => {
+        allBroadcastsCache = snapshot.val() || {};
+        renderCombinedNotifications();
+    }, error => AGErrors.report("system broadcasts live data", error, message => triggerToast(`Live broadcasts could not be loaded: ${message}`)));
+
+    if (activeUID) {
+        rtdb.ref(`user_notifications/${activeUID}`).on('value', (snapshot) => {
+            allUserNotificationsCache = snapshot.val() || {};
+            renderCombinedNotifications();
+        }, error => AGErrors.report("user notifications live data", error, message => triggerToast(`Live notifications could not be loaded: ${message}`)));
+
+        rtdb.ref(`user_notifications/${activeUID}`).on('child_added', (snapshot) => {
+            const notif = snapshot.val();
+            if (!notif) return;
+            if (Date.now() - (notif.timestamp || 0) < 60000) {
+                showAdminNotificationPopup(notif.title || "Admin Notice", notif.message || "");
+            }
+        }, error => AGErrors.report("new user notification live data", error));
+    }
+}
+
+function renderCombinedNotifications() {
+    let combinedList = [];
+
+    for (let id in allBroadcastsCache) {
+        combinedList.push({ id, ...allBroadcastsCache[id], origin: 'Broadcast' });
+    }
+
+    for (let id in allUserNotificationsCache) {
+        combinedList.push({ 
+            id, 
+            ...allUserNotificationsCache[id], 
+            origin: 'Direct Notice', 
+            priority: 'Urgent' 
+        });
+    }
+
+    combinedList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+    const lastSeenTimestamp = parseInt(localStorage.getItem('ag_last_seen_broadcast') || '0');
+    let unreadCount = 0;
+    combinedList.forEach(item => {
+        if ((item.timestamp || 0) > lastSeenTimestamp) {
+            unreadCount++;
+        }
+    });
+
+    const badge = document.getElementById('broadcastBadge');
+    if (unreadCount > 0) {
+        badge.innerText = unreadCount;
+        badge.style.display = 'block';
+    } else {
+        badge.style.display = 'none';
+    }
+
+    renderBroadcastModalList(combinedList);
+}
+
+async function clearAllNotifications() {
+    try {
+        if (activeUID) {
+            await rtdb.ref(`user_notifications/${activeUID}`).remove();
+        }
+        allUserNotificationsCache = {};
+        allBroadcastsCache = {};
+        localStorage.setItem('ag_last_seen_broadcast', Date.now());
+        document.getElementById('broadcastBadge').style.display = 'none';
+        renderBroadcastModalList([]);
+        logUserActivity('GENERAL', 'Cleared all notifications from bell center');
+    } catch (err) {
+        console.error("Failed to clear notifications:", err);
+    }
+}
+
+function showAdminNotificationPopup(title, message) {
+    let banner = document.getElementById('userNotificationBanner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'userNotificationBanner';
+        banner.style.cssText = `
+            position: fixed; top: 15px; right: 15px; z-index: 9999;
+            background: #0f172a; color: #ffffff; padding: 12px 16px;
+            border-radius: 10px; box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            max-width: 300px; width: 100%; border-left: 4px solid #ff6b00;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        `;
+        document.body.appendChild(banner);
+    }
+
+    banner.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <strong style="font-size: 12px; color: #ff6b00;">${escapeHtml(title)}</strong>
+            <button onclick="document.getElementById('userNotificationBanner').remove()" style="background:none; border:none; color:#94a3b8; font-size:14px; cursor:pointer;">✕</button>
+        </div>
+        <div style="font-size: 11px; line-height: 1.35; color: #cbd5e1;">${escapeHtml(message)}</div>
+    `;
+
+    setTimeout(() => {
+        if (banner) banner.remove();
+    }, 12000);
+}
+
+function toggleBroadcastModal() {
+    const modal = document.getElementById('broadcastModal');
+    const overlay = document.getElementById('overlay');
+    
+    if (modal.classList.contains('active')) {
+        closeBroadcastModal();
+    } else {
+        document.getElementById('sidebar').classList.remove('active');
+        modal.classList.add('active');
+        overlay.classList.add('active');
+
+        let combinedCount = Object.keys(allBroadcastsCache).length + Object.keys(allUserNotificationsCache).length;
+        if (combinedCount > 0) {
+            localStorage.setItem('ag_last_seen_broadcast', Date.now());
+            document.getElementById('broadcastBadge').style.display = 'none';
+        }
+    }
+}
+
+function closeBroadcastModal() {
+    document.getElementById('broadcastModal').classList.remove('active');
+    document.getElementById('overlay').classList.remove('active');
+}
+
+function renderBroadcastModalList(itemsList) {
+    const container = document.getElementById('broadcastListContainer');
+    if (itemsList.length === 0) {
+        container.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:20px; font-size:13px;">No notifications available.</div>`;
+        return;
+    }
+    let html = "";
+    itemsList.forEach((item) => {
+        const dateStr = AGUtils.formatDateTime(item.timestamp, { fallback: '' });
+        let priorityColor = 'var(--primary)';
+        if (item.priority === 'Important') priorityColor = 'var(--warning)';
+        if (item.priority === 'Urgent') priorityColor = 'var(--danger)';
+
+        let originBadge = item.origin === 'Direct Notice' ? `<span style="background:#e0f2fe; color:var(--primary); padding:2px 6px; border-radius:4px; font-size:10px; font-weight:800; margin-left:6px;">DIRECT MESSAGE</span>` : '';
+
+        html += `
+            <div style="background:#f8fafc; border:1px solid var(--border-color); border-left:4px solid ${priorityColor}; padding:12px; border-radius:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <div>
+                        <strong style="font-size:13px; color:var(--text-main);">${escapeHtml(item.title)}</strong>
+                        ${originBadge}
+                    </div>
+                    <span style="font-size:10px; font-weight:800; color:${priorityColor}; text-transform:uppercase;">${item.priority || 'Normal'}</span>
+                </div>
+                <div style="font-size:12px; color:var(--text-muted); line-height:1.4; margin-bottom:6px;">${escapeHtml(item.message)}</div>
+                <div style="font-size:10px; color:#94a3b8; text-align:right;">${dateStr}</div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+const notificationBellBtn = document.getElementById('notificationBellBtn');
+let isBellDragging = false;
+let bellDragStartX = 0, bellDragStartY = 0;
+let bellInitialX = 0, bellInitialY = 0;
+let bellHasMoved = false;
+let bellReturnTimer = null;
+
+notificationBellBtn.addEventListener('pointerdown', (e) => {
+    isBellDragging = true;
+    bellHasMoved = false;
+    bellDragStartX = e.clientX;
+    bellDragStartY = e.clientY;
+    const rect = notificationBellBtn.getBoundingClientRect();
+    bellInitialX = rect.left;
+    bellInitialY = rect.top;
+    notificationBellBtn.setPointerCapture(e.pointerId);
+
+    if (bellReturnTimer) {
+        clearTimeout(bellReturnTimer);
+        bellReturnTimer = null;
+    }
+});
+
+notificationBellBtn.addEventListener('pointermove', (e) => {
+    if (!isBellDragging) return;
+    const dx = e.clientX - bellDragStartX;
+    const dy = e.clientY - bellDragStartY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) bellHasMoved = true;
+    let newX = bellInitialX + dx;
+    let newY = bellInitialY + dy;
+    const btnWidth = notificationBellBtn.offsetWidth || 44;
+    const btnHeight = notificationBellBtn.offsetHeight || 44;
+    newX = Math.max(10, Math.min(window.innerWidth - btnWidth - 10, newX));
+    newY = Math.max(10, Math.min(window.innerHeight - btnHeight - 10, newY));
+    notificationBellBtn.style.left = `${newX}px`;
+    notificationBellBtn.style.top = `${newY}px`;
+    notificationBellBtn.style.right = 'auto';
+    notificationBellBtn.style.bottom = 'auto';
+});
+
+notificationBellBtn.addEventListener('pointerup', (e) => {
+    if (!isBellDragging) return;
+    isBellDragging = false;
+    notificationBellBtn.releasePointerCapture(e.pointerId);
+
+    if (bellHasMoved) {
+        bellReturnTimer = setTimeout(() => {
+            notificationBellBtn.style.transition = 'all 0.5s ease';
+            notificationBellBtn.style.top = '90px';
+            notificationBellBtn.style.right = '20px';
+            notificationBellBtn.style.left = 'auto';
+            notificationBellBtn.style.bottom = 'auto';
+            setTimeout(() => {
+                notificationBellBtn.style.transition = 'background 0.2s, border-color 0.2s';
+            }, 500);
+        }, 12000);
+    } else {
+        toggleBroadcastModal();
+    }
+});
+
+const chatWidgetBtn = document.getElementById('chatWidgetBtn');
+const agentSubBtn = document.getElementById('agentSubBtn');
+const aiSubBtn = document.getElementById('aiSubBtn');
+let isDraggingBtn = false;
+let dragStartX = 0, dragStartY = 0;
+let btnInitialX = 0, btnInitialY = 0;
+let hasMoved = false;
+
+function updateSubButtonPositions() {
+    const rect = chatWidgetBtn.getBoundingClientRect();
+    const btnLeft = rect.left;
+    const btnTop = rect.top;
+    const btnHeight = rect.height || 44;
+    const subBtnWidth = 150;
+    const screenWidth = window.innerWidth;
+
+    let leftPos = btnLeft;
+    if (leftPos + subBtnWidth > screenWidth - 10) {
+        leftPos = screenWidth - subBtnWidth - 10;
+    }
+    if (leftPos < 10) {
+        leftPos = 10;
+    }
+
+    if (btnTop < 110) {
+        agentSubBtn.style.left = `${leftPos}px`;
+        agentSubBtn.style.top = `${btnTop + btnHeight + 8}px`;
+
+        aiSubBtn.style.left = `${leftPos}px`;
+        aiSubBtn.style.top = `${btnTop + btnHeight + 54}px`;
+    } else {
+        agentSubBtn.style.left = `${leftPos}px`;
+        agentSubBtn.style.top = `${btnTop - 46}px`;
+
+        aiSubBtn.style.left = `${leftPos}px`;
+        aiSubBtn.style.top = `${btnTop - 92}px`;
+    }
+}
+
+chatWidgetBtn.addEventListener('pointerdown', (e) => {
+    isDraggingBtn = true;
+    hasMoved = false;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    const rect = chatWidgetBtn.getBoundingClientRect();
+    btnInitialX = rect.left;
+    btnInitialY = rect.top;
+    chatWidgetBtn.setPointerCapture(e.pointerId);
+});
+
+chatWidgetBtn.addEventListener('pointermove', (e) => {
+    if (!isDraggingBtn) return;
+    const dx = e.clientX - dragStartX;
+    const dy = e.clientY - dragStartY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+        hasMoved = true;
+    }
+    let newX = btnInitialX + dx;
+    let newY = btnInitialY + dy;
+
+    const btnWidth = chatWidgetBtn.offsetWidth || 44;
+    const btnHeight = chatWidgetBtn.offsetHeight || 44;
+    const minX = 10;
+    const minY = 10;
+    const maxX = window.innerWidth - btnWidth - 10;
+    const maxY = window.innerHeight - btnHeight - 10;
+
+    newX = Math.max(minX, Math.min(maxX, newX));
+    newY = Math.max(minY, Math.min(maxY, newY));
+    
+    chatWidgetBtn.style.left = `${newX}px`;
+    chatWidgetBtn.style.top = `${newY}px`;
+    chatWidgetBtn.style.right = 'auto';
+    chatWidgetBtn.style.bottom = 'auto';
+
+    updateSubButtonPositions();
+});
+
+chatWidgetBtn.addEventListener('pointerup', (e) => {
+    if (!isDraggingBtn) return;
+    isDraggingBtn = false;
+    chatWidgetBtn.releasePointerCapture(e.pointerId);
+    if (!hasMoved) {
+        togglePopupIcons();
+    }
+});
+
+function togglePopupIcons() {
+    const agentContainer = document.getElementById('agentChatContainer');
+    const aiContainer = document.getElementById('aiChatContainer');
+    const areSubsActive = agentSubBtn.classList.contains('active');
+    const isAgentOpen = agentContainer.classList.contains('active');
+    const isAiOpen = aiContainer.classList.contains('active');
+
+    if (areSubsActive || isAgentOpen || isAiOpen) {
+        closeAllChatContainers();
+    } else {
+        updateSubButtonPositions();
+        agentSubBtn.classList.add('active');
+        aiSubBtn.classList.add('active');
+    }
+}
+
+function closeAllChatContainers() {
+    document.getElementById('agentChatContainer').classList.remove('active');
+    document.getElementById('aiChatContainer').classList.remove('active');
+    agentSubBtn.classList.remove('active');
+    aiSubBtn.classList.remove('active');
+    document.getElementById('aiClearMenu').classList.remove('active');
+    document.getElementById('agentClearMenu').classList.remove('active');
+
+    isAiSelectiveMode = false;
+    isAgentSelectiveMode = false;
+    document.getElementById('aiSelectiveActionBar').style.display = 'none';
+    document.getElementById('agentSelectiveActionBar').style.display = 'none';
+    document.querySelectorAll('.chat-bubble.selected').forEach(b => b.classList.remove('selected'));
+    document.querySelectorAll('.chat-bubble.selectable').forEach(b => b.classList.remove('selectable'));
+}
+
+function openAgentChat() {
+    agentSubBtn.classList.remove('active');
+    aiSubBtn.classList.remove('active');
+    document.getElementById('aiChatContainer').classList.remove('active');
+    document.getElementById('agentChatContainer').classList.add('active');
+    document.getElementById('agentChatInputBox').focus();
+    logUserActivity('SUPPORT', 'Opened Agent Support Chat');
+}
+
+function openAiChat() {
+    agentSubBtn.classList.remove('active');
+    aiSubBtn.classList.remove('active');
+    document.getElementById('agentChatContainer').classList.remove('active');
+    document.getElementById('aiChatContainer').classList.add('active');
+    document.getElementById('aiChatInputBox').focus();
+    logUserActivity('SUPPORT', 'Opened Ask AI Guide');
+}
+
+function toggleClearMenu(type) {
+    const aiMenu = document.getElementById('aiClearMenu');
+    const agentMenu = document.getElementById('agentClearMenu');
+    if (type === 'ai') {
+        aiMenu.classList.toggle('active');
+        agentMenu.classList.remove('active');
+    } else {
+        agentMenu.classList.toggle('active');
+        aiMenu.classList.remove('active');
+    }
+}
+
+function executeClear(type, mode) {
+    if (type === 'ai') {
+        document.getElementById('aiClearMenu').classList.remove('active');
+        if (mode === 'all') {
+            isAiSelectiveMode = false;
+            document.getElementById('aiSelectiveActionBar').style.display = 'none';
+            const messagesDiv = document.getElementById('aiChatMessages');
+            messagesDiv.innerHTML = `
+                <div class="chat-bubble bot">
+                    AI chat cleared. How can I help you?
+                    <div class="chat-actions">
+                        <button class="chat-chip" onclick="handleAiChoice('general')">1. General Info</button>
+                        <button class="chat-chip" onclick="handleAiChoice('sales')">2. Sales Terminal</button>
+                        <button class="chat-chip" onclick="handleAiChoice('purchases')">3. Purchases</button>
+                        <button class="chat-chip" onclick="handleAiChoice('stock')">5. Current Stock</button>
+                        <button class="chat-chip" onclick="handleAiChoice('ledger')">7. Master Ledger</button>
+                    </div>
+                </div>
+            `;
+        } else {
+            isAiSelectiveMode = true;
+            document.getElementById('aiSelectiveActionBar').style.display = 'flex';
+            makeAiBubblesSelectable();
+        }
+    } else {
+        document.getElementById('agentClearMenu').classList.remove('active');
+        if (mode === 'all') {
+            isAgentSelectiveMode = false;
+            document.getElementById('agentSelectiveActionBar').style.display = 'none';
+            clearAgentChat();
+        } else {
+            isAgentSelectiveMode = true;
+            document.getElementById('agentSelectiveActionBar').style.display = 'flex';
+            makeAgentBubblesSelectable();
+        }
+    }
+}
+
+function makeAiBubblesSelectable() {
+    const bubbles = document.querySelectorAll('#aiChatMessages .chat-bubble');
+    bubbles.forEach(b => {
+        b.classList.add('selectable');
+        b.onclick = () => {
+            if (isAiSelectiveMode) {
+                b.classList.toggle('selected');
+            }
+        };
+    });
+}
+
+function deleteSelectedAiMessages() {
+    const selected = document.querySelectorAll('#aiChatMessages .chat-bubble.selected');
+    selected.forEach(s => s.remove());
+    isAiSelectiveMode = false;
+    document.getElementById('aiSelectiveActionBar').style.display = 'none';
+}
+
+function makeAgentBubblesSelectable() {
+    const bubbles = document.querySelectorAll('#agentChatMessages .chat-bubble');
+    bubbles.forEach(b => {
+        b.classList.add('selectable');
+        b.onclick = () => {
+            if (isAgentSelectiveMode) {
+                b.classList.toggle('selected');
+            }
+        };
+    });
+}
+
+async function deleteSelectedAgentMessages() {
+    const selected = document.querySelectorAll('#agentChatMessages .chat-bubble.selected');
+    if (!activeSelectedTicketId) return;
+    
+    try {
+        for (let s of selected) {
+            const msgKey = s.getAttribute('data-msg-key');
+            if (msgKey) {
+                if (msgKey.startsWith('root_')) {
+                    await rtdb.ref(`support_tickets/${activeSelectedTicketId}`).remove();
+                } else {
+                    await rtdb.ref(`support_tickets/${activeSelectedTicketId}/conversation/${msgKey}`).remove();
+                }
+            }
+        }
+    } catch (err) {
+        console.error("Failed to delete messages:", err);
+    }
+    isAgentSelectiveMode = false;
+    document.getElementById('agentSelectiveActionBar').style.display = 'none';
+}
+
+function clearAgentChat() {
+    const messagesDiv = document.getElementById('agentChatMessages');
+    messagesDiv.innerHTML = ``;
+    document.getElementById('ticketSelectorBar').style.display = 'none';
+}
+
+window.requestHistoryRetrieval = () => {
+    appendAgentMessage('user', 'Request History Access');
+    appendAgentMessage('agent-reply', '🔄 Retrieving full chat history...');
+    
+    rtdb.ref('history_requests').push({
+        uid: activeUID,
+        reason: 'User requested history access from chat widget',
+        status: 'Pending',
+        timestamp: Date.now()
+    }).catch(error => AGErrors.report("history retrieval request", error, message => triggerToast(`History request failed: ${message}`)));
+
+    setTimeout(() => {
+        initRealtimeChatListener();
+        appendAgentMessage('agent-reply', '✅ History retrieved successfully. All historical records are now loaded.');
+    }, 1200);
+};
+
+function initRealtimeChatListener() {
+    rtdb.ref('support_tickets').orderByChild('uid').equalTo(activeUID).on('value', (snapshot) => {
+        const messagesDiv = document.getElementById('agentChatMessages');
+        messagesDiv.innerHTML = ``;
+
+        if (!snapshot.exists()) {
+            const noHistoryBubble = document.createElement('div');
+            noHistoryBubble.className = 'chat-bubble bot';
+            noHistoryBubble.innerHTML = `<em>No chat history was found.</em>`;
+            messagesDiv.appendChild(noHistoryBubble);
+            document.getElementById('ticketSelectorBar').style.display = 'none';
+            return;
+        }
+
+        allUserTicketsData = snapshot.val();
+        let sortedTickets = [];
+
+        for (let key in allUserTicketsData) {
+            sortedTickets.push({ id: key, ...allUserTicketsData[key] });
+        }
+        sortedTickets.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+        if (sortedTickets.length === 0) {
+            const noHistoryBubble = document.createElement('div');
+            noHistoryBubble.className = 'chat-bubble bot';
+            noHistoryBubble.innerHTML = `<em>No chat history was found.</em>`;
+            messagesDiv.appendChild(noHistoryBubble);
+            document.getElementById('ticketSelectorBar').style.display = 'none';
+            return;
+        }
+
+        const dropdown = document.getElementById('ticketSelectDropdown');
+        dropdown.innerHTML = "";
+        sortedTickets.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.innerText = `${t.ticketNumber || 'Ticket'} (${new Date(t.timestamp).toLocaleDateString()})`;
+            dropdown.appendChild(opt);
+        });
+
+        if (sortedTickets.length > 1) {
+            document.getElementById('ticketSelectorBar').style.display = 'flex';
+        } else {
+            document.getElementById('ticketSelectorBar').style.display = 'none';
+        }
+
+        if (!activeSelectedTicketId || !allUserTicketsData[activeSelectedTicketId]) {
+            activeSelectedTicketId = sortedTickets[sortedTickets.length - 1].id;
+        }
+        dropdown.value = activeSelectedTicketId;
+
+        const currentTicket = allUserTicketsData[activeSelectedTicketId];
+        if (currentTicket) {
+            if (currentTicket.conversation && typeof currentTicket.conversation === 'object') {
+                const convList = Object.entries(currentTicket.conversation);
+                convList.sort((a, b) => (a[1].timestamp || 0) - (b[1].timestamp || 0));
+
+                convList.forEach(([msgKey, item]) => {
+                    const isUser = item.sender === 'user';
+                    const bubble = document.createElement('div');
+                    bubble.className = `chat-bubble ${isUser ? 'user' : 'agent-reply'}`;
+                    bubble.setAttribute('data-msg-text', item.text);
+                    bubble.setAttribute('data-msg-key', msgKey);
+                    
+                    let replyHighlightHtml = "";
+                    if (item.replyToText) {
+                        const safeSnippet = escapeHtml(item.replyToText).replace(/'/g, "\\'");
+                        replyHighlightHtml = `<div onclick="scrollToOriginalAgentMessage('${safeSnippet}')" style="background:rgba(0,0,0,0.06); border-left:3px solid var(--primary); padding:4px 8px; margin-bottom:6px; font-size:11px; border-radius:4px; cursor:pointer;" title="Click to view original message">Replying to: "${escapeHtml(item.replyToText)}"</div>`;
+                    }
+
+                    const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                    
+                    bubble.innerHTML = `${replyHighlightHtml}<strong>${isUser ? 'You' : 'Agent'}:</strong> ${escapeHtml(item.text)}<span class="bubble-meta">${timeStr}</span>`;
+                    
+                    if (isUser) {
+                        attachLongPressToEdit(bubble, msgKey, item.text);
+                    }
+                    attachSwipeToReply(bubble, item.text, currentTicket.id);
+                    messagesDiv.appendChild(bubble);
+                });
+            } else if (currentTicket.message) {
+                const userBubble = document.createElement('div');
+                userBubble.className = 'chat-bubble user';
+                userBubble.setAttribute('data-msg-text', currentTicket.message);
+                userBubble.setAttribute('data-msg-key', 'root_' + currentTicket.id);
+                const timeStr = currentTicket.timestamp ? new Date(currentTicket.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                userBubble.innerHTML = `${escapeHtml(currentTicket.message)}<span class="bubble-meta">${timeStr}</span>`;
+                
+                attachLongPressToEdit(userBubble, 'root_' + currentTicket.id, currentTicket.message);
+                attachSwipeToReply(userBubble, currentTicket.message, currentTicket.id);
+                messagesDiv.appendChild(userBubble);
+
+                if (currentTicket.admin_reply) {
+                    const agentBubble = document.createElement('div');
+                    agentBubble.className = 'chat-bubble agent-reply';
+                    agentBubble.setAttribute('data-msg-text', currentTicket.admin_reply);
+                    const repTime = currentTicket.reply_timestamp ? new Date(currentTicket.reply_timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                    agentBubble.innerHTML = `<strong>Agent:</strong> ${escapeHtml(currentTicket.admin_reply)}<span class="bubble-meta">${repTime}</span>`;
+                    messagesDiv.appendChild(agentBubble);
+                }
+            }
+
+            const currentStatus = currentTicket.status || 'Pending';
+            const statusBubble = document.createElement('div');
+            statusBubble.className = 'chat-bubble bot';
+            let statusColor = '#d97706';
+            if (currentStatus === 'In Progress') statusColor = '#0369a1';
+            else if (currentStatus === 'Resolved') statusColor = '#166534';
+            statusBubble.innerHTML = `<em>Ticket Status (${currentTicket.ticketNumber || 'Ticket'}):</em> <strong style="color:${statusColor}">${currentStatus}</strong>`;
+            messagesDiv.appendChild(statusBubble);
+        }
+
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }, error => AGErrors.report("support tickets live data", error, message => triggerToast(`Live support data could not be loaded: ${message}`)));
+}
+
+function switchActiveTicket(ticketId) {
+    activeSelectedTicketId = ticketId;
+    initRealtimeChatListener();
+}
+
+function attachLongPressToEdit(bubbleElement, msgKey, currentText) {
+    let holdTimer = null;
+    const startHold = () => {
+        holdTimer = setTimeout(() => {
+            enableAgentMessageEdit(msgKey, currentText);
+        }, 2000);
+    };
+    const cancelHold = () => {
+        if (holdTimer) clearTimeout(holdTimer);
+    };
+
+    bubbleElement.addEventListener('mousedown', startHold);
+    bubbleElement.addEventListener('mouseup', cancelHold);
+    bubbleElement.addEventListener('mouseleave', cancelHold);
+    bubbleElement.addEventListener('touchstart', startHold, { passive: true });
+    bubbleElement.addEventListener('touchend', cancelHold);
+    bubbleElement.addEventListener('touchmove', cancelHold);
+}
+
+function enableAgentMessageEdit(msgKey, currentText) {
+    agentEditingMessageKey = msgKey;
+    document.getElementById('agentEditingTextSnippet').innerText = `Editing: "${currentText.substring(0, 35)}..."`;
+    document.getElementById('agentEditingBar').style.display = 'flex';
+    const inputBox = document.getElementById('agentChatInputBox');
+    inputBox.value = currentText;
+    inputBox.focus();
+}
+
+function cancelAgentEdit() {
+    agentEditingMessageKey = null;
+    document.getElementById('agentEditingBar').style.display = 'none';
+    document.getElementById('agentChatInputBox').value = '';
+}
+
+function scrollToOriginalAgentMessage(targetText) {
+    const messagesDiv = document.getElementById('agentChatMessages');
+    const bubbles = messagesDiv.querySelectorAll('.chat-bubble');
+    let targetBubble = null;
+    for (let b of bubbles) {
+        const msgText = b.getAttribute('data-msg-text');
+        if (msgText && msgText.includes(targetText)) {
+            targetBubble = b;
+            break;
+        }
+    }
+    if (targetBubble) {
+        targetBubble.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const originalBg = targetBubble.style.backgroundColor;
+        targetBubble.style.backgroundColor = '#fef08a';
+        setTimeout(() => {
+            targetBubble.style.backgroundColor = originalBg;
+        }, 1200);
+    }
+}
+
+function attachSwipeToReply(bubbleElement, textSnippet, ticketId) {
+    let startX = 0;
+    let currentX = 0;
+    let isDragging = false;
+
+    bubbleElement.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        isDragging = true;
+    }, { passive: true });
+
+    bubbleElement.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        currentX = e.touches[0].clientX;
+        const diff = currentX - startX;
+        if (diff > 0 && diff < 90) {
+            bubbleElement.style.transform = `translateX(${diff}px)`;
+        }
+    }, { passive: true });
+
+    bubbleElement.addEventListener('touchend', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        const diff = currentX - startX;
+        bubbleElement.style.transform = 'translateX(0px)';
+        if (diff > 45) {
+            highlightAgentMessageForReply(textSnippet, ticketId);
+        }
+    });
+
+    bubbleElement.addEventListener('mousedown', (e) => {
+        startX = e.clientX;
+        isDragging = true;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        currentX = e.clientX;
+        const diff = currentX - startX;
+        if (diff > 0 && diff < 90) {
+            bubbleElement.style.transform = `translateX(${diff}px)`;
+        }
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        const diff = currentX - startX;
+        bubbleElement.style.transform = 'translateX(0px)';
+        if (diff > 45) {
+            highlightAgentMessageForReply(textSnippet, ticketId);
+        }
+    });
+}
+
+function highlightAgentMessageForReply(textSnippet, ticketId) {
+    agentHighlightedMessageId = ticketId;
+    agentHighlightedMessageSnippet = textSnippet;
+    document.getElementById('agentReplyingTextSnippet').innerText = `Replying to: "${textSnippet.substring(0, 40)}..."`;
+    document.getElementById('agentReplyingBar').style.display = 'flex';
+    document.getElementById('agentChatInputBox').focus();
+}
+
+function cancelAgentReplyHighlight() {
+    agentHighlightedMessageId = null;
+    agentHighlightedMessageSnippet = null;
+    document.getElementById('agentReplyingBar').style.display = 'none';
+}
+
+function enforceSubscriptionLock(isExpired, reason = "Subscription Expired") {
+    const blocker = document.getElementById('hubSubscriptionBlocker');
+    const titleEl = document.getElementById('hubBlockTitle');
+    const descEl = document.getElementById('hubBlockDesc');
+    
+    if (isExpired) {
+        titleEl.innerText = reason;
+        descEl.innerText = reason.includes("Suspended") || reason.includes("Blocked") ? "Your account has been restricted by the administrator." : "Your access license has elapsed. Select a plan below to complete payment via M-Pesa or contact admin for approval.";
+        blocker.style.display = 'flex';
+        document.body.classList.add('app-locked');
+        document.body.style.overflow = 'hidden';
+        const mainFrame = document.getElementById('main-frame');
+        if (mainFrame) mainFrame.src = 'about:blank';
+    } else {
+        blocker.style.display = 'none';
+        document.body.classList.remove('app-locked');
+        document.body.style.overflow = 'auto';
+    }
+}
+
+function initSubscriptionGuards() {
+    enforceSubscriptionLock(true, "Verifying Subscription...");
+    if (!activeUID || activeUID.startsWith("unidentified")) {
+        enforceSubscriptionLock(true, "Subscription Expired");
+        return;
+    }
+
+    rtdb.ref(`user_statuses/${activeUID}`).on('value', () => evaluateUnifiedAccess(), error => AGErrors.report("user status live data", error));
+    rtdb.ref(`subscription_pauses/${activeUID}`).on('value', () => evaluateUnifiedAccess(), error => AGErrors.report("subscription pause live data", error));
+    rtdb.ref(`subscriptions/${activeUID}`).on('value', () => evaluateUnifiedAccess(), error => AGErrors.report("subscription live data", error));
+}
+
+async function evaluateUnifiedAccess() {
+    const now = Date.now();
+    try {
+        const [statusSnap, pauseSnap, subSnap] = await Promise.all([
+            rtdb.ref(`user_statuses/${activeUID}`).once('value'),
+            rtdb.ref(`subscription_pauses/${activeUID}`).once('value'),
+            rtdb.ref(`subscriptions/${activeUID}`).once('value')
+        ]);
+
+        const status = statusSnap.val();
+        if (status && status !== "Active") {
+            enforceSubscriptionLock(true, "Account " + status);
+            return;
+        }
+
+        const pause = pauseSnap.val();
+        if (pause && pause.active === true && Number(pause.pausedUntil || 0) > now) {
+            enforceSubscriptionLock(false);
+            return;
+        }
+
+        const sub = subSnap.val();
+        if (!sub) {
+            enforceSubscriptionLock(true, "Subscription Required");
+            return;
+        }
+
+        const subStatus = String(sub.status || "").toLowerCase();
+        const isActiveFlag = sub.active === true;
+        let expiry = Number(sub.expiry || sub.expiresAt || 0);
+
+        if (expiry > 0 && expiry < 10000000000) {
+            expiry *= 1000;
+        }
+
+        if (!expiry || !Number.isFinite(expiry)) {
+            enforceSubscriptionLock(true, "Subscription Required");
+            return;
+        }
+
+        if (now >= expiry || (!isActiveFlag && subStatus !== "active")) {
+            enforceSubscriptionLock(true, "Subscription Expired");
+            return;
+        }
+
+        enforceSubscriptionLock(false);
+    } catch (error) {
+        console.error("Unified access evaluation error:", error);
+    }
+}
+
+function initiateMpesaPayment(daysAdded, amountVal, amountString) {
+    pendingSubDays = daysAdded;
+    pendingAmount = amountVal;
+    document.getElementById('stkAmountDisplay').innerText = amountString;
+    document.getElementById('mpesaNumber').value = "";
+    document.getElementById('stkInputStep').style.display = "block";
+    document.getElementById('stkLoadingStep').style.display = "none";
+    document.getElementById('stkSpinnerIcon').style.display = "block";
+    document.getElementById('stkRetryBtn').style.display = "none";
+    document.getElementById('stkCloseBtn').style.display = "flex";
+    document.getElementById('stkModal').style.display = "flex";
+    if (pollInterval) clearInterval(pollInterval);
+}
+
+function closeStkModal() {
+    if (pollInterval) clearInterval(pollInterval);
+    document.getElementById('stkModal').style.display = "none";
+    document.getElementById('hubSubscriptionBlocker').style.display = 'flex';
+    document.body.classList.add('app-locked');
+    document.body.style.overflow = 'hidden';
+}
+
+function resetStkModal() {
+    if (pollInterval) clearInterval(pollInterval);
+    document.getElementById('stkLoadingStep').style.display = "none";
+    document.getElementById('stkInputStep').style.display = "block";
+    document.getElementById('stkCloseBtn').style.display = "flex";
+}
+
+async function processStkPush() {
+    const phoneInput = document.getElementById('mpesaNumber');
+    const phone = phoneInput.value.trim();
+    const kenyanPhoneRegex = /^(07|01)\d{8}$/;
+    if (!kenyanPhoneRegex.test(phone)) {
+        triggerToast("Invalid Format: Use 07XXXXXXXX or 01XXXXXXXX");
+        phoneInput.style.borderColor = "var(--danger)";
+        return;
+    }
+    const formattedPhone = "254" + phone.substring(1);
+    document.getElementById('stkInputStep').style.display = "none";
+    document.getElementById('stkLoadingStep').style.display = "block";
+    document.getElementById('stkSpinnerIcon').style.display = "block";
+    document.getElementById('stkRetryBtn').style.display = "none";
+    document.getElementById('stkCloseBtn').style.display = "none"; 
+    
+    const titleEl = document.getElementById('stkStatusTitle');
+    const descEl = document.getElementById('stkStatusDesc');
+    titleEl.innerText = "Sending STK Push...";
+    descEl.innerText = "Communicating with Safaricom live gateway...";
+
+    try {
+        const response = await fetch(`${MASTER_CONFIG.backendUrl}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                environment: MASTER_CONFIG.environment,
+                shortcode: MASTER_CONFIG.shortcode,
+                passkey: MASTER_CONFIG.passkey,
+                consumerKey: MASTER_CONFIG.consumerKey,
+                consumerSecret: MASTER_CONFIG.consumerSecret,
+                accountType: MASTER_CONFIG.accountType,
+                amount: parseInt(pendingAmount, 10),
+                phoneNumber: formattedPhone
+            })
+        });
+        const result = await response.json();
+        if (!response.ok || (result.ResponseCode && result.ResponseCode !== "0")) {
+            throw new Error(result.errorMessage || result.ResponseDescription || "STK request rejected.");
+        }
+        startStatusPolling(result.CheckoutRequestID);
+    } catch (err) {
+        document.getElementById('stkSpinnerIcon').style.display = "none";
+        titleEl.innerText = "Payment cancelled";
+        titleEl.style.color = "var(--danger)";
+        descEl.innerText = err.message || "Timeout or user cannot be reached.";
+        document.getElementById('stkRetryBtn').style.display = "block";
+        document.getElementById('stkCloseBtn').style.display = "flex";
+    }
+}
+
+function startStatusPolling(checkoutRequestID) {
+    const titleEl = document.getElementById('stkStatusTitle');
+    const descEl = document.getElementById('stkStatusDesc');
+    titleEl.innerText = "Waiting for PIN Entry...";
+    descEl.innerText = "Please check your phone and enter your M-Pesa PIN.";
+    
+    let attempts = 0;
+    let consecutiveFailures = 0;
+    pollInterval = setInterval(async () => {
+        attempts++;
+        if (attempts > 18) {
+            clearInterval(pollInterval);
+            document.getElementById('stkSpinnerIcon').style.display = "none";
+            titleEl.innerText = "Payment cancelled";
+            titleEl.style.color = "var(--danger)";
+            descEl.innerText = "Timeout waiting for user response.";
+            document.getElementById('stkRetryBtn').style.display = "block";
+            document.getElementById('stkCloseBtn').style.display = "flex";
+            return;
+        }
+        try {
+            const response = await fetch(`${MASTER_CONFIG.backendUrl}/query`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    environment: MASTER_CONFIG.environment,
+                    shortcode: MASTER_CONFIG.shortcode,
+                    passkey: MASTER_CONFIG.passkey,
+                    consumerKey: MASTER_CONFIG.consumerKey,
+                    consumerSecret: MASTER_CONFIG.consumerSecret,
+                    checkoutRequestID: checkoutRequestID
+                })
+            });
+            const data = await response.json();
+            consecutiveFailures = 0;
+            if (data.ResultCode === "0") {
+                clearInterval(pollInterval);
+                document.getElementById('stkSpinnerIcon').style.display = "none";
+                titleEl.innerText = "Payment Received";
+                titleEl.style.color = "var(--mpesa)";
+                descEl.innerText = "Subscription active!";
+                setTimeout(() => {
+                    finalizeSubscriptionRenew(pendingSubDays);
+                    closeStkModal();
+                }, 2000);
+            } else if (data.ResultCode && data.ResultCode !== "0") {
+                clearInterval(pollInterval);
+                document.getElementById('stkSpinnerIcon').style.display = "none";
+                titleEl.style.color = "var(--danger)";
+                titleEl.innerText = data.ResultCode === "1032" ? "Payment cancelled" : "Wrong PIN entered.";
+                descEl.innerText = data.ResultDesc || "Transaction failed.";
+                document.getElementById('stkRetryBtn').style.display = "block";
+                document.getElementById('stkCloseBtn').style.display = "flex";
+            }
+        } catch (err) {
+            consecutiveFailures++;
+            AGErrors.report("STK payment status polling", err);
+            if (consecutiveFailures >= 3) {
+                clearInterval(pollInterval);
+                document.getElementById('stkSpinnerIcon').style.display = "none";
+                titleEl.innerText = "Payment status unavailable";
+                descEl.innerText = "We could not confirm the payment status. Please check M-Pesa before retrying.";
+                document.getElementById('stkCloseBtn').style.display = "flex";
+                triggerToast("Payment status could not be confirmed.");
+            }
+        }
+    }, 4000);
+}
+
+async function finalizeSubscriptionRenew(daysAdded) {
+    const now = Date.now();
+    try {
+        const subscriptionRef = rtdb.ref(`subscriptions/${activeUID}`);
+        const snapshot = await subscriptionRef.once("value");
+        const existing = snapshot.val() || {};
+        let existingExpiry = Number(existing.expiry || existing.expiresAt || 0);
+        if (existingExpiry > 0 && existingExpiry < 10000000000) existingExpiry *= 1000;
+        const baseTime = existingExpiry > now ? existingExpiry : now;
+        const newExpiry = baseTime + (daysAdded * 24 * 60 * 60 * 1000);
+
+        await subscriptionRef.update({
+            active: true,
+            status: 'active',
+            expiry: newExpiry,
+            expiresAt: newExpiry,
+            plan: daysAdded >= 365 ? 'yearly' : 'monthly',
+            lastPaymentAt: now,
+            updatedAt: now,
+            lastUpdated: now
+        });
+
+        await rtdb.ref(`user_statuses/${activeUID}`).set("Active");
+
+        triggerToast(`Verified! Subscribed for ${daysAdded} Days.`);
+        enforceSubscriptionLock(false);
+    } catch (error) {
+        console.error("Subscription renewal database error:", error);
+    }
+}
+
+function triggerToast(msg) {
+    const box = document.getElementById('toastBox');
+    document.getElementById('toastText').innerText = msg;
+    box.classList.add('show');
+    setTimeout(() => { box.classList.remove('show'); }, 3000);
+}
+
+window.onload = () => {
+    initSubscriptionGuards();
+    initRealtimeChatListener();
+    initBroadcastListener();
+    updateSubButtonPositions();
+    logUserActivity('SECURITY', 'User session initialized on Dashboard Hub');
+};
+
+window.toggleMenu = () => { 
+    if (document.body.classList.contains('app-locked')) return;
+    const sidebar = document.getElementById("sidebar");
+    const overlay = document.getElementById("overlay");
+    const isSidebarActive = sidebar.classList.contains("active");
+
+    if (isSidebarActive) {
+        sidebar.classList.remove("active");
+        overlay.classList.remove("active");
+    } else {
+        document.getElementById("broadcastModal").classList.remove("active");
+        closeAllChatContainers();
+        sidebar.classList.add("active");
+        overlay.classList.add("active");
+    }
+};
+
+window.closeAll = () => { 
+    document.getElementById("sidebar").classList.remove("active"); 
+    document.getElementById("globalModal").classList.remove("active"); 
+    document.getElementById("broadcastModal").classList.remove("active");
+    document.getElementById("overlay").classList.remove("active"); 
+};
+
+window.showDashboard = () => {
+    if (document.body.classList.contains('app-locked')) return;
+    document.getElementById('dashboard-wrapper').style.display = 'block';
+    document.getElementById('main-frame').style.display = 'none';
+    closeAll();
+    logUserActivity('GENERAL', 'Navigated to Institutional Hub Dashboard');
+};
+
+window.loadPage = (pageName) => { 
+    if (document.body.classList.contains('app-locked')) return;
+    if (!window.AGCanAccessPage(pageName)) {
+        triggerToast('Marketing Team access is available only to Marketing Team users.');
+        return;
+    }
+    document.getElementById('dashboard-wrapper').style.display = 'none';
+    document.getElementById('main-frame').style.display = 'block';
+    document.getElementById('main-frame').src = `${pageName}.html?uid=${activeUID}`;
+    closeAll(); 
+    logUserActivity('GENERAL', `Loaded module page: ${pageName}`);
+};
+
+window.customLogoutTrigger = () => {
+    const modal = document.getElementById('globalModal');
+    document.getElementById('modalTitle').innerText = "Confirm Logout";
+    document.getElementById('modalText').innerText = "Are you sure you want to log out?";
+    document.getElementById('overlay').classList.add('active');
+    modal.classList.add('active');
+    document.getElementById('modalConfirmBtn').onclick = () => {
+        logUserActivity('SECURITY', 'User logged out');
+        localStorage.removeItem("ag_active_uid");
+        localStorage.removeItem("ag_session_active");
+        auth.signOut().then(() => { window.location.href = "index.html"; })
+            .catch(error => AGErrors.report("dashboard logout", error));
+    };
+};
+
+function appendAiMessage(sender, text, htmlContent = '') {
+    const messagesDiv = document.getElementById('aiChatMessages');
+    const bubble = document.createElement('div');
+    bubble.className = `chat-bubble ${sender}`;
+    if (isAiSelectiveMode) {
+        bubble.classList.add('selectable');
+        bubble.onclick = () => bubble.classList.toggle('selected');
+    }
+    bubble.innerText = text;
+    if (htmlContent) {
+        const extra = document.createElement('div');
+        extra.innerHTML = htmlContent;
+        bubble.appendChild(extra);
+    }
+    messagesDiv.appendChild(bubble);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function handleIntelligentAIResponse(query) {
+    const q = query.toLowerCase().trim();
+    let responseText = "";
+
+    if (q.match(/^(hi|hello|hey|greetings|good morning|good afternoon|good evening|how are you|thanks|thank you|help)$/)) {
+        responseText = "Hello! I am your AssetGuard Pro Guide. I can help you understand all 12 features of our application one by one: General Info, Sales Terminal, Purchases, Customer Registry, Current Stock, Record Expense, Master Ledger, Cash Report, M-Pesa Report, Notebook, Settings, and Logout. What would you like to know?";
+    } else if (q.includes('code') || q.includes('backend') || q.includes('source') || q.includes('programming') || q.includes('script')) {
+        responseText = "Please ask an agent.";
+    } else if (q.includes('general') || q.includes('about') || q.includes('asset guard') || q.includes('overview') || q.includes('hub')) {
+        responseText = "1. **General Information about Asset Guard:** AssetGuard Pro is an institutional-grade system with a 100% offline transaction buffer guaranteeing zero data loss during network outages.";
+    } else if (q.includes('sales terminal') || q.includes('terminal') || q.includes('checkout') || q.includes('pos')) {
+        responseText = "2. **Sales Terminal:** Located under Operations in your sidebar menu. It allows cashiers to scan barcodes, look up items instantly, and process retail checkouts across multiple payment tenders (Cash, M-Pesa, Credit).";
+    } else if (q.includes('purchase') || q.includes('restock') || q.includes('supplier')) {
+        responseText = "3. **Purchases:** Located under Operations in your sidebar. Use this section to record incoming stock deliveries from suppliers, log invoice costs, and automatically increase your inventory quantities.";
+    } else if (q.includes('customer registry') || q.includes('crm') || q.includes('customer')) {
+        responseText = "4. **Customer Registry:** Located under Relationships in your sidebar. It allows you to track customer contact information, set credit limits, monitor balances, and review purchase history.";
+    } else if (q.includes('current stock') || q.includes('stock') || q.includes('inventory')) {
+        responseText = "5. **Current Stock:** Located under Inventory in your sidebar. This page displays live stock quantities, Weighted Average Costs (WAC), and automated low-stock reorder alerts.";
+    } else if (q.includes('record expense') || q.includes('expense') || q.includes('petty cash')) {
+        responseText = "6. **Record Expense:** Located under Finance in your sidebar. Use this page to log operational overheads, utility bills, and petty cash outflows so they accurately update your financial records.";
+    } else if (q.includes('master ledger') || q.includes('ledger') || q.includes('p&l') || q.includes('finance')) {
+        responseText = "7. **Master Ledger:** Located under Finance in your sidebar. Every sale, purchase, or expense automatically records double-entry transactions here, providing instant Profit & Loss (P&L) statements.";
+    } else if (q.includes('cash report') || q.includes('cash drawer') || q.includes('cash')) {
+        responseText = "8. **Cash Report:** Located under Reports in your sidebar. It summarizes cash drawer collections, opening balances, cash sales, and shift reconciliation totals.";
+    } else if (q.includes('mpesa report') || q.includes('m-pesa') || q.includes('mpesa') || q.includes('daraja')) {
+        responseText = "9. **M-Pesa Report:** Located under Reports in your sidebar. This displays automated mobile money transactions, STK push payment statuses, and confirmation codes.";
+    } else if (q.includes('notebook') || q.includes('notes')) {
+        responseText = "10. **Notebook:** Located in the sidebar footer. A built-in scratchpad for staff memos, daily reminders, shift handovers, and quick notes.";
+    } else if (q.includes('settings') || q.includes('license') || q.includes('subscription')) {
+        responseText = "11. **Settings:** Located in the sidebar footer. Allows you to manage your business profile, system preferences, and check or renew your active subscription license.";
+    } else if (q.includes('logout') || q.includes('sign out')) {
+        responseText = "12. **Logout:** Located at the very bottom of the sidebar. Safely terminates your current session and redirects you back to the login page.";
+    } else {
+        responseText = "Please ask an agent.";
+    }
+
+    setTimeout(() => {
+        appendAiMessage('bot', responseText);
+    }, 600);
+}
+
+window.handleAiChoice = (choice) => {
+    const mapping = {
+        'general': '1. General Info',
+        'sales': '2. Sales Terminal',
+        'purchases': '3. Purchases',
+        'crm': '4. Customer Registry',
+        'stock': '5. Current Stock',
+        'expenses': '6. Record Expense',
+        'ledger': '7. Master Ledger',
+        'cash': '8. Cash Report',
+        'mpesa': '9. M-Pesa Report',
+        'notebook': '10. Notebook',
+        'settings': '11. Settings',
+        'logout': '12. Logout'
+    };
+    const label = mapping[choice] || choice;
+    appendAiMessage('user', label);
+    handleIntelligentAIResponse(label);
+};
+
+window.handleAiKeyPress = (e) => {
+    if (e.key === 'Enter') {
+        sendAiMessage();
+    }
+};
+
+window.sendAiMessage = () => {
+    const input = document.getElementById('aiChatInputBox');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+
+    appendAiMessage('user', text);
+    handleIntelligentAIResponse(text);
+};
+
+window.handleAgentChoice = (choice) => {
+    if (choice === 'new') {
+        appendAgentMessage('user', 'New Issue');
+        agentFlowState = 'awaiting_new_msg';
+        setTimeout(() => {
+            appendAgentMessage('agent-reply', 'Please type your detailed request for your new issue below and press Send.');
+        }, 400);
+    } else if (choice === 'followup') {
+        appendAgentMessage('user', 'Follow-up');
+        agentFlowState = 'awaiting_followup_ticket_number';
+        setTimeout(() => {
+            appendAgentMessage('agent-reply', 'Please enter your active ticket number or reference code to proceed.');
+        }, 400);
+    }
+};
+
+function sendAgentMessage() {
+    const input = document.getElementById('agentChatInputBox');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+
+    if (agentEditingMessageKey) {
+        const editKey = agentEditingMessageKey;
+        cancelAgentEdit();
+        if (editKey.startsWith('root_')) {
+            const ticketId = editKey.replace('root_', '');
+            rtdb.ref(`support_tickets/${ticketId}`).update({ message: text, updatedAt: Date.now() })
+                .catch(error => AGErrors.report("support ticket edit", error, message => triggerToast(`Message update failed: ${message}`)));
+        } else if (activeSelectedTicketId) {
+            rtdb.ref(`support_tickets/${activeSelectedTicketId}/conversation/${editKey}`).update({ text: text, editedAt: Date.now() })
+                .catch(error => AGErrors.report("support reply edit", error, message => triggerToast(`Message update failed: ${message}`)));
+        }
+        return;
+    }
+
+    if (agentHighlightedMessageId && agentHighlightedMessageSnippet) {
+        const replySnippet = agentHighlightedMessageSnippet;
+        cancelAgentReplyHighlight();
+        if (activeSelectedTicketId) {
+            rtdb.ref(`support_tickets/${activeSelectedTicketId}/conversation`).push({
+                sender: 'user',
+                text: text,
+                replyToText: replySnippet,
+                timestamp: Date.now()
+            }).catch(error => AGErrors.report("support reply write", error, message => triggerToast(`Reply failed: ${message}`)));
+        }
+        return;
+    }
+
+    if (agentFlowState === 'awaiting_new_msg') {
+        agentFlowState = null;
+        rtdb.ref('support_tickets').push({
+            uid: activeUID,
+            ticketNumber: 'TKT-' + Math.floor(100000 + Math.random() * 900000),
+            message: text,
+            status: 'Pending',
+            timestamp: Date.now()
+        }).catch(error => AGErrors.report("support ticket creation", error, message => triggerToast(`Ticket creation failed: ${message}`)));
+        appendAgentMessage('user', text);
+        appendAgentMessage('agent-reply', '✅ New ticket created successfully. An agent will respond shortly.');
+        return;
+    }
+
+    if (agentFlowState === 'awaiting_followup_ticket_number') {
+        agentFlowState = 'awaiting_followup_msg';
+        appendAgentMessage('user', text);
+        appendAgentMessage('agent-reply', `Ticket #${text} selected. Please type your update or question.`);
+        return;
+    }
+
+    if (activeSelectedTicketId) {
+        rtdb.ref(`support_tickets/${activeSelectedTicketId}/conversation`).push({
+            sender: 'user',
+            text: text,
+            timestamp: Date.now()
+        }).catch(error => AGErrors.report("support message write", error, message => triggerToast(`Message failed: ${message}`)));
+    } else {
+        rtdb.ref('support_tickets').push({
+            uid: activeUID,
+            ticketNumber: 'TKT-' + Math.floor(100000 + Math.random() * 900000),
+            message: text,
+            status: 'Pending',
+            timestamp: Date.now()
+        }).catch(error => AGErrors.report("support ticket write", error, message => triggerToast(`Ticket creation failed: ${message}`)));
+    }
+}
+
+function appendAgentMessage(senderClass, text) {
+    const messagesDiv = document.getElementById('agentChatMessages');
+    const bubble = document.createElement('div');
+    bubble.className = `chat-bubble ${senderClass}`;
+    if (isAgentSelectiveMode) {
+        bubble.classList.add('selectable');
+        bubble.onclick = () => bubble.classList.toggle('selected');
+    }
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    bubble.innerHTML = `${escapeHtml(text)}<span class="bubble-meta">${timeStr}</span>`;
+    messagesDiv.appendChild(bubble);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+</script>
+</body>
+</html>

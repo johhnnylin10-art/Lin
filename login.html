@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="ag-utils.js"></script>
+<script src="ag-config.js"></script>
+<meta charset="UTF-8">
+<title>AssetGuard Pro - Advanced Portal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="error-utils.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+<style>
+* { box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
+body { margin: 0; height: 100vh; background: radial-gradient(circle at center, #2c5364, #0f2027); display: flex; flex-direction: column; align-items: center; overflow: hidden; padding-top: 50px; }
+#notification { position: fixed; top: 20px; background: #333; color: #fff; padding: 12px 25px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; box-shadow: 0 5px 15px rgba(0,0,0,0.3); display: none; z-index: 5000; animation: slideDown 0.4s ease-out; }
+@keyframes slideDown { from { top: -50px; opacity: 0; } to { top: 20px; opacity: 1; } }
+.hero-content h1 { margin: 0; font-size: 2.5rem; color: white; text-align: center; }
+.top-nav { width: 90%; max-width: 280px; background: linear-gradient(145deg, #1e3a46, #2c5364); border-radius: 50px; padding: 6px 15px; display: flex; justify-content: space-between; align-items: center; margin: 20px 0; }
+.logo { color: #fff; font-weight: 800; font-size: 0.75rem; }
+.menu-btn { background: #fff; color: #2c5364; border: none; padding: 6px 15px; border-radius: 20px; cursor: pointer; font-size: 0.75rem; font-weight: 700; }
+.auth-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 3000; backdrop-filter: blur(8px); }
+.scene { width: 360px; height: 680px; perspective: 1200px; }
+.card { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.8s; }
+.card.flip-register { transform: rotateY(180deg); }
+.face { position: absolute; inset: 0; background: #fff; border-radius: 20px; padding: 18px 22px; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: flex-start; overflow-y: auto; }
+.register { transform: rotateY(180deg); }
+h2 { margin-bottom: 6px; color: #2c5364; font-weight: 800; font-size: 1.25rem; }
+input, select, textarea { width: 100%; padding: 10px 12px; margin: 4px 0; border-radius: 10px; border: 1px solid #ddd; outline: none; background: #f9fbff; font-size: 13px; }
+textarea { resize: vertical; min-height: 48px; }
+button.action-btn { width: 100%; padding: 12px; margin-top: 8px; background: #2c5364; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 0.95rem; }
+button.action-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+.link { text-align: center; margin-top: 6px; font-size: 0.8rem; color: #2c5364; cursor: pointer; font-weight: 600; }
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; justify-content: center; align-items: center; z-index: 4000; }
+.modal-content { background: #fff; padding: 30px; border-radius: 15px; width: 300px; text-align: center; }
+
+.role-picker { display: flex; gap: 6px; margin: 4px 0 8px 0; }
+.role-option { flex: 1; display: flex; align-items: center; justify-content: center; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 4px; border-radius: 8px; font-size: 0.72rem; font-weight: 700; color: #334155; cursor: pointer; transition: all 0.2s; text-align: center; }
+.role-option input { margin-right: 4px; accent-color: #2c5364; width: auto; margin: 0 4px 0 0; }
+.role-option:has(input:checked) { background: #2c5364; color: #fff; border-color: #2c5364; }
+.role-label-title { font-size: 0.75rem; font-weight: 700; color: #475569; margin-top: 2px; text-align: left; }
+
+.marketing-extra-box { background: #f8fafc; border: 1px solid #cbd5e1; padding: 10px; border-radius: 10px; margin: 4px 0; display: none; }
+.marketing-extra-box small { display: block; font-size: 10px; font-weight: 800; color: #0284c7; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .05em; }
+.auto-date-badge { font-size: 0.75rem; color: #0284c7; font-weight: 700; margin-bottom: 4px; display: block; text-align: right; }
+
+.gps-checkbox-container { display: flex; align-items: center; background: #f1f5f9; padding: 10px 12px; border-radius: 10px; margin: 8px 0; border: 1px solid #cbd5e1; cursor: pointer; display: none; }
+.gps-checkbox-container input { width: auto; margin: 0 10px 0 0; accent-color: #2c5364; height: 16px; width: 16px; cursor: pointer; }
+.gps-checkbox-container label { font-size: 0.8rem; font-weight: 700; color: #334155; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div id="notification"></div>
+
+<div class="hero-content">
+  <h1>AssetGuard Pro</h1>
+  <nav class="top-nav">
+    <div class="logo">OPERATOR PORTAL</div>
+    <button class="menu-btn" onclick="toggleAuth()">LOGIN</button>
+  </nav>
+</div>
+
+<div class="auth-overlay" id="authOverlay" onclick="closeIfOutside(event)">
+  <div class="scene" onclick="event.stopPropagation()">
+    <div class="card" id="card">
+      
+      <!-- Sign In Face -->
+      <div class="face login">
+        <h2>Sign In</h2>
+        <div class="role-label-title">Select User Type:</div>
+        <div class="role-picker">
+          <label class="role-option"><input type="radio" name="l_role" value="fixed_area" checked onchange="toggleRoleFields('l')"> Fixed Area</label>
+          <label class="role-option"><input type="radio" name="l_role" value="marketing_team" onchange="toggleRoleFields('l')"> Marketing Team</label>
+        </div>
+
+        <input id="l_email" type="email" placeholder="Email Address">
+        <input id="l_pin" type="password" placeholder="Password / PIN">
+
+        <div id="l_gpsContainer" class="gps-checkbox-container" onclick="document.getElementById('l_acceptGps').click()">
+          <input type="checkbox" id="l_acceptGps" onclick="event.stopPropagation()">
+          <label for="l_acceptGps"> Accept & Turn On GPS</label>
+        </div>
+
+        <button class="action-btn" id="loginBtn" onclick="doLogin()">Sign In</button>
+        <div class="link" onclick="showForgotModal()">Forgot Access?</div>
+        <div class="link" style="color:#64748b; margin-top:12px;" onclick="goRegister()">Create New Account</div>
+      </div>
+
+      <!-- Register Face -->
+      <div class="face register">
+        <h2>New Account</h2>
+        <div class="role-label-title">Select User Type:</div>
+        <div class="role-picker">
+          <label class="role-option"><input type="radio" name="r_role" value="fixed_area" checked onchange="toggleRoleFields('r')"> Fixed Area</label>
+          <label class="role-option"><input type="radio" name="r_role" value="marketing_team" onchange="toggleRoleFields('r')"> Marketing Team</label>
+        </div>
+
+        <!-- Advanced Marketing Team Setup Box -->
+        <div id="r_marketingBox" class="marketing-extra-box">
+          <span class="auto-date-badge" id="r_dateDisplay">Date: --</span>
+          <small>Advanced Dispatch Setup</small>
+          <input id="r_carReg" type="text" placeholder="Car Registration Number (Optional, e.g. KDA 123A)">
+          <select id="r_teamRole">
+            <option value="" disabled selected>Select Primary Team Role</option>
+            <option value="Driver">Driver</option>
+            <option value="Sales Representative">Sales Representative</option>
+            <option value="Team Leader">Team Leader</option>
+            <option value="Field Officer">Field Officer</option>
+          </select>
+          <input id="r_managerPhone" type="tel" placeholder="Manager Contact" value="+254713100424">
+          <textarea id="r_notes" placeholder="Initial Dispatch Remarks"></textarea>
+        </div>
+
+        <input id="r_user" placeholder="Full Name">
+        <input id="r_email" type="email" placeholder="Email Address">
+        <input id="r_phone" type="tel" placeholder="Phone Number (e.g. 07XXXXXXXX)">
+        <input id="r_pass" type="password" placeholder="Password">
+        <input id="r_pass_confirm" type="password" placeholder="Confirm Password">
+        <button class="action-btn" id="regBtn" onclick="doSignup()">Create Account</button>
+        <div class="link" onclick="goLogin()">Return to Login</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="forgotModal">
+  <div class="modal-content">
+    <h2 style="margin-top:0;">Reset PIN</h2>
+    <input id="f_email" type="email" placeholder="Registered Email">
+    <button class="action-btn" onclick="doReset()">Send Reset Link</button>
+    <div class="link" style="color:red; margin-top:15px;" onclick="closeForgotModal()">Cancel</div>
+  </div>
+</div>
+
+<script>
+const DASHBOARD_URL = "dashboard.html"; 
+
+if (!firebase.apps.length) {
+    firebase.initializeApp(AG_FIREBASE_CONFIG);
+}
+const auth = firebase.auth();
+const rtdb = firebase.database();
+
+// --- KODULAR GPS BRIDGE VARIABLES & FUNCTION ---
+let kodularLat = null;
+let kodularLng = null;
+
+function receiveLocation(lat, lng) {
+  kodularLat = parseFloat(lat);
+  kodularLng = parseFloat(lng);
+  localStorage.setItem("ag_last_lat", kodularLat);
+  localStorage.setItem("ag_last_lng", kodularLng);
+  console.log("Location successfully received from Kodular app:", kodularLat, kodularLng);
+}
+// ----------------------------------------------
+
+document.addEventListener("DOMContentLoaded", () => {
+  const todayStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const rDateDisplay = document.getElementById("r_dateDisplay");
+  if (rDateDisplay) rDateDisplay.innerText = "Date: " + todayStr;
+
+  if (new URLSearchParams(window.location.search).get("authError")) {
+    msg("Session could not be verified. Please sign in again.");
+  }
+});
+
+function toggleRoleFields(prefix) {
+  const selectedRole = document.querySelector(`input[name="${prefix}_role"]:checked`).value;
+  if (prefix === 'r') {
+    const box = document.getElementById("r_marketingBox");
+    box.style.display = (selectedRole === "marketing_team") ? "block" : "none";
+  } else if (prefix === 'l') {
+    const gpsContainer = document.getElementById("l_gpsContainer");
+    gpsContainer.style.display = (selectedRole === "marketing_team") ? "flex" : "none";
+  }
+}
+
+function msg(text, color="#ef4444") {
+  const el = document.getElementById("notification");
+  el.innerText = text; el.style.backgroundColor = color; el.style.display = "block";
+  setTimeout(() => { el.style.display = "none"; }, 4000);
+}
+
+function toggleAuth() {
+  const o = document.getElementById("authOverlay");
+  o.style.display = (o.style.display === "flex") ? "none" : "flex";
+}
+function closeIfOutside(e) { if (e.target.id === "authOverlay") toggleAuth(); }
+function goRegister() { document.getElementById("card").className = "card flip-register"; }
+function goLogin() { document.getElementById("card").className = "card"; }
+function showForgotModal() { document.getElementById("forgotModal").style.display = "flex"; }
+function closeForgotModal() { document.getElementById("forgotModal").style.display = "none"; }
+
+async function doLogin() {
+  const email = document.getElementById("l_email").value.trim().toLowerCase();
+  const pass = document.getElementById("l_pin").value.trim();
+  const roleInput = document.querySelector('input[name="l_role"]:checked');
+  const role = roleInput ? roleInput.value : "fixed_area";
+  const acceptGps = document.getElementById("l_acceptGps").checked;
+
+  if (!email || !pass) return msg("Please enter your email and password.");
+
+  if (role === "marketing_team" && !acceptGps) {
+    return msg("Marketing team members must check the box to accept and turn on GPS.");
+  }
+
+  const btn = document.getElementById("loginBtn");
+  btn.disabled = true; 
+  btn.innerText = "Authenticating...";
+
+  try {
+    await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    const userCredential = await auth.signInWithEmailAndPassword(email, pass);
+    const user = userCredential.user;
+    
+    const userSnap = await rtdb.ref(`users/${user.uid}`).once('value');
+    const userData = userSnap.val() || {};
+
+    const registeredRole = userData.role || "fixed_area";
+
+    if (registeredRole !== role) {
+      await auth.signOut();
+      btn.disabled = false;
+      btn.innerText = "Sign In";
+      const correctName = registeredRole === "marketing_team" ? "Marketing Team" : "Fixed Area";
+      return msg(`Access Denied. This account is registered as [${correctName}]. Please select the correct user type.`);
+    }
+
+    localStorage.setItem("ag_active_uid", user.uid);
+    localStorage.setItem("ag_session_active", "true");
+    localStorage.setItem("ag_user_role", role);
+
+    let lat = null, lng = null, accuracy = null, gpsTimestamp = null;
+    const currentDate = new Date().toISOString().split('T')[0];
+
+    if (role === "marketing_team") {
+      // --- MODIFIED GEOLOCATION CHECK FOR KODULAR APP WRAPPER ---
+      if (kodularLat !== null && kodularLng !== null) {
+        // Use location sent directly from Kodular native LocationSensor
+        lat = kodularLat;
+        lng = kodularLng;
+        accuracy = 10;
+        gpsTimestamp = Date.now();
+      } else if (localStorage.getItem("ag_last_lat")) {
+        // Fallback to locally stored coordinates
+        lat = parseFloat(localStorage.getItem("ag_last_lat"));
+        lng = parseFloat(localStorage.getItem("ag_last_lng"));
+        accuracy = 10;
+        gpsTimestamp = Date.now();
+      } else {
+        // Standard browser fallback if tested in a web browser
+        if (!("geolocation" in navigator)) {
+          btn.disabled = false;
+          btn.innerText = "Sign In";
+          return msg("Geolocation is not supported by your browser.");
+        }
+
+        btn.innerText = "Acquiring GPS Location...";
+
+        try {
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
+          });
+          lat = position.coords.latitude;
+          lng = position.coords.longitude;
+          accuracy = position.coords.accuracy;
+          gpsTimestamp = Date.now();
+
+          localStorage.setItem("ag_last_lat", lat);
+          localStorage.setItem("ag_last_lng", lng);
+        } catch (gpsErr) {
+          console.error("GPS Error:", gpsErr);
+          btn.disabled = false;
+          btn.innerText = "Sign In";
+          let errMsg = "Mandatory GPS location is required for Marketing Team. Please enable device location.";
+          if (gpsErr.code === gpsErr.PERMISSION_DENIED) {
+            errMsg = "Location permission denied in app settings.";
+          } else if (gpsErr.code === gpsErr.TIMEOUT) {
+            errMsg = "GPS request timed out.";
+          }
+          return msg(errMsg);
+        }
+      }
+      // ---------------------------------------------------------
+
+      localStorage.setItem("ag_car_reg", userData.carRegistration || "");
+      localStorage.setItem("ag_team_role", userData.teamRole || "");
+      localStorage.setItem("ag_manager_phone", userData.managerPhone || "");
+      localStorage.setItem("ag_notes", userData.notes || "");
+      localStorage.setItem("ag_session_date", currentDate);
+
+      const dispatchId = "RS-" + Date.now().toString().slice(-8);
+      const dispatchPayload = {
+        id: dispatchId,
+        uid: user.uid,
+        agents: [{ name: userData.fullName || user.email.split('@')[0], role: userData.teamRole || "Marketing" }],
+        date: currentDate,
+        createdAt: Date.now(),
+        timeString: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        vehicle: userData.carRegistration || "N/A",
+        phone: userData.managerPhone || "+254713100424",
+        notes: userData.notes || "Portal Login Dispatch",
+        status: "Pending",
+        lastLocation: { lat, lng, accuracy, timestamp: gpsTimestamp }
+      };
+
+      await rtdb.ref(`dispatches/${dispatchId}`).set(dispatchPayload);
+      localStorage.setItem("ag_active_dispatch_id", dispatchId);
+    }
+
+    const updatePayload = {
+      role: role,
+      lastLogin: Date.now()
+    };
+    if (lat !== null) {
+      updatePayload.lastLocation = { lat, lng, accuracy, timestamp: gpsTimestamp };
+    }
+
+    await rtdb.ref(`users/${user.uid}`).update(updatePayload);
+    await rtdb.ref(`user_statuses/${user.uid}`).set("Active");
+
+    await rtdb.ref(`user_activity_logs`).push({
+      uid: user.uid,
+      category: "SECURITY",
+      action: role === "marketing_team" ? "User Online Login with GPS" : "User Online Login (Fixed Area)",
+      description: `User logged in as [${role}]. ${lat ? 'GPS: ' + lat.toFixed(5) + ', ' + lng.toFixed(5) : 'No GPS required'}`,
+      timestamp: Date.now(),
+      device: navigator.userAgent
+    });
+
+    window.location.href = DASHBOARD_URL;
+
+  } catch (err) {
+    console.error("Login Error:", err);
+    msg("Login failed: " + err.message);
+    btn.disabled = false; 
+    btn.innerText = "Sign In";
+  }
+}
+
+async function doSignup() {
+  const name = document.getElementById("r_user").value.trim();
+  const email = document.getElementById("r_email").value.trim().toLowerCase();
+  const phone = document.getElementById("r_phone").value.trim();
+  const pass = document.getElementById("r_pass").value;
+  const confirm = document.getElementById("r_pass_confirm").value;
+  const roleInput = document.querySelector('input[name="r_role"]:checked');
+  const role = roleInput ? roleInput.value : "fixed_area";
+
+  let carReg = "";
+  let teamRole = "";
+  let managerPhone = "";
+  let notes = "";
+  const currentDate = new Date().toISOString().split('T')[0];
+
+  if (role === "marketing_team") {
+    carReg = document.getElementById("r_carReg").value.trim();
+    teamRole = document.getElementById("r_teamRole").value;
+    managerPhone = document.getElementById("r_managerPhone").value.trim();
+    notes = document.getElementById("r_notes").value.trim();
+
+    if (!teamRole) {
+      return msg("Please select your Primary Team Role.");
+    }
+  }
+
+  if (!navigator.onLine) return msg("Internet required for setup");
+  if (!email || !pass || !name) return msg("Please fill in all required fields");
+  if (pass !== confirm) return msg("Passwords do not match");
+
+  try {
+    const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
+    const user = userCredential.user;
+
+    const userPayload = {
+      uid: user.uid,
+      fullName: name,
+      email: email,
+      phone: phone || "Not provided",
+      role: role,
+      joinedAt: Date.now(),
+      lastLogin: Date.now()
+    };
+
+    if (role === "marketing_team") {
+      userPayload.carRegistration = carReg || "Not provided";
+      userPayload.teamRole = teamRole;
+      userPayload.managerPhone = managerPhone;
+      userPayload.notes = notes;
+      userPayload.registrationDate = currentDate;
+
+      const dispatchId = "RS-" + Date.now().toString().slice(-8);
+      const dispatchPayload = {
+        id: dispatchId,
+        uid: user.uid,
+        agents: [{ name: name, role: teamRole }],
+        date: currentDate,
+        createdAt: Date.now(),
+        timeString: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        vehicle: carReg || "N/A",
+        phone: managerPhone || "+254713100424",
+        notes: notes || "Account Registration Dispatch",
+        status: "Pending",
+        lastLocation: null
+      };
+
+      await rtdb.ref(`dispatches/${dispatchId}`).set(dispatchPayload);
+    }
+
+    await rtdb.ref(`users/${user.uid}`).set(userPayload);
+    await rtdb.ref(`user_statuses/${user.uid}`).set("Active");
+    
+    msg("Account Created Successfully!", "#10b981");
+    setTimeout(() => { goLogin(); }, 1200);
+  } catch (err) { 
+    console.error("Signup Error:", err);
+    alert("Database / Signup Error: " + err.message); 
+  }
+}
+
+async function doReset() {
+  const email = document.getElementById("f_email").value.trim();
+  if (!email) return msg("Enter email first");
+  try {
+    await auth.sendPasswordResetEmail(email);
+    msg("Reset link sent!", "#10b981");
+    closeForgotModal();
+  } catch (e) { msg(e.message); }
+}
+</script>
+</body>
+</html>

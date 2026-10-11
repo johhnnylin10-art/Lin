@@ -1,0 +1,2313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AssetGuard Pro - Unified Terminal & Sales Analytics</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+    :root { --primary: #0072CE; --dark: #001A35; --accent: #ff6b00; --edit: #f59e0b; --light: #f8faff; --locked: #e2e8f0; --error: #ef4444; --success: #22c55e; --bg: #f4f6f9; --danger:#ef4444; --muted:#64748b; --warning: #f59e0b; --mpesa: #00a859; }
+    body { font-family: 'Poppins', sans-serif; margin: 0; padding: 0; background: var(--bg); color: #1f2937; }
+    
+    @media (min-width: 768px) {
+        body { font-size: 1.5rem; }
+        .container { max-width: 1200px !important; }
+        .sales-analytics-panel { max-width: 1200px !important; }
+        .brand { font-size: 2rem !important; }
+        h2 { font-size: 2.5rem !important; }
+        label { font-size: 1.2rem !important; }
+        input, select { font-size: 1.5rem !important; padding: 20px !important; }
+        .btn-main, .btn { font-size: 1.5rem !important; padding: 20px !important; }
+        .stat-card p { font-size: 2rem !important; }
+        .cart-card-header { font-size: 1.8rem !important; }
+        .modal-box { max-width: 900px !important; }
+        #receipt-area { max-height: 82vh !important; }
+        .thermal-receipt-preview { width: 450px !important; font-size: 14px !important; }
+    }
+
+    .header-nav { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 12px 20px; z-index: 3000; border-bottom: 1px solid #e2e8f0; }
+    .brand { font-weight: 800; font-size: 16px; color: var(--dark); cursor: pointer; }
+    .brand span { color: var(--primary); }
+    .toggle-view-btn { background: var(--dark); color: white; border: none; padding: 8px 16px; border-radius: 10px; font-weight: 700; font-size: 11px; cursor: pointer; text-transform: uppercase; transition: 0.3s; }
+    .toggle-view-btn:hover { background: var(--primary); }
+    .view-container { display: none; padding: 15px; }
+    .view-container.active { display: block; }
+    .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #f0f2f5; }
+    #syncStatus { display: none; text-align: center; padding: 8px; border-radius: 10px; margin-bottom: 15px; font-weight: 700; font-size: 11px; text-transform: uppercase; }
+    .status-offline { background: #fee2e2; color: var(--error); border: 1px solid #fecaca; }
+    .status-syncing { background: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
+    h2 { text-align: center; color: var(--dark); margin-bottom: 20px; font-weight: 700; }
+    label { display: block; margin-top: 10px; font-weight: 700; color: var(--dark); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    input, select { width: 100%; padding: 12px; margin-top: 5px; border: 2px solid #f0f2f5; border-radius: 10px; box-sizing: border-box; background: #f9fbff; transition: 0.3s; font-family: inherit; }
+    input:disabled { background: #e2e8f0 !important; opacity: 0.6; cursor: not-allowed; }
+    .valid-kenya { border-color: var(--success) !important; background: #f0fff4 !important; }
+    .invalid-kenya { border-color: var(--error) !important; background: #fff5f5 !important; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #fdfeff; padding: 15px; border-radius: 15px; border: 1px solid #edf2f7; margin-bottom: 15px; }
+    .item-picker { background: #fff; padding: 15px; border-radius: 15px; border: 2px solid #f0f2f5; margin-bottom: 20px; position: relative; }
+    .stock-tag { float: right; font-size: 10px; background: #eef4ff; color: var(--primary); padding: 2px 8px; border-radius: 5px; font-weight: bold; }
+    .payment-extra { margin-top: 10px; display: none; flex-direction: column; gap: 8px; }
+    .btn-main { color: white; border: none; padding: 14px; border-radius: 10px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 15px; transition: 0.3s; }
+    .btn-main:disabled { background: #cbd5e1 !important; cursor: not-allowed; }
+    .cart-card { background: var(--light); border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 5px solid var(--primary); position: relative; }
+    .cart-card-header { font-weight: 700; font-size: 16px; color: var(--dark); margin-bottom: 10px; }
+    .cart-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .info-box { background: #fff; padding: 8px; border-radius: 8px; border: 1px solid #edf2f7; }
+    .info-box span { font-size: 9px; color: #64748b; font-weight: 700; text-transform: uppercase; display: block; }
+    .info-box p { margin: 0; font-size: 12px; font-weight: 600; color: var(--dark); }
+    .math-horizontal-box { background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #edf2f7; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .math-item { font-size: 11px; color: #475569; }
+    .math-item b { color: var(--dark); }
+    .math-total-text { font-size: 15px; font-weight: 800; color: var(--primary); }
+    .cart-footer { margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px; }
+    .btn-edit { background: #fef3c7; color: #d97706; border: none; padding: 6px 15px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; }
+    .btn-del { background: #fee2e2; color: #ef4444; border: none; padding: 6px 15px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; }
+    .totals-display { background: var(--dark); color: white; padding: 15px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+    .btn-sync { background: linear-gradient(135deg, var(--primary), #00d2ff); color: white; border: none; padding: 18px; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; margin-top: 10px; font-size: 16px; }
+    .btn-sync:disabled { background: #94a3b8; cursor: not-allowed; }
+    .filter-section { background: #fff; padding: 12px; border-radius: 14px; margin-bottom: 12px; border: 1px solid #e2e8f0; }
+    .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .search-input { width:100%; padding:10px; border-radius:10px; border:1px solid #e2e8f0; font-family: inherit; font-size: 13px; outline: none; box-sizing: border-box; }
+    .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+    .stat-card { background:#fff; padding:12px; border-radius:14px; border-left:4px solid var(--primary); }
+    .stat-card h4 { margin:0; font-size:10px; text-transform:uppercase; color:var(--muted); }
+    .stat-card p { margin:4px 0 0; font-size: 16px; font-weight:800; }
+    .sale-card { background:#fff; border-radius:16px; border:1px solid #e2e8f0; margin-bottom:10px; overflow:hidden; }
+    .sale-summary { padding:12px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
+    .sale-info h3 { margin:0; font-size:14px; color: var(--dark); }
+    .sale-info span { font-size:11px; color:var(--muted); font-weight: 600; }
+    .sale-total { font-weight:800; color: var(--primary); }
+    .sale-body { display:none; padding:10px 12px; border-top:1px solid #f1f5f9; background: #fafafa; }
+    .ledger-row { display:grid; grid-template-columns:30px 1fr 65px 75px 80px; padding:8px 0; font-size:10px; border-bottom: 1px solid #eee; align-items: center; }
+    .sticky-bar { position: fixed; bottom: 8px; left: 10px; right: 10px; background: var(--dark); color: white; padding: 8px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .sticky-bar small { font-size: 8px; opacity: 0.7; text-transform: uppercase; font-weight: 700; display: block; line-height: 1; }
+    .val-group { display: flex; flex-direction: column; }
+    #grand-qty-ledger { font-size: 13px; font-weight: 800; color: #fff; }
+    #grand-total-ledger { font-size: 15px; font-weight: 800; color: var(--primary); }
+    .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); align-items:center; justify-content:center; z-index: 4000; padding: 10px; }
+    .modal-box { background: white; max-width: 650px; width: 100%; border-radius: 20px; overflow: hidden; }
+    .modal-content { background:#fff; width:100%; max-width:420px; border-radius:18px; max-height:90vh; overflow:auto; padding: 20px; box-sizing: border-box; }
+    .edit-block { background: #f8fafc; padding: 10px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #e2e8f0; }
+    .edit-row { display: grid; grid-template-columns: 1fr 50px 60px 70px; gap: 6px; margin-top: 5px; }
+    .edit-row input { padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 11px; width:100%; box-sizing:border-box; }
+    .btn { border:none; padding:12px; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer; transition: 0.2s; }
+    .btn-dark { background:var(--dark); color:#fff; width: 100%; }
+    .btn-success { background:var(--success); color:#fff; width: 100%; }
+    .btn-del { background:var(--danger); color: #fff; width: 100%; }
+    .credit-tag { background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 800; text-transform: uppercase; }
+    .history-item { font-size: 11px; color: #1f2937; padding: 8px 0; border-bottom: 1px dashed #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+    .history-meta { display: flex; flex-direction: column; }
+    .history-meta small { font-size: 9px; color: var(--muted); font-weight: 600; }
+    .diagnostic-panel { background: #fff5f5; border: 1px solid #fecaca; border-radius: 14px; padding: 12px; margin-bottom: 12px; display: none; }
+    .diagnostic-title { font-size: 11px; font-weight: 800; color: var(--error); text-transform: uppercase; display: flex; justify-content: space-between; }
+    .diagnostic-log { font-size: 11px; margin-top: 5px; color: #7f1d1d; font-family: monospace; line-height: 1.4; }
+
+    /* Custom Dropdown Styles */
+    .custom-dropdown-panel {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 2px solid var(--primary);
+        border-radius: 12px;
+        margin-top: 4px;
+        z-index: 2000;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        max-height: 260px;
+        overflow-y: auto;
+        padding: 10px;
+        box-sizing: border-box;
+    }
+    .custom-dropdown-item {
+        padding: 10px 12px;
+        border-bottom: 1px solid #f1f5f9;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--dark);
+        border-radius: 8px;
+        transition: background 0.2s;
+    }
+    .custom-dropdown-item:hover {
+        background: #eef4ff;
+        color: var(--primary);
+    }
+
+    /* Modern Persistent Alert Modal Dialog */
+    .alert-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 26, 53, 0.85);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 10005;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    .alert-modal-card {
+        background: #ffffff;
+        color: #0f172a;
+        width: 100%;
+        max-width: 360px;
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        text-align: center;
+        animation: scaleUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes scaleUp {
+        from { transform: scale(0.9); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+    .alert-icon-wrap {
+        width: 56px;
+        height: 56px;
+        background: #fef3c7;
+        color: #d97706;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 16px;
+    }
+    .alert-modal-card h3 { font-size: 18px; font-weight: 800; color: var(--dark); margin-bottom: 8px; }
+    .alert-modal-card p { font-size: 13px; color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
+
+    /* --- High-End Dark/Bluish/Orange Template Blocks & Sales Graph Panel --- */
+    .sales-analytics-panel {
+        background: linear-gradient(135deg, #001A35 0%, #071952 100%);
+        border-radius: 20px;
+        padding: 30px;
+        color: white;
+        margin: 25px auto 60px auto;
+        max-width: 800px;
+        box-sizing: border-box;
+        box-shadow: 0 15px 35px rgba(0, 26, 53, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .analytics-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 15px;
+    }
+    .analytics-title {
+        font-size: 16px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .analytics-title span {
+        width: 10px;
+        height: 10px;
+        background: var(--accent);
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 10px var(--accent);
+    }
+    .analytics-badge {
+        background: rgba(0, 114, 206, 0.3);
+        color: #60a5fa;
+        border: 1px solid rgba(96, 165, 250, 0.3);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+    
+    .sales-graph-box {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 25px;
+    }
+    .graph-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    .graph-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: #94a3b8;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+    .graph-val-highlight {
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--accent);
+    }
+    
+    .template-blocks-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 15px;
+    }
+    .template-card {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        transition: transform 0.2s, border-color 0.2s;
+    }
+    .template-card:hover {
+        transform: translateY(-3px);
+        border-color: var(--accent);
+    }
+    .template-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .template-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: rgba(255, 107, 0, 0.15);
+        color: var(--accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 800;
+    }
+    .template-tag {
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #38bdf8;
+        background: rgba(56, 189, 248, 0.1);
+        padding: 2px 8px;
+        border-radius: 4px;
+    }
+    .template-card h5 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 700;
+        color: #fff;
+    }
+    .template-card p {
+        margin: 0;
+        font-size: 11px;
+        color: #94a3b8;
+        line-height: 1.4;
+    }
+
+    /* --- Modernized High-End Payment Modal Overlay --- */
+    .live-stk-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 26, 53, 0.85);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        z-index: 10000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    .stk-modal-card {
+        background: linear-gradient(145deg, #001A35 0%, #0a2540 100%);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 35px rgba(0, 168, 89, 0.15);
+        border-radius: 24px;
+        padding: 32px 24px;
+        max-width: 380px;
+        width: 100%;
+        text-align: center;
+        box-sizing: border-box;
+        animation: scaleUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .stk-icon-glow {
+        width: 64px;
+        height: 64px;
+        background: rgba(0, 168, 89, 0.15);
+        border: 2px solid rgba(0, 168, 89, 0.4);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 16px;
+        box-shadow: 0 0 20px rgba(0, 168, 89, 0.3);
+    }
+    .stk-spinner {
+        width: 34px;
+        height: 34px;
+        border: 3px solid rgba(255, 255, 255, 0.1);
+        border-top-color: var(--mpesa);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .stk-badge-pill {
+        display: inline-block;
+        background: rgba(0, 168, 89, 0.2);
+        color: #22c55e;
+        border: 1px solid rgba(0, 168, 89, 0.3);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 12px;
+    }
+    .stk-modal-card h3 {
+        font-size: 18px;
+        font-weight: 800;
+        color: #ffffff;
+        margin: 0 0 8px 0;
+        letter-spacing: 0.3px;
+    }
+    .stk-modal-card p {
+        font-size: 12px;
+        color: #94a3b8;
+        margin: 0 0 20px 0;
+        line-height: 1.5;
+    }
+    .stk-config-chip {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-size: 11px;
+        color: #38bdf8;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+</style>
+</head>
+<body>
+
+<header class="header-nav">
+    <div class="brand" onclick="promptPin('settings')">
+        AssetGuard <span>Terminal</span>
+        <span id="user-badge" style="display:none; font-size:10px; color:var(--muted); font-weight:600; margin-top:2px;">Detecting Session...</span>
+    </div>
+    <button class="toggle-view-btn" id="toggle-btn" onclick="toggleMainView()">Sales Ledger</button>
+</header>
+
+<div id="view-terminal" class="view-container active">
+    <div class="container">
+        <div id="syncStatus"></div>
+        <div id="saleSection">
+            <h2>Sales Terminal</h2>
+            <div class="form-grid">
+                <div>
+                    <label>Customer Name</label>
+                    <input type="text" id="customer_name" value="Walk-in Customer" oninput="syncHeaderToCart(); validatePayment();">
+                </div>
+                <div>
+                    <label>Payment Method</label>
+                    <select id="payment_status" onchange="togglePaymentExtra(); syncHeaderToCart();">
+                        <option value="Cash">Cash</option>
+                        <option value="M-Pesa">M-Pesa</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Credit">Credit</option>
+                    </select>
+                    <div id="payment_extra_container" class="payment-extra">
+                        <input type="text" id="mpesa_number" placeholder="M-Pesa Number (07XXXXXXXX)" oninput="handleMpesaInputFocus()">
+                        <input type="text" id="mpesa_ref" placeholder="M-Pesa Reference Code (10 Chars)" maxlength="10" oninput="handleMpesaInputFocus()">
+                        <input type="text" id="bank_details" placeholder="Bank Reference Code" oninput="syncHeaderToCart(); validatePayment();">
+                    </div>
+                </div>
+            </div>
+
+            <div class="item-picker">
+                <span id="stock_display" class="stock-tag">STOCK: --</span>
+                <label>Select Stock Item</label>
+                
+                <input type="hidden" id="selected_product_key" value="">
+
+                <div style="background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-top: 5px; position: relative;">
+                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                        <input type="text" id="stockSearchInput" class="search-input" placeholder="🔍 Type to filter items..." oninput="filterStockDropdown()" onclick="openStockDropdown()" style="margin-top: 0; flex: 1; background: #fff;">
+                        <button type="button" id="cancelBtn" class="btn" style="background: var(--primary); color: white; padding: 10px 14px; font-size: 11px; white-space: nowrap; border-radius: 8px; transition: background 0.2s;" onclick="clearStockSelection()">Cancel</button>
+                    </div>
+                    
+                    <div id="customStockDropdown" class="custom-dropdown-panel">
+                        <div id="customStockListItems"></div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <div style="flex: 2;"><label>Price (Excl. VAT)</label><input type="number" id="price" oninput="validatePayment()"></div>
+                    <div style="flex: 1;"><label>Qty</label><input type="number" id="quantity" value="1" min="0" step="any" oninput="validatePayment()"></div>
+                    <div style="flex: 1;"><label>VAT %</label><input type="number" id="vat_rate" value="16" oninput="validatePayment()"></div>
+                </div>
+                <button class="btn-main" id="addBtn" onclick="addToCart()" style="background:var(--dark);" disabled>Add to Sale</button>
+            </div>
+
+            <div id="cart-section"></div>
+
+            <div class="totals-display">
+                <span style="font-size: 11px; opacity: 0.8;">GRAND TOTAL (VAT ADDED)</span>
+                <span id="grand-total-terminal" style="font-size: 22px; font-weight: 700;">KES 0.00</span>
+            </div>
+            <button class="btn-sync" id="processBtn" onclick="processSale()">Confirm Sale & Sync Cloud</button>
+        </div>
+    </div>
+
+    <div class="sales-analytics-panel">
+        <div class="analytics-header">
+            <div class="analytics-title">
+                <span></span> Real-Time Sales Intelligence
+            </div>
+            <div class="analytics-badge">Live Terminal v2.6</div>
+        </div>
+
+        <div class="sales-graph-box">
+            <div class="graph-header-row">
+                <span class="graph-label">Daily Sales Velocity (Last 7 Days)</span>
+                <span class="graph-val-highlight">+24.8% Growth</span>
+            </div>
+            <div style="width: 100%; height: 120px; display: flex; align-items: flex-end; justify-content: space-between; padding-top: 15px; position: relative;">
+                <div style="position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; opacity: 0.1;">
+                    <div style="border-top: 1px dashed white; width: 100%;"></div>
+                    <div style="border-top: 1px dashed white; width: 100%;"></div>
+                    <div style="border-top: 1px dashed white; width: 100%;"></div>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                    <div style="width: 22px; height: 50px; background: rgba(0, 114, 206, 0.4); border-top: 3px solid #60a5fa; border-radius: 4px 4px 0 0;"></div>
+                    <span style="font-size: 9px; color: #94a3b8; font-weight: 700;">Mon</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                    <div style="width: 22px; height: 75px; background: rgba(0, 114, 206, 0.6); border-top: 3px solid #38bdf8; border-radius: 4px 4px 0 0;"></div>
+                    <span style="font-size: 9px; color: #94a3b8; font-weight: 700;">Tue</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                    <div style="width: 22px; height: 60px; background: rgba(0, 114, 206, 0.5); border-top: 3px solid #60a5fa; border-radius: 4px 4px 0 0;"></div>
+                    <span style="font-size: 9px; color: #94a3b8; font-weight: 700;">Wed</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                    <div style="width: 22px; height: 95px; background: linear-gradient(180deg, var(--accent) 0%, rgba(255, 107, 0, 0.4) 100%); border-top: 3px solid var(--accent); border-radius: 4px 4px 0 0; box-shadow: 0 0 15px rgba(255,107,0,0.3);"></div>
+                    <span style="font-size: 9px; color: #fff; font-weight: 800;">Thu</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                    <div style="width: 22px; height: 80px; background: rgba(0, 114, 206, 0.7); border-top: 3px solid #38bdf8; border-radius: 4px 4px 0 0;"></div>
+                    <span style="font-size: 9px; color: #94a3b8; font-weight: 700;">Fri</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                    <div style="width: 22px; height: 110px; background: linear-gradient(180deg, var(--accent) 0%, rgba(255, 107, 0, 0.4) 100%); border-top: 3px solid var(--accent); border-radius: 4px 4px 0 0; box-shadow: 0 0 15px rgba(255,107,0,0.3);"></div>
+                    <span style="font-size: 9px; color: #fff; font-weight: 800;">Sat</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1;">
+                    <div style="width: 22px; height: 65px; background: rgba(0, 114, 206, 0.5); border-top: 3px solid #60a5fa; border-radius: 4px 4px 0 0;"></div>
+                    <span style="font-size: 9px; color: #94a3b8; font-weight: 700;">Sun</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="template-blocks-grid">
+            <div class="template-card">
+                <div class="template-card-top">
+                    <div class="template-icon">⚡</div>
+                    <span class="template-tag">POS Speed</span>
+                </div>
+                <h5>Instant Execution</h5>
+                <p>Sub-millisecond barcode lookup and automated cart calculation designed for high-turnover retail environments.</p>
+            </div>
+
+            <div class="template-card">
+                <div class="template-card-top">
+                    <div class="template-icon"></div>
+                    <span class="template-tag">Tenders</span>
+                </div>
+                <h5>Multi-Tender Routing</h5>
+                <p>Process cash drawers, Safaricom M-Pesa verification codes, bank wire codes, and store credit lines seamlessly.</p>
+            </div>
+
+            <div class="template-card">
+                <div class="template-card-top">
+                    <div class="template-icon"></div>
+                    <span class="template-tag">Tax Engine</span>
+                </div>
+                <h5>Automated VAT (16%)</h5>
+                <p>Precise line-item tax computation with instant subtotal and grand total aggregation for KRA compliance.</p>
+            </div>
+
+            <div class="template-card">
+                <div class="template-card-top">
+                    <div class="template-icon"></div>
+                    <span class="template-tag">Offline Sync</span>
+                </div>
+                <h5>DB Resilience</h5>
+                <p>Zero data loss guarantee during network outages with auto-background synchronization to Firebase database.</p>
+            </div>
+        </div>
+
+        <div class="directory-footer-bar" style="border-top-color: rgba(255,255,255,0.1); margin-top: 25px;">
+            <span style="color: #94a3b8;">ASSETGUARD PRO &bull; Jcorp ltd</span>
+            <a href="#sales" style="color: #38bdf8;">Secure Terminal v2.6</a>
+        </div>
+    </div>
+</div>
+
+<div id="view-ledger" class="view-container">
+    <div id="offlineDiagnosticPanel" class="diagnostic-panel">
+        <div class="diagnostic-title">
+            <span>⚠️ Offline Resilience Alert</span>
+            <span id="diagnosticQuotaText">0 KB / 5120 KB</span>
+        </div>
+        <div id="diagnosticLogMessage" class="diagnostic-log"></div>
+    </div>
+
+    <div class="filter-section">
+        <small style="font-weight:800; color:var(--muted)">DATA FILTERS</small>
+        <div class="filter-grid">
+            <select id="yearFilter" onchange="renderSales()">
+                <option value="all">All Years</option>
+                <option value="2025">2025</option>
+                <option value="2026" selected>2026</option>
+            </select>
+            <select id="monthFilter" onchange="renderSales()">
+                <option value="0">January</option><option value="1">February</option><option value="2">March</option>
+                <option value="3">April</option><option value="4">May</option><option value="5">June</option>
+                <option value="6">July</option><option value="7">August</option><option value="8">September</option>
+                <option value="9">October</option><option value="10">November</option><option value="11">December</option>
+            </select>
+        </div>
+    </div>
+    
+    <input class="search-input" placeholder="Search customer or product..." onkeyup="filterSales()" id="searchInput">
+    
+    <div class="stats-grid" style="margin-top: 12px;">
+        <div class="stat-card"><h4>Gross Revenue</h4><p id="stat-gross">KES 0</p></div>
+        <div class="stat-card" style="border-left-color:var(--danger)"><h4>Total VAT (16%)</h4><p id="stat-tax">KES 0</p></div>
+    </div>
+
+    <div id="sales-container"></div>
+    
+    <div class="sticky-bar">
+        <div class="val-group"><small>Qty</small><div id="grand-qty-ledger">0</div></div>
+        <div class="val-group" style="text-align: right;"><small>Grand Total (Inc. VAT)</small><div id="grand-total-ledger">KES 0.00</div></div>
+    </div>
+</div>
+
+<div id="customAlertModal" class="alert-modal-overlay">
+    <div class="alert-modal-card">
+        <div class="alert-icon-wrap">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        </div>
+        <h3 id="customAlertTitle">Notice</h3>
+        <p id="customAlertMessage">Message description goes here...</p>
+        <button class="btn btn-dark" style="background: var(--primary); padding: 14px; font-size: 14px;" onclick="closeCustomAlert()">OK</button>
+    </div>
+</div>
+
+<!-- Firebase Auth Login Modal -->
+<div id="authLoginModal" class="modal" style="z-index: 6000; display: none;">
+    <div class="modal-content" style="max-width: 340px; text-align: center; background: white;">
+        <h3 style="margin: 0 0 10px 0; font-size: 18px; color: var(--dark);">Firebase Authentication Required</h3>
+        <p style="font-size: 11px; color: var(--muted); margin-bottom: 20px;">Your database security rules require login. Please sign in with your admin email (forexlin254@gmail.com).</p>
+        <input type="email" id="authEmail" value="forexlin254@gmail.com" class="search-input" style="margin-bottom: 10px;" readonly>
+        <input type="password" id="authPassword" placeholder="Enter Firebase Password" class="search-input" style="margin-bottom: 15px;">
+        <div id="authError" style="color: var(--danger); font-size: 10px; font-weight: 700; margin-bottom: 10px; display: none;"></div>
+        <button class="btn btn-success" onclick="handleFirebaseLogin()">Sign In & Sync Instantly</button>
+    </div>
+</div>
+
+<!-- Modernized Live Payment Request Modal Overlay -->
+<div id="liveStkModal" class="live-stk-overlay">
+    <div class="stk-modal-card">
+        <div class="stk-icon-glow">
+            <div class="stk-spinner" id="stkSpinner"></div>
+        </div>
+        <div class="stk-badge-pill">M-Pesa Express Payment</div>
+        <h3 id="liveStkTitle">Sending Payment Request...</h3>
+        <p id="liveStkDesc">Initiating request...</p>
+        <div class="stk-config-chip" id="stkConfigDisplay">Paybill (--)</div>
+        <button id="stkCloseBtn" class="btn btn-dark" style="background: var(--muted); display: none; width: 100%; margin-top: 20px; padding: 12px;" onclick="closeLiveStkModal()">Close</button>
+    </div>
+</div>
+
+<div id="receiptModal" class="modal">
+    <div class="modal-box">
+        <div id="receipt-area" style="padding:0px; background:#fff; font-family:'Plus Jakarta Sans', sans-serif; color:#000; overflow: auto; max-height: 70vh;"></div>
+        <div style="padding:20px; background:#f8fafc; border-top: 1px solid #e2e8f0; display:flex; flex-direction: column; gap:10px;">
+            <div id="thermal-actions-row" style="display:none; flex-direction:column; gap:10px; background:#f1f5f9; padding:12px; border-radius:12px; border:1px solid #e2e8f0;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:10px; font-weight:800; color:var(--muted); text-transform:uppercase;">Bluetooth Device (RPP02N Printer)</span>
+                    <span id="btStatusLabel" style="font-size:10px; font-weight:700; color:#ef4444;">Not Connected</span>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn-main" id="btConnectBtn" style="background:var(--dark); margin:0; flex:1; display:flex; align-items:center; justify-content:center; gap:6px;" onclick="connectBluetoothPrinter()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11"/></svg>
+                        Pair / Connect RPP02N
+                    </button>
+                    <button class="btn-main" id="btPrintBtn" style="background:var(--success); margin:0; flex:1;" disabled onclick="printDirectToBluetooth()">🖨️ Print Direct</button>
+                </div>
+            </div>
+
+            <div id="pdf-actions-row" style="display:flex; gap:10px;">
+                <button class="btn-main" style="background:var(--primary); margin:0; flex:1;" onclick="shareReceipt()">Download PDF</button>
+                <button class="btn-main" style="background:#25D366; margin:0; flex:1;" onclick="nativeShare()">Share Receipt</button>
+            </div>
+
+            <div style="display:flex; gap:10px;">
+                <button class="btn-main" id="receiptFormatToggleBtn" style="background:var(--warning); margin:0; flex:1;" onclick="toggleReceiptFormat()">Switch to 58mm Thermal</button>
+                <button class="btn-main" style="background:#64748b; margin:0; flex:1;" onclick="closeReceipt()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="manageModal" class="modal">
+    <div class="modal-content">
+        <h3 style="margin:0 0 15px 0; font-size: 16px;">Update Transaction</h3>
+        
+        <div id="credit-payment-block" style="display:none; background:#f0f7ff; padding:15px; border-radius:12px; margin-bottom:15px; border:1px solid #d0e1fd;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <span style="font-size:10px; font-weight:800; color:var(--primary);">CREDIT BALANCE</span>
+                <b id="credit-bal-text" style="color:var(--dark);">KES 0.00</b>
+            </div>
+            <div id="payment-history-list" style="max-height:120px; overflow:auto; margin-bottom:10px; background:white; padding:8px; border-radius:6px; border:1px solid #e2e8f0;"></div>
+            <div style="display:grid; grid-template-columns: 1fr 80px; gap:8px;">
+                <input type="number" id="manual-pay-amt" placeholder="Amount to Pay" style="background:white; border-color:var(--primary); padding:8px; font-size:12px;">
+                <button id="btn-add-payment" class="btn btn-dark" style="padding:8px; font-size:10px;">ADD PAY</button>
+            </div>
+        </div>
+
+        <label style="font-size:10px;font-weight:800; color: var(--muted)">CUSTOMER NAME</label>
+        <input type="text" id="edit-cust-name" class="search-input" style="margin-bottom: 10px;">
+        <label style="font-size:10px;font-weight:800; color: var(--muted)">PAYMENT REFERENCE</label>
+        <input type="text" id="edit-pay-ref" class="search-input" style="margin-bottom: 15px;">
+        <div id="edit-items-container"></div>
+        <div style="display:flex; flex-direction: column; gap: 8px; margin-top: 15px;">
+            <button id="btn-save-changes" class="btn btn-success">Update Record</button>
+            <button id="btn-del-mode" class="btn btn-del">Delete Transaction</button>
+            <button onclick="closeModal()" class="btn btn-dark" style="background: var(--muted)">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<div id="pinModal" class="modal" style="z-index: 5000;">
+    <div class="modal-content" style="max-width: 300px; text-align: center; background: white;">
+        <h3 style="margin: 0 0 10px 0; font-size: 16px; color: var(--dark);">Secure Access</h3>
+        <p style="font-size: 11px; color: var(--muted); margin-bottom: 20px;">Enter Admin PIN to manage record</p>
+        <input type="password" id="pinInput" placeholder="Enter 4-Digit PIN" maxlength="4" pattern="[0-9]*" inputmode="numeric" style="margin-bottom: 10px; text-align: center; border: 1px solid #e2e8f0;">
+        <div id="pinError" style="color: var(--danger); font-size: 10px; font-weight: 700; margin-bottom: 10px; display: none;">Incorrect PIN. Please try again.</div>
+        <button class="btn btn-dark" onclick="verifyPin()">Unlock</button>
+        <button class="btn" style="background:transparent; color:var(--muted); margin-top:10px; font-size: 11px;" onclick="closePinModal()">Cancel</button>
+    </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getDatabase, ref, onValue, push, set, runTransaction, remove, update } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyDCkP7LTzdNcvZhp24rRsQirYDCcrsuvOA",
+    authDomain: "assetguard-c8c8c.firebaseapp.com",
+    databaseURL: "https://assetguard-c8c8c-default-rtdb.firebaseio.com/",
+    projectId: "assetguard-c8c8c"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const auth = getAuth(app);
+
+const urlParams = new URLSearchParams(window.location.search);
+let resolvedUID = urlParams.get('uid') || urlParams.get('user') || urlParams.get('currentUID') || urlParams.get('userId');
+
+if (!resolvedUID) {
+    try {
+        if (window.AppInventor && typeof window.AppInventor.getWebViewString === 'function') {
+            const wvString = window.AppInventor.getWebViewString();
+            if (wvString && wvString !== "undefined" && wvString !== "null" && wvString.trim() !== "") {
+                if (wvString.startsWith('{') || wvString.startsWith('[')) {
+                    try {
+                        const parsed = JSON.parse(wvString);
+                        resolvedUID = parsed.uid || parsed.userId || parsed.username || wvString;
+                    } catch(e) {
+                        resolvedUID = wvString;
+                    }
+                } else {
+                    resolvedUID = wvString;
+                }
+            }
+        }
+    } catch(e) {
+        console.error("WebViewString capture failed", e);
+    }
+}
+
+if (!resolvedUID) {
+    resolvedUID = localStorage.getItem("ag_active_uid");
+}
+
+if (!resolvedUID || resolvedUID === "null" || resolvedUID === "undefined" || resolvedUID.trim() === "") {
+    resolvedUID = "global_user";
+}
+
+const currentUID = resolvedUID;
+localStorage.setItem("ag_active_uid", currentUID);
+
+const inventoryPath = `users/${currentUID}/inventory`;
+const salesPath = `users/${currentUID}/sales`;
+const profilePath = `users/${currentUID}/profile`;
+const userSettingsPath = `user_settings/${currentUID}`;
+
+let cart = [];
+let editIndex = -1;
+let pinTargetId = null;
+let pinAction = null;
+let currentActiveLedgerId = null;
+let runtimeActiveLedgerSalesMap = new Map();
+let alertCallback = null;
+let openLedgerCard = null;
+let activeReceiptPayload = null;
+let isThermalReceiptMode = false;
+
+let bluetoothDevice = null;
+let bluetoothCharacteristic = null;
+
+let firebaseInventory = JSON.parse(localStorage.getItem(`ag_stock_cache_${currentUID}`)) || {};
+
+Object.keys(firebaseInventory).forEach(k => {
+    if (firebaseInventory[k]) {
+        let q = Number(firebaseInventory[k].qty !== undefined ? firebaseInventory[k].qty : firebaseInventory[k].quantity);
+        if (!Number.isFinite(q)) {
+            firebaseInventory[k].qty = 0;
+        }
+    }
+});
+localStorage.setItem(`ag_stock_cache_${currentUID}`, JSON.stringify(firebaseInventory));
+
+let syncQueue = JSON.parse(localStorage.getItem(`ag_sales_queue_${currentUID}`)) || [];
+syncQueue = (syncQueue || []).filter(item => {
+    if (!item || !item.items) return false;
+    return item.items.every(i => Number.isFinite(Number(i.quantity)) && Number.isFinite(Number(i.total)));
+});
+localStorage.setItem(`ag_sales_queue_${currentUID}`, JSON.stringify(syncQueue));
+
+let rawLedgerData = JSON.parse(localStorage.getItem(`ag_ledger_cache_${currentUID}`)) || {}; 
+
+let userProfile = JSON.parse(localStorage.getItem(`ag_profile_cache_${currentUID}`)) || { 
+    businessName: "Business Name", 
+    tagline: "Your Business Tagline", 
+    logoUrl: "", 
+    adminPin: "0000",
+    salesConfigSkipped: false,
+    daraja: {
+        backendUrl: "https://weathered-glade-c60b.assetguardinfo.workers.dev",
+        accountType: "Paybill",
+        shortcode: "",
+        passkey: "",
+        consumerKey: "",
+        consumerSecret: ""
+    }
+};
+
+if(!userProfile.adminPin) { userProfile.adminPin = "0000"; }
+if(userProfile.salesConfigSkipped === undefined) { userProfile.salesConfigSkipped = false; }
+if(!userProfile.daraja) {
+    userProfile.daraja = { backendUrl: "https://weathered-glade-c60b.assetguardinfo.workers.dev", accountType: "Paybill", shortcode: "", passkey: "", consumerKey: "", consumerSecret: "" };
+}
+
+window.showAlertModal = (title, message, callback = null) => {
+    document.getElementById('customAlertTitle').innerText = title;
+    document.getElementById('customAlertMessage').innerText = message;
+    alertCallback = callback;
+    document.getElementById('customAlertModal').style.display = 'flex';
+};
+
+window.closeCustomAlert = () => {
+    document.getElementById('customAlertModal').style.display = 'none';
+    if (typeof alertCallback === 'function') {
+        const cb = alertCallback;
+        alertCallback = null;
+        cb();
+    }
+};
+
+window.handleFirebaseLogin = async () => {
+    const email = document.getElementById('authEmail').value;
+    const password = document.getElementById('authPassword').value;
+    const errEl = document.getElementById('authError');
+    if (!password) {
+        errEl.style.display = 'block';
+        errEl.innerText = "Please enter your password.";
+        return;
+    }
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        errEl.style.display = 'none';
+        document.getElementById('authLoginModal').style.display = 'none';
+    } catch (error) {
+        errEl.style.display = 'block';
+        errEl.innerText = error.message || "Authentication failed.";
+    }
+};
+
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        document.getElementById('authLoginModal').style.display = 'none';
+        console.log("Authenticated as:", user.email);
+        deepSyncFirebase();
+        if (navigator.onLine) attemptSync();
+    } else {
+        document.getElementById('authLoginModal').style.display = 'flex';
+    }
+});
+
+window.promptPin = (action, id = null) => {
+    pinAction = action;
+    pinTargetId = id;
+    document.getElementById('pinInput').value = "";
+    document.getElementById('pinError').style.display = "none";
+    
+    const title = document.querySelector('#pinModal h3');
+    const desc = document.querySelector('#pinModal p');
+    if (action === 'settings') {
+        title.innerText = "Settings Access";
+        desc.innerText = "Enter Admin PIN to edit Business Profile";
+    } else {
+        title.innerText = "Secure Access";
+        desc.innerText = "Enter Admin PIN to manage record";
+    }
+    
+    document.getElementById('pinModal').style.display = "flex";
+};
+
+window.closePinModal = () => {
+    document.getElementById('pinModal').style.display = "none";
+    pinTargetId = null;
+    pinAction = null;
+};
+
+window.verifyPin = () => {
+    const input = document.getElementById('pinInput').value;
+    const activePin = userProfile.adminPin || "0000";
+    if (input === activePin) {
+        document.getElementById('pinModal').style.display = "none";
+        setTimeout(() => {
+            if (pinAction === 'settings') {
+                openSettingsDirectly();
+            } else {
+                openManager(pinTargetId);
+            }
+        }, 100);
+    } else {
+        const err = document.getElementById('pinError');
+        err.style.display = "block";
+        err.innerText = "Incorrect PIN. Please try again.";
+        document.getElementById('pinInput').value = "";
+    }
+};
+
+window.openSettingsDirectly = () => {
+    window.location.href = 'settings.html';
+};
+
+window.showPinModal = (id) => {
+    promptPin('manage', id);
+};
+
+window.openManager = (id) => {
+    currentActiveLedgerId = id;
+    let s = runtimeActiveLedgerSalesMap.get(id);
+    if (!s && rawLedgerData[id]) { s = rawLedgerData[id]; }
+
+    if (!s) {
+        showAlertModal("Error", "Transaction record not found.");
+        return;
+    }
+
+    document.getElementById('edit-cust-name').value = s.customer;
+    document.getElementById('edit-pay-ref').value = s.mpesaRef || s.mpesa || s.bank || "";
+    document.getElementById('manual-pay-amt').value = "";
+    
+    const isCredit = (s.payment === "Credit");
+    const creditBlock = document.getElementById('credit-payment-block');
+    if (isCredit) {
+        creditBlock.style.display = 'block';
+        const saleTotal = (s.items || []).reduce((acc, i) => acc + parseFloat(i.total || 0), 0);
+        const paidSoFar = (s.payments || []).reduce((acc, p) => acc + parseFloat(p.amount || 0), 0);
+        const bal = saleTotal - paidSoFar;
+        document.getElementById('credit-bal-text').innerText = `KES ${bal.toLocaleString()}`;
+        const historyList = document.getElementById('payment-history-list');
+        historyList.innerHTML = (s.payments || []).map(p => {
+            const d = new Date(p.date);
+            return `<div class="history-item"><div class="history-meta"><b>KES ${parseFloat(p.amount).toLocaleString()}</b><small>${d.toLocaleDateString()}</small></div></div>`;
+        }).join('') || '<small style="color:var(--muted); font-style:italic;">No payments yet.</small>';
+    } else { creditBlock.style.display = 'none'; }
+
+    document.getElementById('edit-items-container').innerHTML = (s.items || []).map((item, idx) => `
+        <div class="edit-block" data-index="${idx}">
+            <div class="edit-row">
+                <input type="text" value="${item.product}" class="item-prod" readonly>
+                <input type="number" value="${item.quantity}" class="item-qty">
+                <input type="number" value="${item.price}" class="item-price">
+                <input type="number" value="${item.vatRate}" class="item-vrate">
+            </div>
+        </div>`).join('');
+    document.getElementById('manageModal').style.display = 'flex';
+};
+
+const pdfOptions = {
+    margin: [10, 5, 10, 5],
+    filename: `Official_Receipt_${Date.now()}.pdf`,
+    image: { type: 'jpeg', quality: 1.0 },
+    html2canvas: { scale: 4, useCORS: true, letterRendering: true, scrollX: 0, scrollY: 0 },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', precision: 16 }
+};
+
+const thermalPdfOptions = {
+    margin: [2, 2, 2, 2],
+    filename: `Thermal_Receipt_58mm_${Date.now()}.pdf`,
+    image: { type: 'jpeg', quality: 1.0 },
+    html2canvas: { scale: 3, useCORS: true, letterRendering: true },
+    jsPDF: { unit: 'mm', format: [58, 200], orientation: 'portrait' }
+};
+
+window.toggleMainView = () => {
+    const term = document.getElementById('view-terminal');
+    const ledg = document.getElementById('view-ledger');
+    const btn = document.getElementById('toggle-btn');
+    if(term.classList.contains('active')) {
+        term.classList.remove('active'); ledg.classList.add('active');
+        btn.innerText = "Back to Terminal"; renderSales();
+    } else {
+        ledg.classList.remove('active'); term.classList.add('active');
+        btn.innerText = "Sales Ledger";
+    }
+};
+
+window.onload = () => {
+    const badge = document.getElementById('user-badge');
+    if (badge) {
+        badge.innerText = `Active Session: ${currentUID}`;
+    }
+    
+    const currentMonthIdx = new Date().getMonth().toString();
+    const monthSelect = document.getElementById('monthFilter');
+    if (monthSelect) {
+        monthSelect.value = currentMonthIdx;
+    }
+
+    populateDropdown();
+    updateStatusUI();
+    renderSales(); 
+};
+
+async function deepSyncFirebase() {
+    const baseURL = "https://assetguard-c8c8c-default-rtdb.firebaseio.com/";
+    const paths = [`users/${currentUID}/sales.json`];
+    let consolidatedSales = {}; 
+
+    const extract = (data) => {
+        if (!data || typeof data !== 'object') return;
+        Object.keys(data).forEach(key => {
+            const entry = data[key];
+            if (entry && entry.items && entry.timestamp && entry.saleId) {
+                consolidatedSales[entry.saleId] = entry; 
+            } else if (typeof entry === 'object') {
+                extract(entry);
+            }
+        });
+    };
+
+    try {
+        for (const path of paths) {
+            const res = await fetch(baseURL + path);
+            const data = await res.json();
+            extract(data);
+        }
+        if(Object.keys(consolidatedSales).length > 0) {
+            rawLedgerData = consolidatedSales;
+            localStorage.setItem(`ag_ledger_cache_${currentUID}`, JSON.stringify(rawLedgerData));
+            renderSales();
+        }
+    } catch (e) { console.error("Deep Sync Failed", e); }
+}
+
+onValue(ref(db, inventoryPath), snap => {
+    const cachedInventory = JSON.parse(localStorage.getItem(`ag_stock_cache_${currentUID}`) || "{}");
+    const pendingInventory = JSON.parse(localStorage.getItem(`ag_inv_queue_${currentUID}`) || "[]");
+    const rawVal = snap.exists() ? (snap.val() || {}) : (cachedInventory || {});
+
+    firebaseInventory = {};
+    Object.keys(rawVal).forEach(k => {
+        if (rawVal[k]) {
+            let q = Number(rawVal[k].qty !== undefined ? rawVal[k].qty : rawVal[k].quantity);
+            firebaseInventory[k] = { ...rawVal[k], qty: Number.isFinite(q) ? q : 0 };
+        }
+    });
+
+    if (Array.isArray(pendingInventory)) {
+        pendingInventory.forEach(item => {
+            if (!item || !item.id) return;
+            if (item.isDelete) {
+                delete firebaseInventory[item.id];
+            } else if (item.name) {
+                let q = Number(item.qty !== undefined ? item.qty : item.quantity);
+                firebaseInventory[item.id] = { 
+                    ...(firebaseInventory[item.id] || {}), 
+                    ...item, 
+                    qty: Number.isFinite(q) ? q : (firebaseInventory[item.id]?.qty || 0) 
+                };
+            }
+        });
+    }
+
+    localStorage.setItem(`ag_stock_cache_${currentUID}`, JSON.stringify(firebaseInventory));
+    populateDropdown();
+    updateStockDisplay();
+});
+
+onValue(ref(db, salesPath), snapshot => {
+    const snapVal = snapshot.val();
+    rawLedgerData = snapVal || {};
+    localStorage.setItem(`ag_ledger_cache_${currentUID}`, JSON.stringify(rawLedgerData));
+    renderSales();
+});
+
+onValue(ref(db, profilePath), snap => {
+    if (snap.exists()) {
+        const val = snap.val();
+        userProfile = {
+            ...userProfile,
+            ...val,
+            salesConfigSkipped: val.salesConfigSkipped !== undefined ? val.salesConfigSkipped : userProfile.salesConfigSkipped,
+            daraja: val.daraja || userProfile.daraja
+        };
+        localStorage.setItem(`ag_profile_cache_${currentUID}`, JSON.stringify(userProfile));
+    }
+});
+
+onValue(ref(db, userSettingsPath), snap => {
+    if (snap.exists()) {
+        const val = snap.val();
+        userProfile = {
+            ...userProfile,
+            businessName: val.businessName || userProfile.businessName,
+            tagline: val.tagline || userProfile.tagline,
+            logoUrl: val.logoUrl || userProfile.logoUrl,
+            salesConfigSkipped: val.salesConfigSkipped !== undefined ? val.salesConfigSkipped : false,
+            daraja: val.salesDaraja || val.daraja || userProfile.daraja
+        };
+        localStorage.setItem(`ag_profile_cache_${currentUID}`, JSON.stringify(userProfile));
+    }
+});
+
+function populateDropdown() {
+    const listContainer = document.getElementById('customStockListItems');
+    if(!listContainer) return;
+    const query = (document.getElementById('stockSearchInput')?.value || "").toLowerCase();
+    
+    listContainer.innerHTML = "";
+    let matchCount = 0;
+
+    if (firebaseInventory && typeof firebaseInventory === 'object') {
+        Object.keys(firebaseInventory).forEach(k => {
+            const item = firebaseInventory[k];
+            if (item && typeof item === 'object' && item.name) {
+                const itemName = String(item.name);
+                if (itemName.toLowerCase().includes(query)) {
+                    matchCount++;
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'custom-dropdown-item';
+                    const stockQty = Number(item.qty);
+                    const inStock = Number.isFinite(stockQty) && stockQty > 0;
+                    itemDiv.innerText = inStock ? `${itemName} (Stock: ${stockQty})` : `${itemName} — OUT OF STOCK`;
+                    
+                    if (inStock) {
+                        itemDiv.onclick = () => selectStockItem(k, itemName);
+                    } else {
+                        itemDiv.style.opacity = '0.55';
+                        itemDiv.style.cursor = 'not-allowed';
+                        itemDiv.onclick = () => {
+                            showAlertModal("Insufficient Stock", `${itemName} is currently out of stock (0 available).`);
+                        };
+                    }
+                    listContainer.appendChild(itemDiv);
+                }
+            }
+        });
+    }
+
+    if (matchCount === 0) {
+        listContainer.innerHTML = '<div style="padding: 10px; font-size: 12px; color: var(--muted); text-align: center;">No stock items found</div>';
+    }
+}
+
+window.openStockDropdown = () => {
+    document.getElementById('customStockDropdown').style.display = 'block';
+    populateDropdown();
+};
+
+window.closeStockDropdown = () => {
+    document.getElementById('customStockDropdown').style.display = 'none';
+};
+
+window.filterStockDropdown = () => {
+    openStockDropdown();
+};
+
+window.selectStockItem = (key, name) => {
+    const stockQty = Number(firebaseInventory[key]?.qty);
+    if (!Number.isFinite(stockQty) || stockQty <= 0) {
+        showAlertModal("Insufficient Stock", `${name} has 0 stock available and cannot be selected.`);
+        clearStockSelection();
+        return;
+    }
+    document.getElementById('selected_product_key').value = key;
+    document.getElementById('stockSearchInput').value = name;
+    closeStockDropdown();
+    updateStockDisplay();
+    validatePayment();
+};
+
+window.clearStockSelection = () => {
+    const cancelBtn = document.getElementById('cancelBtn');
+    if (cancelBtn) {
+        cancelBtn.style.background = '#38bdf8';
+        setTimeout(() => {
+            cancelBtn.style.background = 'var(--primary)';
+        }, 400);
+    }
+    document.getElementById('stockSearchInput').value = "";
+    document.getElementById('selected_product_key').value = "";
+    closeStockDropdown();
+    updateStockDisplay();
+    validatePayment();
+};
+
+window.updateStockDisplay = () => {
+    const k = document.getElementById('selected_product_key').value;
+    if(k && firebaseInventory[k]) {
+        const q = Number(firebaseInventory[k].qty);
+        document.getElementById('stock_display').innerText = `STOCK: ${Number.isFinite(q) ? q : 0}`;
+        document.getElementById('price').value = firebaseInventory[k].salePrice || firebaseInventory[k].price || 0;
+    } else {
+        document.getElementById('stock_display').innerText = "STOCK: --";
+        document.getElementById('price').value = "";
+    }
+    validatePayment();
+};
+
+function getCartQuantityForProduct(productKey, exceptIndex = -1) {
+    return cart.reduce((total, item, index) => {
+        if (index === exceptIndex || item.dbKey !== productKey) return total;
+        const quantity = Number(item.quantity);
+        return total + (Number.isFinite(quantity) && quantity > 0 ? quantity : 0);
+    }, 0);
+}
+
+function getAvailableStock(productKey, exceptIndex = editIndex) {
+    const item = firebaseInventory[productKey];
+    if (!item || !item.name) return 0;
+    const stockQty = Number(item.qty);
+    if (!Number.isFinite(stockQty) || stockQty <= 0) return 0;
+    return Math.max(0, stockQty - getCartQuantityForProduct(productKey, exceptIndex));
+}
+
+function getCartStockIssue() {
+    const requestedByProduct = new Map();
+    cart.forEach(item => {
+        let quantity = Number(item.quantity);
+        if (!Number.isFinite(quantity) || quantity <= 0) quantity = 1;
+        if (item.dbKey) {
+            requestedByProduct.set(item.dbKey, (requestedByProduct.get(item.dbKey) || 0) + quantity);
+        }
+    });
+
+    for (const [productKey, requested] of requestedByProduct) {
+        const product = firebaseInventory[productKey];
+        let available = Number(product?.qty);
+        if (!Number.isFinite(available)) available = 0;
+        if (!product || !product.name || available < requested) {
+            return {
+                product: product?.name || 'Selected item',
+                requested,
+                available
+            };
+        }
+    }
+    return null;
+}
+
+function applySaleStockDecrement(inventory, requestedByProduct) {
+    if (!inventory || typeof inventory !== 'object' || requestedByProduct.size === 0) return inventory;
+    const nextInventory = { ...inventory };
+    for (const [productKey, requested] of requestedByProduct) {
+        const product = nextInventory[productKey];
+        if (product) {
+            let currentQty = Number(product.qty !== undefined ? product.qty : (product.quantity || 0));
+            if (!Number.isFinite(currentQty)) currentQty = 0;
+            let reqQty = Number(requested);
+            if (!Number.isFinite(reqQty)) reqQty = 0;
+            nextInventory[productKey] = { ...product, qty: Math.max(0, currentQty - reqQty) };
+        }
+    }
+    return nextInventory;
+}
+
+function showStockIssue(issue) {
+    showAlertModal(
+        "Exceeded Available Stock",
+        `You requested ${issue.requested} units of ${issue.product}, which exceeds your available inventory. Maximum available stock is ${issue.available}.`
+    );
+}
+
+window.handleMpesaInputFocus = () => {
+    const phoneInput = document.getElementById('mpesa_number');
+    const refInput = document.getElementById('mpesa_ref');
+    
+    const phoneVal = phoneInput.value.trim();
+    const refVal = refInput.value.trim();
+    
+    if (phoneVal !== "") {
+        refInput.disabled = true;
+        refInput.value = "";
+    } else {
+        refInput.disabled = false;
+    }
+    
+    if (refVal !== "") {
+        phoneInput.disabled = true;
+        phoneInput.value = "";
+    } else {
+        phoneInput.disabled = false;
+    }
+    
+    syncHeaderToCart();
+    validatePayment();
+};
+
+window.validatePayment = () => {
+    const method = document.getElementById('payment_status').value;
+    const mpesa = document.getElementById('mpesa_number');
+    const mpesaRef = document.getElementById('mpesa_ref');
+    const bank = document.getElementById('bank_details');
+    const product = document.getElementById('selected_product_key').value;
+    const qtyInput = document.getElementById('quantity');
+    const priceInput = document.getElementById('price');
+    
+    let qty = parseFloat(qtyInput.value);
+    if (!Number.isFinite(qty) || qty <= 0) qty = 1;
+
+    let price = parseFloat(priceInput.value);
+    if (!Number.isFinite(price)) price = 0;
+
+    const stockAvailable = product ? getAvailableStock(product) : 0;
+    // Keep button active when stock exists and qty > 0 so clicking it can display the stock limit modal prompt
+    const stockOk = Boolean(product && firebaseInventory[product] && qty > 0 && stockAvailable > 0);
+
+    let paymentOk = true;
+    if (method === 'M-Pesa') {
+        const phoneVal = mpesa.value.trim();
+        const refVal = mpesaRef.value.trim();
+        const isPhone = /^(07|01)\d{8}$/.test(phoneVal) || /^\+254\d{9}$/.test(phoneVal);
+        const isRef = /^[A-Z0-9]{10}$/i.test(refVal);
+        
+        paymentOk = isPhone || isRef;
+        mpesa.className = phoneVal === "" ? "" : (isPhone ? 'valid-kenya' : 'invalid-kenya');
+        mpesaRef.className = refVal === "" ? "" : (isRef ? 'valid-kenya' : 'invalid-kenya');
+    } else if (method === 'Bank Transfer') {
+        paymentOk = bank.value.length >= 5;
+        bank.className = bank.value === "" ? "" : (paymentOk ? 'valid-kenya' : 'invalid-kenya');
+    }
+    
+    document.getElementById('addBtn').disabled = !(paymentOk && stockOk && price > 0);
+};
+
+window.togglePaymentExtra = () => {
+    const m = document.getElementById('payment_status').value;
+    const container = document.getElementById('payment_extra_container');
+    container.style.display = (m === 'M-Pesa' || m === 'Bank Transfer') ? 'flex' : 'none';
+    document.getElementById('mpesa_number').style.display = (m === 'M-Pesa') ? 'block' : 'none';
+    document.getElementById('mpesa_ref').style.display = (m === 'M-Pesa') ? 'block' : 'none';
+    document.getElementById('bank_details').style.display = (m === 'Bank Transfer') ? 'block' : 'none';
+};
+
+function lockInputs(l) { 
+    ['customer_name', 'payment_status', 'mpesa_number', 'mpesa_ref', 'bank_details'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.disabled = l;
+    });
+}
+
+window.syncHeaderToCart = () => {
+    const name = document.getElementById('customer_name').value;
+    const method = document.getElementById('payment_status').value;
+    const mpesa = document.getElementById('mpesa_number').value;
+    const mpesaRef = document.getElementById('mpesa_ref').value;
+    const bank = document.getElementById('bank_details').value;
+    if(cart.length > 0) {
+        cart = cart.map(item => ({ ...item, customer: name, payment: method, mpesa: mpesa, mpesaRef: mpesaRef, bank: bank }));
+        updateCartUI();
+    }
+};
+
+window.addToCart = () => {
+    const k = document.getElementById('selected_product_key').value;
+    let qty = parseFloat(document.getElementById('quantity').value);
+    if (!Number.isFinite(qty) || qty <= 0) {
+        qty = 1;
+        document.getElementById('quantity').value = 1;
+    }
+
+    let prc = parseFloat(document.getElementById('price').value);
+    if (!Number.isFinite(prc)) prc = 0;
+
+    let vRate = parseFloat(document.getElementById('vat_rate').value);
+    if (!Number.isFinite(vRate)) vRate = 16;
+
+    const product = firebaseInventory[k];
+    if (!product || !product.name) {
+        showAlertModal("Select an Item", "Choose a stock item before adding it to the sale.");
+        return;
+    }
+
+    const available = getAvailableStock(k);
+    if (available <= 0) {
+        showAlertModal("Insufficient Stock", `${product.name} has 0 stock available. Sale cannot proceed.`);
+        validatePayment();
+        return;
+    }
+    if (qty > available) {
+        showStockIssue({ product: product.name, requested: qty, available });
+        validatePayment();
+        return;
+    }
+
+    const sub = prc * qty;
+    const vAmt = sub * (vRate / 100);
+
+    const newItem = {
+        dbKey: k, product: product.name, price: prc, quantity: qty,
+        vatRate: vRate, vatAmount: vAmt.toFixed(2), total: (sub + vAmt).toFixed(2),
+        customer: document.getElementById('customer_name').value,
+        payment: document.getElementById('payment_status').value,
+        mpesa: document.getElementById('mpesa_number').value || "",
+        mpesaRef: document.getElementById('mpesa_ref').value || "",
+        bank: document.getElementById('bank_details').value || ""
+    };
+
+    if(editIndex > -1) { cart[editIndex] = newItem; editIndex = -1; document.getElementById('addBtn').innerText = "Add to Sale"; }
+    else { cart.push(newItem); }
+    
+    syncHeaderToCart(); lockInputs(true); resetItemFields();
+};
+
+function resetItemFields() {
+    clearStockSelection();
+}
+
+function updateCartUI() {
+    const section = document.getElementById('cart-section');
+    section.innerHTML = "";
+    let grand = 0;
+    cart.forEach((item, i) => {
+        grand += parseFloat(item.total);
+        let refText = "-";
+        if (item.payment === 'M-Pesa') {
+            refText = item.mpesaRef ? `Ref: ${item.mpesaRef}` : (item.mpesa ? `Phone: ${item.mpesa}` : "-");
+        } else if (item.payment === 'Bank Transfer') {
+            refText = item.bank;
+        }
+        section.innerHTML += `
+            <div class="cart-card">
+                <div class="cart-card-header">${item.product}</div>
+                <div class="cart-info-grid">
+                    <div class="info-box"><span>Customer</span><p>${item.customer}</p></div>
+                    <div class="info-box"><span>${item.payment} Ref</span><p>${refText}</p></div>
+                </div>
+                <div class="math-horizontal-box">
+                    <div class="math-item">Price: <b>${item.price}</b></div>
+                    <div class="math-item">Qty: <b>${item.quantity}</b></div>
+                    <div class="math-item">VAT: <b>${item.vatAmount}</b></div>
+                    <div class="math-total-text">KES ${parseFloat(item.total).toLocaleString()}</div>
+                </div>
+                <div class="cart-footer">
+                    <button class="btn-edit" onclick="editCart(${i})">Edit</button>
+                    <button class="btn-del" onclick="removeCart(${i})">Remove</button>
+                </div>
+            </div>`;
+    });
+    document.getElementById('grand-total-terminal').innerText = "KES " + grand.toLocaleString();
+}
+
+window.editCart = (i) => {
+    editIndex = i; lockInputs(false);
+    const itm = cart[i];
+    document.getElementById('customer_name').value = itm.customer;
+    document.getElementById('payment_status').value = itm.payment;
+    togglePaymentExtra();
+    document.getElementById('mpesa_number').value = itm.mpesa || "";
+    document.getElementById('mpesa_ref').value = itm.mpesaRef || "";
+    document.getElementById('bank_details').value = itm.bank || "";
+    handleMpesaInputFocus();
+    
+    document.getElementById('stockSearchInput').value = itm.product;
+    document.getElementById('selected_product_key').value = itm.dbKey;
+    document.getElementById('price').value = itm.price;
+    document.getElementById('quantity').value = itm.quantity;
+    document.getElementById('addBtn').innerText = "Update Item";
+    document.getElementById('addBtn').disabled = false;
+};
+
+window.removeCart = (i) => { cart.splice(i, 1); if(!cart.length) lockInputs(false); updateCartUI(); };
+
+window.processSale = () => {
+    if(!cart.length) return;
+    const stockIssue = getCartStockIssue();
+    if (stockIssue) {
+        showStockIssue(stockIssue);
+        return;
+    }
+    
+    const paymentMode = document.getElementById('payment_status').value;
+    
+    if (paymentMode === 'M-Pesa') {
+        const phoneInput = document.getElementById('mpesa_number').value.trim();
+        const refInput = document.getElementById('mpesa_ref').value.trim();
+        const darajaConfig = userProfile.daraja || {};
+        const salesSkipped = userProfile.salesConfigSkipped === true;
+
+        const isPhone = /^(07|01)\d{8}$/.test(phoneInput) || /^\+254\d{9}$/.test(phoneInput);
+        const isRef = /^[A-Z0-9]{10}$/i.test(refInput);
+
+        if (!isPhone && !isRef) {
+            showAlertModal("Invalid Details", "Please enter either a valid M-Pesa phone number (07XXXXXXXX) or an exact 10-character M-Pesa transaction reference code.");
+            return;
+        }
+
+        const isStkConfigured = !salesSkipped && darajaConfig.shortcode && darajaConfig.shortcode.trim() !== "" && darajaConfig.passkey && darajaConfig.passkey.trim() !== "";
+
+        if (isRef || !isStkConfigured || !isPhone) {
+            finalizeSaleTransaction();
+        } else {
+            triggerLiveMpesaStkPush(phoneInput, darajaConfig);
+        }
+    } else {
+        finalizeSaleTransaction();
+    }
+};
+
+async function triggerLiveMpesaStkPush(phone, config) {
+    const modal = document.getElementById('liveStkModal');
+    const titleEl = document.getElementById('liveStkTitle');
+    const descEl = document.getElementById('liveStkDesc');
+    const codeDisplay = document.getElementById('stkConfigDisplay');
+    const spinnerEl = document.getElementById('stkSpinner');
+    const closeBtn = document.getElementById('stkCloseBtn');
+    
+    modal.style.display = "flex";
+    spinnerEl.style.display = "block";
+    closeBtn.style.display = "none";
+    codeDisplay.innerText = `${config.accountType || 'Paybill'} (${config.shortcode || 'N/A'})`;
+    titleEl.innerText = "Sending Payment Request...";
+    titleEl.style.color = "#fff";
+    descEl.innerText = `Sending payment prompt to ${phone}...`;
+
+    let formattedPhone = phone.trim();
+    if (formattedPhone.startsWith('0')) {
+        formattedPhone = '254' + formattedPhone.substring(1);
+    } else if (formattedPhone.startsWith('+')) {
+        formattedPhone = formattedPhone.substring(1);
+    }
+
+    const grandTotal = cart.reduce((acc, i) => acc + parseFloat(i.total), 0);
+    const backendUrl = config.backendUrl || "https://weathered-glade-c60b.assetguardinfo.workers.dev";
+
+    try {
+        const response = await fetch(backendUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'stk_push',
+                phone: formattedPhone,
+                phoneNumber: formattedPhone,
+                amount: Math.round(grandTotal),
+                shortcode: config.shortcode,
+                passkey: config.passkey,
+                consumerKey: config.consumerKey,
+                consumerSecret: config.consumerSecret,
+                environment: config.environment || "production",
+                accountType: config.accountType || "Paybill"
+            })
+        });
+
+        const rawText = await response.text();
+        let result = {};
+        try {
+            result = JSON.parse(rawText);
+        } catch(e) {
+            result = { message: rawText };
+        }
+
+        if (response.ok && (result.success || result.ResponseCode === "0" || result.MerchantRequestID || result.CheckoutRequestID)) {
+            titleEl.innerText = "Payment Request Sent Successfully";
+            descEl.innerText = "Please check your phone and enter your M-Pesa PIN.";
+            spinnerEl.style.display = "none";
+            
+            setTimeout(() => {
+                modal.style.display = "none";
+                titleEl.style.color = "#fff";
+                finalizeSaleTransaction();
+            }, 3000);
+        } else {
+            const exactError = result.errorMessage || result.message || result.resultDesc || result.ResponseDescription || rawText || "Payment gateway refused the request.";
+            throw new Error(exactError);
+        }
+    } catch (error) {
+        console.error("Payment Gateway Error:", error);
+        titleEl.innerText = "Payment Request Failed";
+        titleEl.style.color = "var(--danger)";
+        spinnerEl.style.display = "none";
+        
+        descEl.innerText = error.message || "Network error connecting to payment gateway.";
+        closeBtn.style.display = "block";
+        
+        document.getElementById('processBtn').disabled = false;
+        document.getElementById('processBtn').innerText = "Confirm Sale & Sync Cloud";
+    }
+}
+
+window.closeLiveStkModal = () => {
+    document.getElementById('liveStkModal').style.display = 'none';
+};
+
+function finalizeSaleTransaction() {
+    const stockIssue = getCartStockIssue();
+    if (stockIssue) {
+        showStockIssue(stockIssue);
+        return;
+    }
+
+    const btn = document.getElementById('processBtn');
+    btn.disabled = true;
+    btn.innerText = "Processing...";
+
+    const uniqueSaleId = "SALE-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+
+    const trans = {
+        saleId: uniqueSaleId,
+        customer: cart[0].customer,
+        payment: cart[0].payment,
+        mpesa: cart[0].mpesa || "",
+        mpesaRef: cart[0].mpesaRef || "",
+        bank: cart[0].bank || "",
+        timestamp: new Date().toISOString(),
+        items: cart,
+        payments: [] 
+    };
+    
+    syncQueue.push(trans);
+    localStorage.setItem(`ag_sales_queue_${currentUID}`, JSON.stringify(syncQueue));
+    
+    cart.forEach(itm => {
+        if (firebaseInventory[itm.dbKey]) {
+            let curQty = Number(firebaseInventory[itm.dbKey].qty !== undefined ? firebaseInventory[itm.dbKey].qty : firebaseInventory[itm.dbKey].quantity || 0);
+            if (!Number.isFinite(curQty)) curQty = 0;
+            let soldQty = Number(itm.quantity);
+            if (!Number.isFinite(soldQty)) soldQty = 1;
+            firebaseInventory[itm.dbKey].qty = Math.max(0, curQty - soldQty);
+        }
+    });
+    localStorage.setItem(`ag_stock_cache_${currentUID}`, JSON.stringify(firebaseInventory));
+    populateDropdown();
+
+    openReceiptSummary([...cart]);
+    resetFullForm();
+    
+    renderSales();
+    attemptSync();
+}
+
+function resetFullForm() {
+    cart = []; 
+    editIndex = -1; 
+    updateCartUI();
+    document.getElementById('customer_name').value = "Walk-in Customer";
+    document.getElementById('payment_status').value = "Cash";
+    document.getElementById('mpesa_number').value = "";
+    document.getElementById('mpesa_ref').value = "";
+    document.getElementById('bank_details').value = "";
+    document.getElementById('mpesa_number').disabled = false;
+    document.getElementById('mpesa_ref').disabled = false;
+    togglePaymentExtra(); 
+    lockInputs(false); 
+    resetItemFields();
+    
+    const btn = document.getElementById('processBtn');
+    btn.disabled = false;
+    btn.innerText = "Confirm Sale & Sync Cloud";
+}
+
+async function attemptSync() {
+    if(syncQueue.length === 0) return;
+    let tempQueue = [...syncQueue];
+    const diagPanel = document.getElementById('offlineDiagnosticPanel');
+    const diagLog = document.getElementById('diagnosticLogMessage');
+    
+    for(let i = 0; i < tempQueue.length; i++) {
+        const trans = { ...tempQueue[i] };
+        const sID = trans.saleId;
+        try {
+            if (trans.isDeleteOnly) {
+                if (navigator.onLine) await remove(ref(db, `${salesPath}/${sID}`));
+            } else if (trans.isUpdateOnly) {
+                delete trans.isUpdateOnly;
+                if (navigator.onLine) await update(ref(db, `${salesPath}/${sID}`), trans);
+            } else {
+                const requestedByProduct = new Map();
+                (trans.items || []).forEach(item => {
+                    let quantity = Number(item.quantity);
+                    if (!Number.isFinite(quantity) || quantity <= 0) quantity = 1;
+                    if (item.dbKey) {
+                        requestedByProduct.set(item.dbKey, (requestedByProduct.get(item.dbKey) || 0) + quantity);
+                    }
+                });
+
+                if (!trans.inventoryDeducted && navigator.onLine) {
+                    await runTransaction(
+                        ref(db, inventoryPath),
+                        inventory => applySaleStockDecrement(inventory, requestedByProduct)
+                    );
+                    trans.inventoryDeducted = true;
+                }
+
+                const saleRecord = { ...trans };
+                delete saleRecord.inventoryDeducted;
+                if (navigator.onLine) {
+                    await set(ref(db, `${salesPath}/${sID}`), saleRecord);
+                }
+                trans.inventoryDeducted = undefined;
+            }
+            const completedIndex = syncQueue.findIndex(item => item.saleId === sID);
+            if (completedIndex !== -1) syncQueue.splice(completedIndex, 1);
+            localStorage.setItem(`ag_sales_queue_${currentUID}`, JSON.stringify(syncQueue));
+            
+            if (!trans.isDeleteOnly) {
+                rawLedgerData[sID] = trans;
+                localStorage.setItem(`ag_ledger_cache_${currentUID}`, JSON.stringify(rawLedgerData));
+            } else {
+                delete rawLedgerData[sID];
+                localStorage.setItem(`ag_ledger_cache_${currentUID}`, JSON.stringify(rawLedgerData));
+            }
+            renderSales();
+        } catch (e) { 
+            console.error("Sync error caught: ", e);
+            if (diagPanel && diagLog) {
+                diagPanel.style.display = "block";
+                diagLog.innerText = `Sync status: ${e.message || e}. Will retry when connection stabilizes.`;
+            }
+            break; 
+        }
+    }
+    updateStatusUI();
+}
+
+function updateStatusUI() {
+    const banner = document.getElementById('syncStatus');
+    if (!banner) return;
+    if (!navigator.onLine) { banner.innerText = "Offline Mode"; banner.className = "status-offline"; banner.style.display = "block"; }
+    else if (syncQueue.length > 0) { banner.innerText = "Syncing..."; banner.className = "status-syncing"; banner.style.display = "block"; }
+    else banner.style.display = "none";
+}
+
+window.openReceiptSummary = (items) => {
+    let refStr = "";
+    if (items[0].payment === 'M-Pesa') {
+        refStr = items[0].mpesaRef ? `Ref: ${items[0].mpesaRef}` : (items[0].mpesa ? `Phone: ${items[0].mpesa}` : "");
+    } else if (items[0].payment === 'Bank Transfer') {
+        refStr = items[0].bank;
+    }
+
+    activeReceiptPayload = {
+        customer: items[0].customer,
+        payment: items[0].payment,
+        reference: refStr,
+        items: items,
+        timestamp: new Date().toISOString(),
+        partialPayments: []
+    };
+    isThermalReceiptMode = false;
+    updateReceiptModalUI();
+    generateReceiptContent();
+    document.getElementById('receiptModal').style.display = 'flex';
+};
+
+window.reprintReceipt = (id) => {
+    const sale = runtimeActiveLedgerSalesMap.get(id);
+    if (!sale) return;
+    let refStr = "";
+    if (sale.payment === 'M-Pesa') {
+        refStr = sale.mpesaRef ? `Ref: ${sale.mpesaRef}` : (sale.mpesa ? `Phone: ${sale.mpesa}` : "");
+    } else if (sale.payment === 'Bank Transfer') {
+        refStr = sale.bank;
+    }
+
+    activeReceiptPayload = {
+        customer: sale.customer,
+        payment: sale.payment,
+        reference: refStr,
+        items: sale.items,
+        timestamp: sale.timestamp,
+        partialPayments: sale.payments || []
+    };
+    isThermalReceiptMode = false;
+    updateReceiptModalUI();
+    generateReceiptContent();
+    document.getElementById('receiptModal').style.display = 'flex';
+};
+
+window.connectBluetoothPrinter = async () => {
+    try {
+        if (!navigator.bluetooth) {
+            showAlertModal("Not Supported", "Web Bluetooth is not supported on this browser or device.");
+            return;
+        }
+
+        const device = await navigator.bluetooth.requestDevice({
+            filters: [
+                { name: 'RPP02N' },
+                { namePrefix: 'RPP' },
+                { namePrefix: 'MTP' }
+            ],
+            optionalServices: [
+                '000018f0-0000-1000-8000-00805f9b34fb',
+                '0000ffe0-0000-1000-8000-00805f9b34fb',
+                '49535343-fe7d-4ae5-8fa9-9fafd205e455',
+                '0000ff00-0000-1000-8000-00805f9b34fb'
+            ]
+        });
+
+        const server = await device.gatt.connect();
+        const services = await server.getPrimaryServices();
+        
+        for (let service of services) {
+            const characteristics = await service.getCharacteristics();
+            for (let characteristic of characteristics) {
+                if (characteristic.properties.write || characteristic.properties.writeWithoutResponse) {
+                    bluetoothCharacteristic = characteristic;
+                    bluetoothDevice = device;
+                    const btBtn = document.getElementById('btConnectBtn');
+                    const btStatus = document.getElementById('btStatusLabel');
+                    if (btBtn) {
+                        btBtn.innerText = `Connected: ${device.name || 'RPP02N'}`;
+                        btBtn.style.background = '#22c55e';
+                    }
+                    if (btStatus) {
+                        btStatus.innerText = "Connected";
+                        btStatus.style.color = "#22c55e";
+                    }
+                    document.getElementById('btPrintBtn').disabled = false;
+                    showAlertModal("Paired & Connected", `Successfully paired with ${device.name || 'RPP02N'}!`);
+                    return;
+                }
+            }
+        }
+        showAlertModal("Error", "No writable printer characteristic found on this device.");
+    } catch (error) {
+        console.error("Bluetooth connection failed", error);
+        if (error.name !== 'NotFoundError') {
+            showAlertModal("Pairing Failed", error.message || "Could not pair with Bluetooth printer.");
+        }
+    }
+};
+
+window.printDirectToBluetooth = async () => {
+    if (!bluetoothCharacteristic) {
+        showAlertModal("Not Connected", "Please pair and connect your Bluetooth printer first.");
+        return;
+    }
+
+    try {
+        const payload = activeReceiptPayload;
+        if (!payload) return;
+
+        const encoder = new TextEncoder();
+        let commands = [];
+
+        commands.push(new Uint8Array([0x1B, 0x40]));
+        commands.push(new Uint8Array([0x1B, 0x61, 0x01]));
+        commands.push(new Uint8Array([0x1B, 0x45, 0x01]));
+        commands.push(encoder.encode((userProfile.businessName || 'Business Name') + '\n'));
+        commands.push(new Uint8Array([0x1B, 0x45, 0x00]));
+        commands.push(encoder.encode((userProfile.tagline || 'Receipt & Invoicing') + '\n'));
+        
+        const dateObj = new Date(payload.timestamp);
+        commands.push(encoder.encode(`Date: ${dateObj.toLocaleDateString()} ${dateObj.toLocaleTimeString()}\n`));
+        commands.push(encoder.encode('--------------------------------\n'));
+
+        commands.push(new Uint8Array([0x1B, 0x61, 0x00]));
+        commands.push(encoder.encode(`Customer: ${payload.customer}\n`));
+        commands.push(encoder.encode(`Payment: ${payload.payment} ${payload.reference ? '('+payload.reference+')' : ''}\n`));
+        commands.push(encoder.encode('--------------------------------\n'));
+
+        let subTotal = 0;
+        let totalTax = 0;
+
+        payload.items.forEach(s => {
+            const lineSub = parseFloat(s.price) * parseFloat(s.quantity);
+            subTotal += lineSub;
+            totalTax += parseFloat(s.vatAmount);
+            commands.push(encoder.encode(`* ${s.product}\n`));
+            commands.push(encoder.encode(`  ${s.quantity} x ${parseFloat(s.price).toLocaleString()} = KES ${parseFloat(s.total).toLocaleString()}\n`));
+        });
+
+        const grandTotal = subTotal + totalTax;
+        commands.push(encoder.encode('--------------------------------\n'));
+        commands.push(encoder.encode(`Subtotal: KES ${subTotal.toLocaleString()}\n`));
+        commands.push(encoder.encode(`VAT (16%): KES ${totalTax.toLocaleString()}\n`));
+        
+        commands.push(new Uint8Array([0x1B, 0x45, 0x01]));
+        commands.push(encoder.encode(`TOTAL: KES ${grandTotal.toLocaleString()}\n`));
+        commands.push(new Uint8Array([0x1B, 0x45, 0x00]));
+
+        commands.push(new Uint8Array([0x1B, 0x61, 0x01]));
+        commands.push(encoder.encode('--------------------------------\n'));
+        commands.push(encoder.encode('THANK YOU FOR SHOPPING!\n'));
+        commands.push(encoder.encode('Powered by AssetGuard Pro\n\n'));
+
+        let totalLength = commands.reduce((acc, curr) => acc + curr.length, 0);
+        let fullPacket = new Uint8Array(totalLength);
+        let offset = 0;
+        for (let cmd of commands) {
+            fullPacket.set(cmd, offset);
+            offset += cmd.length;
+        }
+
+        const CHUNK_SIZE = 128;
+        for (let i = 0; i < fullPacket.length; i += CHUNK_SIZE) {
+            let chunk = fullPacket.slice(i, i + CHUNK_SIZE);
+            if (bluetoothCharacteristic.properties.writeWithoutResponse) {
+                await bluetoothCharacteristic.writeValueWithoutResponse(chunk);
+            } else {
+                await bluetoothCharacteristic.writeValue(chunk);
+            }
+            await new Promise(resolve => setTimeout(resolve, 30));
+        }
+
+        let feedCmd = new Uint8Array([0x1B, 0x64, 0x03]);
+        if (bluetoothCharacteristic.properties.writeWithoutResponse) {
+            await bluetoothCharacteristic.writeValueWithoutResponse(feedCmd);
+        } else {
+            await bluetoothCharacteristic.writeValue(feedCmd);
+        }
+
+        showAlertModal("Success", "Receipt printed successfully!");
+    } catch (error) {
+        console.error("Print error", error);
+        showAlertModal("Print Error", error.message || "Failed to send data to printer.");
+    }
+};
+
+window.toggleReceiptFormat = () => {
+    isThermalReceiptMode = !isThermalReceiptMode;
+    updateReceiptModalUI();
+    generateReceiptContent();
+};
+
+function updateReceiptModalUI() {
+    const toggleBtn = document.getElementById('receiptFormatToggleBtn');
+    const thermalRow = document.getElementById('thermal-actions-row');
+    const pdfRow = document.getElementById('pdf-actions-row');
+
+    if (toggleBtn) {
+        toggleBtn.innerText = isThermalReceiptMode ? "Switch to Standard A4" : "Switch to 58mm Thermal";
+    }
+
+    if (isThermalReceiptMode) {
+        thermalRow.style.display = 'flex';
+        pdfRow.style.display = 'none';
+    } else {
+        thermalRow.style.display = 'none';
+        pdfRow.style.display = 'flex';
+    }
+}
+
+window.generateReceiptContent = () => {
+    if (!activeReceiptPayload) return;
+    const { customer, payment, reference, items, timestamp, partialPayments } = activeReceiptPayload;
+
+    const savedProfile = localStorage.getItem(`ag_profile_cache_${currentUID}`);
+    if (savedProfile) { userProfile = JSON.parse(savedProfile); }
+
+    const dateObj = new Date(timestamp);
+    const dateStr = dateObj.toLocaleDateString();
+    const timeStr = dateObj.toLocaleTimeString();
+    let subTotal = 0;
+    let totalTax = 0;
+
+    if (isThermalReceiptMode) {
+        let thermalRows = items.map(s => {
+            const lineSub = parseFloat(s.price) * parseFloat(s.quantity);
+            subTotal += lineSub;
+            totalTax += parseFloat(s.vatAmount);
+            return `
+                <div style="margin-bottom: 6px;">
+                    <div style="font-weight: 700;">${s.product}</div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <span>${s.quantity} x ${parseFloat(s.price).toLocaleString()}</span>
+                        <span><b>KES ${parseFloat(s.total).toLocaleString()}</b></span>
+                    </div>
+                </div>`;
+        }).join('');
+
+        const grandTotal = subTotal + totalTax;
+        const paidSoFar = (partialPayments || []).reduce((acc, p) => acc + parseFloat(p.amount), 0);
+        const balance = grandTotal - paidSoFar;
+        const isCredit = (payment === "Credit");
+        let statusText = isCredit ? "CREDIT" : "PAID";
+        if (isCredit && balance <= 0) statusText = "PAID (SETTLED)";
+
+        document.getElementById('receipt-area').innerHTML = `
+            <div id="receipt-content" class="thermal-receipt-preview" style="background:#ffffff; color:#000000; font-family:'Courier New', Courier, monospace; padding:12px; width:100%; max-width:340px; margin:0 auto; font-size:12px; line-height:1.4; box-sizing:border-box;">
+                <div style="text-align:center; margin-bottom:10px;">
+                    <b style="font-size:16px; text-transform:uppercase;">${userProfile.businessName || 'Business Name'}</b><br>
+                    <span style="font-size:10px;">${userProfile.tagline || 'Receipt & Invoicing'}</span><br>
+                    <span style="font-size:10px;">Date: ${dateStr} ${timeStr}</span>
+                </div>
+                <div style="border-top:1px dashed #000; border-bottom:1px dashed #000; padding:5px 0; margin-bottom:8px; font-size:11px;">
+                    <div>Customer: <b>${customer}</b></div>
+                    <div>Mode: <b>${payment} ${reference ? '('+reference+')' : ''}</b></div>
+                    <div>Status: <b>${statusText}</b></div>
+                </div>
+                <div style="margin-bottom:8px;">
+                    ${thermalRows}
+                </div>
+                <div style="border-top:1px dashed #000; padding-top:5px; margin-top:5px;">
+                    <div style="display:flex; justify-content:space-between;"><span>Subtotal:</span><span>KES ${subTotal.toLocaleString()}</span></div>
+                    <div style="display:flex; justify-content:space-between;"><span>VAT (16%):</span><span>KES ${totalTax.toLocaleString()}</span></div>
+                    <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:800; margin-top:4px; border-top:1px solid #000; padding-top:4px;">
+                        <span>TOTAL:</span><span>KES ${grandTotal.toLocaleString()}</span>
+                    </div>
+                    ${isCredit ? `<div style="display:flex; justify-content:space-between; color:#c2410c; font-weight:800; margin-top:4px;"><span>Balance Due:</span><span>KES ${balance.toLocaleString()}</span></div>` : ''}
+                </div>
+                <div style="text-align:center; margin-top:10px; font-size:11px; border-top:1px dashed #000; padding-top:6px;">
+                    <span>Thank you for shopping!</span><br>
+                    <span style="font-size:9px; color:#555;">AssetGuard Pro</span>
+                </div>
+            </div>
+        `;
+    } else {
+        let tableRows = items.map(s => {
+            const lineSub = parseFloat(s.price) * parseFloat(s.quantity);
+            subTotal += lineSub;
+            totalTax += parseFloat(s.vatAmount);
+            return `<tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding:12px 0; font-size:11px;">${s.product}</td>
+                <td style="text-align:center; font-size:11px;">${s.quantity}</td>
+                <td style="text-align:center; font-size:11px;">${parseFloat(s.price).toLocaleString()}</td>
+                <td style="text-align:center; font-size:11px;">${s.vatRate}%</td>
+                <td style="text-align:right; font-size:11px; font-weight:700;">${parseFloat(s.total).toLocaleString()}</td>
+            </tr>`;
+        }).join('');
+
+        const grandTotal = subTotal + totalTax;
+        const paidSoFar = (partialPayments || []).reduce((acc, p) => acc + parseFloat(p.amount), 0);
+        const balance = grandTotal - paidSoFar;
+
+        const isCredit = (payment === "Credit");
+        let statusText = isCredit ? "CREDIT" : "PAID";
+        if(isCredit && balance <= 0) statusText = "PAID (CREDIT SETTLED)";
+        const statusColor = (isCredit && balance > 0) ? "#f59e0b" : "#22c55e";
+
+        let paymentHistoryRows = "";
+        if (isCredit && partialPayments && partialPayments.length > 0) {
+            paymentHistoryRows = partialPayments.map(p => {
+                const pDate = new Date(p.date);
+                return `
+                <div style="display:flex; justify-content:space-between; padding:4px 0; font-size:10px; border-bottom:1px dashed #e2e8f0;">
+                    <span style="color:#64748b;">${pDate.toLocaleDateString()} ${pDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    <b style="color:#22c55e;">KES ${parseFloat(p.amount).toLocaleString()}</b>
+                </div>`;
+            }).join('');
+        }
+
+        const watermarkHtml = userProfile.logoUrl ? `
+            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 0; opacity: 0.15; pointer-events: none; display: flex; align-items: center; justify-content: center; transform: translateY(-70px);">
+                <img src="${userProfile.logoUrl}" style="width: 300px; height: 300px; object-fit: contain; mix-blend-mode: multiply;">
+            </div>` : "";
+
+        document.getElementById('receipt-area').innerHTML = `
+            <div id="receipt-content" style="position: relative; background:#ffffff; color:#000000; font-family:'Plus Jakarta Sans', sans-serif; padding:30px; border: 1px solid #f0f2f5; min-height: 252mm; box-sizing: border-box; display: flex; flex-direction: column;">
+                ${watermarkHtml}
+                <div style="position: relative; z-index: 1;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:30px;">
+                        <div>
+                            <b style="font-size:24px; color:#0072CE;">${userProfile.businessName || 'Your Business Name'}</b><br>
+                            <small style="color:#0072CE; font-size:10px; font-weight:700; text-transform:uppercase;">${userProfile.tagline || 'Business Tagline / Address'}</small>
+                        </div>
+                        <div style="text-align:right; font-size:10px; line-height:1.6; color:#64748b;">
+                            INVOICE NO: <b>${timestamp.split('-').pop().substring(0,8).toUpperCase()}</b><br>
+                            DATE: <b>${dateStr}</b><br>
+                            TIME: <b>${timeStr}</b>
+                        </div>
+                    </div>
+
+                    <div style="background:#f1f5f9; padding:12px 20px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+                        <b style="font-size:13px; text-transform:uppercase; letter-spacing:1px; color:#001A35;">OFFICIAL SALES RECEIPT</b>
+                        <b style="color:${statusColor}; font-size:13px;">${statusText}</b>
+                    </div>
+
+                    <div style="margin-bottom:25px;">
+                        <small style="font-size:9px; font-weight:800; color:#94a3b8; text-transform:uppercase;">Customer Details</small><br>
+                        <b style="font-size:13px; color:#001A35;">${customer}</b><br>
+                        <span style="font-size:10px; color:#64748b;">Payment Method: ${payment} ${reference}</span>
+                    </div>
+
+                    <table style="width:100%; border-collapse:collapse; margin-bottom:30px;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #0072CE; text-align:left; color:#94a3b8; font-size:9px; text-transform:uppercase; font-weight:800;">
+                                <th style="padding:10px 0;">Description</th>
+                                <th style="text-align:center;">Qty</th>
+                                <th style="text-align:center;">Unit Price</th>
+                                <th style="text-align:center;">Vat</th>
+                                <th style="text-align:right;">Total (KES)</th>
+                            </tr>
+                        </thead>
+                        <tbody>${tableRows}</tbody>
+                    </table>
+
+                    <div style="display:flex; justify-content:flex-end; margin-bottom:30px;">
+                        <div style="width:250px; text-align:right;">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:11px;">
+                                <span style="color:#64748b;">Invoice Total</span>
+                                <b>${grandTotal.toLocaleString()}</b>
+                            </div>
+                            ${isCredit && paymentHistoryRows ? `
+                                <div style="text-align:left; margin:10px 0; border:1px solid #e2e8f0; border-radius:6px; padding:8px; background:#fafafa;">
+                                    <small style="font-size:8px; font-weight:800; color:#64748b; text-transform:uppercase; display:block; margin-bottom:5px;">Transaction History</small>
+                                    ${paymentHistoryRows}
+                                </div>
+                            ` : ''}
+                            ${isCredit ? `
+                                <div style="border-top:2px solid #0072CE; padding-top:12px; display:flex; justify-content:space-between; align-items:center;">
+                                    <b style="color:#ef4444; font-size:14px;">Balance Due</b>
+                                    <b style="color:#ef4444; font-size:18px;">KES ${balance.toLocaleString()}</b>
+                                </div>
+                            ` : `
+                                <div style="border-top:2px solid #0072CE; padding-top:12px; display:flex; justify-content:space-between; align-items:center;">
+                                    <b style="color:#0072CE; font-size:14px;">Amount Paid</b>
+                                    <b style="color:#0072CE; font-size:18px;">KES ${grandTotal.toLocaleString()}</b>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+
+                    <table style="width:100%; margin-top:15px; border-collapse:collapse; border:none;">
+                        <tr>
+                            <td style="width:45%; text-align:left; vertical-align:bottom; border:none; padding:0;">
+                                <div style="border-bottom:1px solid #000000; width:100%; height:35px; box-sizing: border-box;">&nbsp;</div>
+                                <small style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; display:block; margin-top:5px; letter-spacing:0.5px;">${isCredit ? 'Creditor Signature' : 'Customer Signature'}</small>
+                            </td>
+                            <td style="width:10%; border:none;">&nbsp;</td>
+                            <td style="width:45%; text-align:left; vertical-align:bottom; border:none; padding:0;">
+                                <div style="border-bottom:1px solid #000000; width:100%; height:35px; box-sizing: border-box;">&nbsp;</div>
+                                <small style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; display:block; margin-top:5px; letter-spacing:0.5px;">Authorized Seller</small>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+};
+
+window.closeReceipt = () => document.getElementById('receiptModal').style.display = 'none';
+
+window.shareReceipt = () => { 
+    const element = document.getElementById('receipt-content'); 
+    const options = isThermalReceiptMode ? thermalPdfOptions : pdfOptions;
+    html2pdf().set(options).from(element).save(); 
+};
+
+window.nativeShare = async () => {
+    const element = document.getElementById('receipt-content');
+    const options = isThermalReceiptMode ? thermalPdfOptions : pdfOptions;
+    try {
+        const pdfBlob = await html2pdf().set(options).from(element).outputPdf('blob');
+        const prefix = isThermalReceiptMode ? "Thermal_Receipt_58mm" : "Receipt";
+        const file = new File([pdfBlob], `${userProfile.businessName.replace(/\s+/g, '_')}_${prefix}.pdf`, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: 'Official Receipt', text: `Official transaction receipt from ${userProfile.businessName}.` });
+        } else {
+            window.shareReceipt();
+        }
+    } catch (err) {
+        window.shareReceipt();
+    }
+};
+
+window.renderSales = () => {
+    const container = document.getElementById('sales-container');
+    if (!container) return;
+    const selectedMonth = document.getElementById('monthFilter').value;
+    const selectedYear = document.getElementById('yearFilter').value;
+    container.innerHTML = "";
+    runtimeActiveLedgerSalesMap.clear();
+    
+    let gQty=0, gTotal=0, gTax=0;
+    
+    const combinedSales = { ...rawLedgerData };
+    syncQueue.forEach(item => {
+        if (item.isDeleteOnly) {
+            delete combinedSales[item.saleId];
+        } else if (item.isUpdateOnly) {
+            if (combinedSales[item.saleId]) {
+                combinedSales[item.saleId] = { ...combinedSales[item.saleId], ...item, isPending: true };
+            }
+        } else {
+            combinedSales[item.saleId] = { ...item, isPending: true };
+        }
+    });
+
+    const allSales = Object.keys(combinedSales).map(k => ({ id: k, ...combinedSales[k] }))
+                     .sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+                     
+    if(allSales.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding:30px; color:var(--muted); font-weight:600;">No sales history found.</div>`;
+    }
+
+    allSales.forEach(s => {
+        if (!s.timestamp || !s.items) return;
+        const d = new Date(s.timestamp);
+        const sMonth = d.getMonth().toString();
+        const sYear = d.getFullYear().toString();
+        
+        if (selectedMonth !== 'all' && sMonth !== selectedMonth) return;
+        if (selectedYear !== 'all' && sYear !== selectedYear) return;
+
+        runtimeActiveLedgerSalesMap.set(s.id, s);
+        
+        let sQty = 0;
+        let sTotal = 0;
+        let sTax = 0;
+        
+        const rows = s.items.map(i => {
+            sQty += parseFloat(i.quantity || 0);
+            sTotal += parseFloat(i.total || 0);
+            sTax += parseFloat(i.vatAmount || 0);
+            return `<div class="ledger-row"><div><b>${i.quantity}</b></div><div style="padding-right: 4px;">${i.product}</div><div style="color:var(--muted)">@${i.price}</div><div style="color:var(--danger); font-size:9px;">V:${i.vatRate}%</div><div style="text-align:right; font-weight: 800;">KES ${parseFloat(i.total).toLocaleString()}</div></div>`;
+        }).join('');
+
+        const isCredit = (s.payment === "Credit");
+        const paidSoFar = (s.payments || []).reduce((acc, p) => acc + parseFloat(p.amount || 0), 0);
+        const bal = sTotal - paidSoFar;
+
+        gQty += sQty;
+        gTotal += sTotal;
+        gTax += sTax;
+
+        const isPending = !!s.isPending;
+        const pendingBadge = isPending ? `<span style="background: #fef3c7; color: #d97706; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 800; text-transform: uppercase; margin-left: 5px;">Syncing...</span>` : '';
+        const payDetailStr = s.mpesaRef ? `Ref: ${s.mpesaRef}` : (s.mpesa ? `Phone: ${s.mpesa}` : (s.bank || ""));
+
+        container.insertAdjacentHTML('beforeend', `
+            <div class="sale-card" style="${isPending ? 'border-left: 4px solid var(--warning);' : ''}">
+                <div class="sale-summary" onclick="toggleLedgerCard('${s.id}')">
+                    <div class="sale-info">
+                        <h3>${s.customer} ${isCredit ? `<span class="credit-tag">Credit ${bal > 0 ? '(Pending)' : '(Settled)'}</span>` : ''}${pendingBadge}</h3>
+                        <span>${d.toLocaleDateString()} ${d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} • ${s.payment}</span>
+                    </div>
+                    <div class="sale-total">KES ${sTotal.toLocaleString()}</div>
+                </div>
+                <div class="sale-body" id="body-${s.id}">
+                    <div style="font-size: 10px; color: var(--muted); margin-bottom: 8px; font-weight: 800;">PAYMENT: ${s.payment} ${payDetailStr}</div>
+                    ${rows}
+                    ${isCredit ? `
+                        <div style="margin-top:10px; background:#fff7ed; padding:8px; border-radius:8px; border:1px solid #ffedd5; display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:11px; font-weight:800; color:#c2410c;">REMAINING BALANCE:</span>
+                            <b style="color:var(--danger); font-size:14px;">KES ${bal.toLocaleString()}</b>
+                        </div>
+                    ` : ''}
+                    <div style="display:flex; gap:8px; margin-top:12px;">
+                        <button class="btn btn-dark" style="flex:1;" onclick="event.stopPropagation(); showPinModal('${s.id}')" ${isPending ? 'disabled' : ''}>MANAGE / PAY</button>
+                        <button class="btn" style="flex:1; background:var(--primary); color:white;" onclick="event.stopPropagation(); reprintReceipt('${s.id}')">INVOICE</button>
+                    </div>
+                </div>
+            </div>`);
+    });
+
+    document.getElementById('stat-gross').innerText = "KES " + gTotal.toLocaleString();
+    document.getElementById('stat-tax').innerText = "KES " + gTax.toLocaleString();
+    document.getElementById('grand-qty-ledger').innerText = gQty;
+    document.getElementById('grand-total-ledger').innerText = "KES " + gTotal.toLocaleString();
+};
+
+window.toggleLedgerCard = id => {
+    const body = document.getElementById("body-"+id);
+    if(openLedgerCard && openLedgerCard !== id) {
+        const prev = document.getElementById("body-"+openLedgerCard);
+        if(prev) prev.style.display = "none";
+    }
+    const isOpen = body.style.display === "block";
+    body.style.display = isOpen ? "none" : "block";
+    openLedgerCard = isOpen ? null : id;
+};
+
+document.getElementById('btn-add-payment').onclick = async () => {
+    const amt = parseFloat(document.getElementById('manual-pay-amt').value);
+    if (!amt || amt <= 0) {
+        showAlertModal("Validation Error", "Please enter a valid payment amount.");
+        return;
+    }
+    const s = runtimeActiveLedgerSalesMap.get(currentActiveLedgerId);
+    const newPayments = s.payments || [];
+    newPayments.push({ amount: amt, date: new Date().toISOString() });
+    if (navigator.onLine) { await update(ref(db, `${salesPath}/${currentActiveLedgerId}`), { payments: newPayments }); }
+    openManager(currentActiveLedgerId);
+};
+
+document.getElementById('btn-save-changes').onclick = async () => {
+    const s = runtimeActiveLedgerSalesMap.get(currentActiveLedgerId);
+    const updated = [];
+    document.querySelectorAll('.edit-block').forEach((block, idx) => {
+        let q = parseFloat(block.querySelector('.item-qty').value);
+        if (!Number.isFinite(q) || q <= 0) q = 1;
+        let p = parseFloat(block.querySelector('.item-price').value);
+        if (!Number.isFinite(p)) p = 0;
+        let vr = parseFloat(block.querySelector('.item-vrate').value);
+        if (!Number.isFinite(vr)) vr = 16;
+        const sub = q * p; const vat = sub * (vr/100);
+        updated.push({ ...s.items[idx], quantity: q, price: p, vatRate: vr, total: (sub+vat).toFixed(2), vatAmount: vat.toFixed(2) });
+    });
+    const payload = { customer: document.getElementById('edit-cust-name').value, items: updated };
+    if (navigator.onLine) { await update(ref(db, `${salesPath}/${currentActiveLedgerId}`), payload); }
+    document.getElementById('manageModal').style.display = 'none'; 
+};
+
+document.getElementById('btn-del-mode').onclick = async () => {
+    if (navigator.onLine) { await remove(ref(db, `${salesPath}/${currentActiveLedgerId}`)); }
+    document.getElementById('manageModal').style.display = 'none'; 
+};
+
+window.closeModal = () => document.getElementById('manageModal').style.display = 'none';
+
+window.filterSales = () => {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    const cards = document.querySelectorAll('.sale-card');
+    cards.forEach(card => {
+        const text = card.innerText.toLowerCase();
+        card.style.display = text.includes(query) ? 'block' : 'none';
+    });
+};
+</script>
+</body>
+</html>

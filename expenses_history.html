@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="error-utils.js"></script>
+<script src="ag-utils.js"></script>
+<script src="ag-context-guard.js"></script>
+<script type="module" src="auth-guard.js"></script>
+    <meta charset="utf-8">
+    <title>Expense History - AssetGuard Mirror</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary:#0072CE; --dark:#001A35; --bg:#f5f7fa; --accent:#e06b3f; --success:#22c55e; --danger:#ef4444; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); margin: 0; padding: 10px; color: #1f2937; -webkit-tap-highlight-color: transparent; }
+        
+        .modal-overlay { 
+            display: none; position: fixed; inset: 0; 
+            background: rgba(0,26,53,0.4); backdrop-filter: blur(8px); z-index: 2000;
+            align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal-card { 
+            background: white; width: 100%; max-width: 340px; padding: 28px; 
+            border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .modal-card h3 { margin: 0 0 10px 0; font-size: 20px; color: var(--dark); font-weight: 800; text-align: center; }
+        .modal-card p { font-size: 13px; color: #64748b; text-align: center; margin-bottom: 24px; line-height: 1.5; }
+        
+        .modal-input-group { text-align: left; margin-bottom: 15px; }
+        .modal-input-group label { font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 5px; }
+        .modal-card input:not(.pin-input) { width: 100%; padding: 14px; border: 2px solid #f1f5f9; border-radius: 14px; box-sizing: border-box; font-size: 15px; outline: none; background: #f8fafc; font-family: inherit; transition: border 0.2s; }
+        .modal-card input:focus { border-color: var(--primary); }
+        
+        .modal-btns { display: flex; flex-direction: column; gap: 10px; }
+        .btn-confirm-save { background: var(--dark); color: white; border: none; padding: 16px; border-radius: 16px; font-weight: 800; cursor: pointer; font-size: 14px; }
+        .btn-confirm-del { background: var(--danger); color: white; border: none; padding: 16px; border-radius: 16px; font-weight: 800; cursor: pointer; font-size: 14px; }
+        .btn-cancel-mod { background: transparent; color: #64748b; border: none; padding: 10px; font-weight: 700; cursor: pointer; font-size: 13px; }
+
+        h2 { text-align: center; color: var(--accent); margin: 5px 0 15px 0; font-size: 18px; font-weight: 800; }
+        .security-bar { background: var(--dark); padding: 10px 14px; border-radius: 14px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; transition: all 0.3s ease; }
+        .pin-input { width: 70px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: #fff; padding: 10px; text-align: center; outline: none; font-size: 14px; font-weight: 800; letter-spacing: 3px; }
+        
+        .card { background: white; padding: 14px; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #edf2f7; }
+        .filters { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+        .filters input { padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 11px; outline: none; width: 100%; box-sizing: border-box; background: #f8fafc; }
+        
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { text-align: left; color: #94a3b8; padding: 10px 5px; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #f1f5f9; }
+        td { padding: 14px 5px; border-bottom: 1px solid #f8fafc; }
+        
+        .amount-cell { font-weight: 800; text-align: right; color: var(--dark); font-size: 13px; }
+        .category-tag { color: var(--accent); font-size: 10px; font-weight: 800; background: #fff4f0; padding: 3px 8px; border-radius: 6px; }
+        
+        .admin-actions { display: none; opacity: 0; }
+        .unlocked .admin-actions { display: table-cell; opacity: 1; text-align: right; }
+        .btn-action { border: none; background: #f1f5f9; padding: 10px; border-radius: 10px; cursor: pointer; margin-left: 5px; font-size: 14px; }
+        
+        .total-section { margin-top: 20px; text-align: right; font-size: 20px; font-weight: 800; padding: 16px; background: #f8fafc; border-radius: 16px; color: var(--dark); border: 1px dashed #e2e8f0; }
+        #syncStatus { font-size: 8px; color: #94a3b8; text-align: center; margin-top: 10px; display: block; }
+    </style>
+</head>
+<body id="mainBody">
+
+<div class="modal-overlay" id="editModal">
+    <div class="modal-card">
+        <h3>Edit Expense</h3>
+        <p>Update item details. Changes update directly to the cloud database.</p>
+        <div class="modal-input-group"><label>Item Name</label><input type="text" id="editItemName"></div>
+        <div class="modal-input-group"><label>Amount (KES)</label><input type="number" id="editItemAmount"></div>
+        <div class="modal-btns">
+            <button class="btn-confirm-save" id="confirmSaveBtn">Save Changes</button>
+            <button class="btn-cancel-mod" onclick="closeModals()">Discard</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal-card">
+        <div style="font-size: 40px; text-align: center; margin-bottom: 10px;">🗑️</div>
+        <h3>Delete Record?</h3>
+        <p>This will remove the entry from the cloud database permanently.</p>
+        <div class="modal-btns">
+            <button class="btn-confirm-del" id="confirmDeleteBtn">Delete Permanently</button>
+            <button class="btn-cancel-mod" onclick="closeModals()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<div class="container" id="appContent">
+    <h2>Expense History</h2>
+    <div class="security-bar" id="lockBar">
+        <span style="color:white; font-size:11px; font-weight:800; letter-spacing: 0.5px;" id="lockLabel">LOCKED (ADMIN)</span>
+        <input type="password" id="masterPin" class="pin-input" maxlength="4" placeholder="••••" oninput="handleSecurity()">
+    </div>
+
+    <div class="card">
+        <div class="filters">
+            <input type="text" id="searchInput" placeholder="Search...">
+            <input type="date" id="startDate">
+            <input type="date" id="endDate">
+        </div>
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Item</th>
+                        <th>Cat.</th>
+                        <th style="text-align: right;">Amount</th>
+                        <th class="admin-actions">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+        <div class="total-section">
+            <span style="color:var(--accent); font-size:12px; display:block; margin-bottom: 4px;">GRAND TOTAL</span>
+            <span id="totalAmount">0.00</span> <small style="font-size:11px; opacity:0.6;">KES</small>
+        </div>
+    </div>
+    <span id="syncStatus">LIVE CLOUD SYNC ACTIVE (DIRECT FIREBASE FEED)</span>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getDatabase, ref, onValue, remove, update } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+    const db = getDatabase(initializeApp({ databaseURL: "https://assetguard-c8c8c-default-rtdb.firebaseio.com" }));
+
+    // Direct root path mapping identical to stock modules
+    const cloudPath = "expenses";
+    let remoteDataMap = new Map();
+    let activeId = null;
+
+    // --- DIRECT REAL-TIME CLOUD BINDING (Bypasses local cache wipe issues) ---
+    onValue(ref(db, cloudPath), (snap) => {
+        const cloudData = snap.val() || {};
+        remoteDataMap.clear();
+        
+        Object.entries(cloudData).forEach(([id, val]) => {
+            if (val && !val.deleted) {
+                remoteDataMap.set(id, { id, ...val });
+            }
+        });
+        
+        renderTable();
+    }, (error) => {
+        console.error("Firebase sync error:", error);
+    });
+
+    window.handleSecurity = () => {
+        const pin = document.getElementById('masterPin').value;
+        const body = document.getElementById('mainBody');
+        const bar = document.getElementById('lockBar');
+        const label = document.getElementById('lockLabel');
+
+        if(pin === "1234") {
+            body.classList.add('unlocked');
+            bar.style.background = "var(--success)";
+            label.innerText = "UNLOCKED (ADMIN)";
+        } else {
+            body.classList.remove('unlocked');
+            bar.style.background = "var(--dark)";
+            label.innerText = "LOCKED (ADMIN)";
+            closeModals(); 
+        }
+    };
+
+    window.openEdit = (id) => {
+        activeId = id;
+        const item = remoteDataMap.get(id);
+        if (!item) return;
+        document.getElementById('editItemName').value = item.expense_name || item.name || item.description || '';
+        document.getElementById('editItemAmount').value = item.amount || item.total || 0;
+        document.getElementById('editModal').style.display = 'flex';
+    };
+
+    window.openDelete = (id) => {
+        activeId = id;
+        document.getElementById('deleteModal').style.display = 'flex';
+    };
+
+    document.getElementById('confirmSaveBtn').onclick = () => {
+        if (!activeId) return;
+        const newName = document.getElementById('editItemName').value;
+        const newAmt = document.getElementById('editItemAmount').value;
+        
+        update(ref(db, `${cloudPath}/${activeId}`), { expense_name: newName, amount: newAmt })
+            .then(() => {
+                closeModals();
+            })
+            .catch(err => console.error("Update failed:", err));
+    };
+
+    document.getElementById('confirmDeleteBtn').onclick = () => {
+        if (!activeId) return;
+        remove(ref(db, `${cloudPath}/${activeId}`))
+            .then(() => {
+                closeModals();
+            })
+            .catch(err => console.error("Delete failed:", err));
+    };
+
+    function renderTable() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const start = document.getElementById('startDate').value;
+        const end = document.getElementById('endDate').value;
+        let total = 0;
+        const body = document.getElementById('tableBody');
+        body.innerHTML = "";
+
+        const sorted = Array.from(remoteDataMap.values()).sort((a,b) => (b.expense_date || b.timestamp || '').toString().localeCompare((a.expense_date || a.timestamp || '').toString()));
+
+        if (sorted.length === 0) {
+            body.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:#94a3b8;">No expense records found.</td></tr>`;
+            document.getElementById('totalAmount').innerText = "0.00";
+            return;
+        }
+
+        sorted.forEach((item) => {
+            const rawDate = item.expense_date || item.timestamp || '';
+            const dateStr = typeof rawDate === 'string' ? rawDate.split('T')[0] : new Date(rawDate).toISOString().split('T')[0];
+            const itemName = item.expense_name || item.name || item.description || 'Unnamed Expense';
+            const itemAmount = parseFloat(item.amount || item.total || 0);
+
+            if (itemName.toLowerCase().includes(search) && (!start || dateStr >= start) && (!end || dateStr <= end)) {
+                total += itemAmount;
+                body.innerHTML += `
+                    <tr>
+                        <td style="color:#64748b">${dateStr ? dateStr.split('-').slice(1).join('/') : 'N/A'}</td>
+                        <td><b>${itemName}</b></td>
+                        <td><span class="category-tag">${(item.category || 'N/A').substring(0,8)}</span></td>
+                        <td class="amount-cell">${itemAmount.toLocaleString()}</td>
+                        <td class="admin-actions">
+                            <button class="btn-action" onclick="openEdit('${item.id}')">✏️</button>
+                            <button class="btn-action" style="color:var(--danger)" onclick="openDelete('${item.id}')">🗑️</button>
+                        </td>
+                    </tr>`;
+            }
+        });
+        document.getElementById('totalAmount').innerText = total.toLocaleString();
+    }
+
+    window.closeModals = () => {
+        document.getElementById('editModal').style.display = 'none';
+        document.getElementById('deleteModal').style.display = 'none';
+        activeId = null;
+    };
+    
+    document.querySelectorAll('.filters input').forEach(el => el.addEventListener('input', renderTable));
+</script>
+</body>
+</html>

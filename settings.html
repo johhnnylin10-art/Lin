@@ -1,0 +1,3831 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<script src="error-utils.js"></script>
+<script src="ag-utils.js"></script>
+<script src="ag-config.js"></script>
+<script src="ag-context-guard.js"></script>
+
+<script
+    type="module"
+    src="auth-guard.js">
+</script>
+
+<script
+    type="module"
+    src="ag-passcode.js">
+</script>
+
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="
+        width=device-width,
+        initial-scale=1.0,
+        maximum-scale=1.0,
+        user-scalable=no
+    "
+>
+
+
+<title>
+    AssetGuard Pro - Business Setup & Settings
+</title>
+
+
+<link
+    href="
+        https://fonts.googleapis.com/css2?
+        family=Plus+Jakarta+Sans:wght@400;500;600;700;800
+        &
+        family=Poppins:wght@400;600;700
+        &
+        display=swap
+    "
+    rel="stylesheet"
+>
+
+
+<style>
+
+
+:root {
+
+    --primary: #0072CE;
+
+    --primary-light: #e6f0fa;
+
+    --dark: #001A35;
+
+    --bg: #f8f9fc;
+
+    --card-bg: #ffffff;
+
+    --text-main: #0f172a;
+
+    --text-muted: #64748b;
+
+    --border: #e2e8f0;
+
+    --success: #10b981;
+
+    --success-light: #d1fae5;
+
+    --warning: #f59e0b;
+
+    --warning-light: #fef3c7;
+
+    --danger: #ef4444;
+
+    --danger-light: #fee2e2;
+
+    --mpesa: #00a859;
+
+    --radius-lg: 16px;
+
+    --radius-md: 12px;
+
+    --shadow:
+
+        0 10px 25px -5px
+        rgba(0, 26, 53, 0.05),
+
+        0 8px 10px -6px
+        rgba(0, 26, 53, 0.05);
+
+}
+
+
+* {
+
+    box-sizing: border-box;
+
+    margin: 0;
+
+    padding: 0;
+
+    -webkit-tap-highlight-color:
+        transparent;
+
+}
+
+
+body {
+
+    font-family:
+
+        "Plus Jakarta Sans",
+        sans-serif;
+
+    background:
+        var(--bg);
+
+    color:
+        var(--text-main);
+
+    min-height:
+        100vh;
+
+    display:
+        flex;
+
+    justify-content:
+        center;
+
+    align-items:
+        flex-start;
+
+}
+
+
+.app-container {
+
+    width:
+        100%;
+
+    max-width:
+        480px;
+
+    background:
+        var(--card-bg);
+
+    min-height:
+        100vh;
+
+    box-shadow:
+
+        0 0 40px
+        rgba(0,0,0,0.03);
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    position:
+        relative;
+
+}
+
+
+.app-header {
+
+    position:
+        sticky;
+
+    top:
+        0;
+
+    background:
+
+        rgba(
+            255,
+            255,
+            255,
+            0.95
+        );
+
+    backdrop-filter:
+        blur(12px);
+
+    padding:
+        16px 20px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    border-bottom:
+
+        1px solid
+        var(--border);
+
+    z-index:
+        100;
+
+}
+
+
+.header-title {
+
+    font-size:
+        16px;
+
+    font-weight:
+        800;
+
+    color:
+        var(--dark);
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        8px;
+
+}
+
+
+.header-title span {
+
+    color:
+        var(--primary);
+
+}
+
+
+.back-btn {
+
+    background:
+        none;
+
+    border:
+        none;
+
+    color:
+        var(--text-muted);
+
+    cursor:
+        pointer;
+
+    padding:
+        4px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    border-radius:
+        50%;
+
+}
+
+
+.back-btn:active {
+
+    background:
+        var(--primary-light);
+
+    color:
+        var(--primary);
+
+}
+
+
+.settings-content {
+
+    flex:
+        1;
+
+    padding:
+        20px;
+
+    overflow-y:
+        auto;
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    gap:
+        20px;
+
+    padding-bottom:
+        40px;
+
+}
+
+
+.section-label {
+
+    font-size:
+        11px;
+
+    font-weight:
+        800;
+
+    text-transform:
+        uppercase;
+
+    letter-spacing:
+        0.8px;
+
+    color:
+        var(--text-muted);
+
+    display:
+        block;
+
+    margin-bottom:
+        8px;
+
+}
+
+
+.brand-preview-card {
+
+    background:
+
+        linear-gradient(
+
+            135deg,
+
+            var(--dark) 0%,
+
+            #002d5c 100%
+
+        );
+
+    color:
+        white;
+
+    padding:
+        20px;
+
+    border-radius:
+        var(--radius-lg);
+
+    position:
+        relative;
+
+    box-shadow:
+
+        0 10px 20px
+        rgba(0, 26, 53, 0.15);
+
+}
+
+
+.card-header-flex {
+
+    display:
+        flex;
+
+    justify-content:
+        space-between;
+
+    align-items:
+        center;
+
+}
+
+
+.card-identity h3 {
+
+    font-family:
+
+        "Poppins",
+        sans-serif;
+
+    font-size:
+        18px;
+
+    font-weight:
+        700;
+
+}
+
+
+.card-identity p {
+
+    font-size:
+        10px;
+
+    opacity:
+        0.8;
+
+    margin-top:
+        2px;
+
+    text-transform:
+        uppercase;
+
+}
+
+
+.card-logo-slot {
+
+    width:
+        42px;
+
+    height:
+        42px;
+
+    border-radius:
+        var(--radius-md);
+
+    background:
+
+        rgba(
+            255,
+            255,
+            255,
+            0.1
+        );
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    border:
+
+        1px solid
+        rgba(
+            255,
+            255,
+            255,
+            0.15
+        );
+
+    overflow:
+        hidden;
+
+}
+
+
+.card-logo-slot img {
+
+    width:
+        100%;
+
+    height:
+        100%;
+
+    object-fit:
+        cover;
+
+}
+
+
+.preview-badge {
+
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    gap:
+        4px;
+
+    padding:
+        4px 8px;
+
+    background:
+
+        rgba(
+            255,
+            255,
+            255,
+            0.1
+        );
+
+    border-radius:
+        100px;
+
+    font-size:
+        8px;
+
+    font-weight:
+        800;
+
+    text-transform:
+        uppercase;
+
+    margin-top:
+        15px;
+
+}
+
+
+.input-group {
+
+    background:
+        var(--card-bg);
+
+    border:
+
+        1px solid
+        var(--border);
+
+    border-radius:
+        var(--radius-lg);
+
+    padding:
+        16px;
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    gap:
+        14px;
+
+}
+
+
+.form-field {
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    gap:
+        6px;
+
+}
+
+
+.form-field label {
+
+    font-size:
+        11px;
+
+    font-weight:
+        700;
+
+    color:
+        var(--dark);
+
+    text-transform:
+        uppercase;
+
+}
+
+
+.form-field input,
+
+.form-field select {
+
+    font-family:
+        inherit;
+
+    font-size:
+        14px;
+
+    padding:
+        12px 14px;
+
+    border:
+
+        2px solid
+        var(--border);
+
+    border-radius:
+        var(--radius-md);
+
+    background:
+        #fafbfe;
+
+    outline:
+        none;
+
+    color:
+        var(--text-main);
+
+}
+
+
+.form-field input:focus,
+
+.form-field select:focus {
+
+    border-color:
+        var(--primary);
+
+    background:
+        #fff;
+
+    box-shadow:
+
+        0 0 0 4px
+        rgba(
+            0,
+            114,
+            206,
+            0.1
+        );
+
+}
+
+
+.form-field input.mpesa-focus:focus {
+
+    border-color:
+        var(--mpesa);
+
+}
+
+
+.logo-upload-area {
+
+    border:
+
+        2px dashed
+        var(--border);
+
+    border-radius:
+        var(--radius-md);
+
+    padding:
+        16px;
+
+    text-align:
+        center;
+
+    cursor:
+        pointer;
+
+    background:
+        #fafbfe;
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    align-items:
+        center;
+
+    gap:
+        8px;
+
+    position:
+        relative;
+
+}
+
+
+.logo-upload-area input[type="file"] {
+
+    position:
+        absolute;
+
+    inset:
+        0;
+
+    opacity:
+        0;
+
+    cursor:
+        pointer;
+
+}
+
+
+.upload-icon {
+
+    color:
+        var(--primary);
+
+}
+
+
+.upload-text b {
+
+    color:
+        var(--primary);
+
+    font-size:
+        12px;
+
+}
+
+
+.upload-text p {
+
+    font-size:
+        10px;
+
+    color:
+        var(--text-muted);
+
+}
+
+
+.collapsible-section {
+
+    border:
+
+        1px solid
+        var(--border);
+
+    border-radius:
+        var(--radius-lg);
+
+    background:
+        #fff;
+
+    overflow:
+        hidden;
+
+}
+
+
+.collapsible-section.expanded {
+
+    box-shadow:
+        var(--shadow);
+
+}
+
+
+.section-toggle-header {
+
+    padding:
+        16px;
+
+    display:
+        flex;
+
+    justify-content:
+        space-between;
+
+    align-items:
+        center;
+
+    cursor:
+        pointer;
+
+    background:
+        #f8fafc;
+
+}
+
+
+.toggle-title-wrap h3 {
+
+    font-size:
+        14px;
+
+    font-weight:
+        700;
+
+    color:
+        var(--dark);
+
+}
+
+
+.toggle-title-wrap p {
+
+    font-size:
+        11px;
+
+    color:
+        var(--text-muted);
+
+    margin-top:
+        2px;
+
+}
+
+
+.status-badge {
+
+    font-size:
+        10px;
+
+    font-weight:
+        800;
+
+    text-transform:
+        uppercase;
+
+    padding:
+        4px 10px;
+
+    border-radius:
+        100px;
+
+}
+
+
+.badge-configured {
+
+    background:
+        var(--success-light);
+
+    color:
+        var(--success);
+
+}
+
+
+.badge-skipped {
+
+    background:
+        var(--danger-light);
+
+    color:
+        #b91c1c;
+
+}
+
+
+.badge-pending {
+
+    background:
+        #e2e8f0;
+
+    color:
+        var(--text-muted);
+
+}
+
+
+.chevron-icon {
+
+    color:
+        var(--text-muted);
+
+    transition:
+        transform 0.3s;
+
+}
+
+
+.collapsible-section.expanded
+.chevron-icon {
+
+    transform:
+        rotate(180deg);
+
+}
+
+
+.collapsible-body {
+
+    padding:
+        16px;
+
+    display:
+        none;
+
+    flex-direction:
+        column;
+
+    gap:
+        14px;
+
+    border-top:
+
+        1px solid
+        var(--border);
+
+}
+
+
+.collapsible-section.expanded
+.collapsible-body {
+
+    display:
+        flex;
+
+}
+
+
+.skip-action-row {
+
+    display:
+        flex;
+
+    justify-content:
+        space-between;
+
+    align-items:
+        center;
+
+    margin-top:
+        6px;
+
+    padding-top:
+        10px;
+
+    border-top:
+
+        1px dashed
+        var(--border);
+
+}
+
+
+.skip-btn {
+
+    background:
+        none;
+
+    border:
+        none;
+
+    color:
+        var(--danger);
+
+    font-size:
+        12px;
+
+    font-weight:
+        700;
+
+    cursor:
+        pointer;
+
+    padding:
+        6px 12px;
+
+}
+
+
+.security-note {
+
+    background:
+        var(--warning-light);
+
+    border:
+
+        1px solid
+        #fde68a;
+
+    border-radius:
+        var(--radius-md);
+
+    padding:
+        12px;
+
+    font-size:
+        11px;
+
+    line-height:
+        1.6;
+
+    color:
+        #92400e;
+
+}
+
+
+/* ==========================================================
+   MODAL DIALOG STYLES
+========================================================== */
+
+.modal-overlay {
+
+    position:
+        fixed;
+
+    inset:
+        0;
+
+    background:
+        rgba(0, 26, 53, 0.55);
+
+    backdrop-filter:
+        blur(8px);
+
+    display:
+        flex;
+
+    justify-content:
+        center;
+
+    align-items:
+        center;
+
+    z-index:
+        10000;
+
+    opacity:
+        0;
+
+    pointer-events:
+        none;
+
+    transition:
+        opacity 0.3s ease;
+
+    padding:
+        20px;
+
+}
+
+
+.modal-overlay.active {
+
+    opacity:
+        1;
+
+    pointer-events:
+        auto;
+
+}
+
+
+.modal-card {
+
+    background:
+        var(--card-bg);
+
+    width:
+        100%;
+
+    max-width:
+        420px;
+
+    border-radius:
+        var(--radius-lg);
+
+    padding:
+        22px;
+
+    box-shadow:
+        0 20px 40px rgba(0, 26, 53, 0.2);
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    gap:
+        16px;
+
+    transform:
+        translateY(20px);
+
+    transition:
+        transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+    max-height:
+        90vh;
+
+    overflow-y:
+        auto;
+
+}
+
+
+.modal-overlay.active .modal-card {
+
+    transform:
+        translateY(0);
+
+}
+
+
+.modal-header {
+
+    display:
+        flex;
+
+    justify-content:
+        space-between;
+
+    align-items:
+        center;
+
+    border-bottom:
+        1px solid var(--border);
+
+    padding-bottom:
+        12px;
+
+}
+
+
+.modal-title {
+
+    font-size:
+        16px;
+
+    font-weight:
+        800;
+
+    color:
+        var(--dark);
+
+}
+
+
+.modal-close {
+
+    background:
+        none;
+
+    border:
+        none;
+
+    font-size:
+        18px;
+
+    color:
+        var(--text-muted);
+
+    cursor:
+        pointer;
+
+    padding:
+        4px;
+
+    border-radius:
+        50%;
+
+}
+
+
+.modal-close:hover {
+
+    background:
+        #f1f5f9;
+
+    color:
+        var(--dark);
+
+}
+
+
+.btn {
+
+    flex:
+        1;
+
+    font-family:
+        inherit;
+
+    font-size:
+        14px;
+
+    font-weight:
+        700;
+
+    padding:
+        14px;
+
+    border:
+        none;
+
+    border-radius:
+        var(--radius-md);
+
+    cursor:
+        pointer;
+
+}
+
+
+.btn:disabled {
+
+    opacity:
+        0.6;
+
+    cursor:
+        not-allowed;
+
+}
+
+
+.btn-primary {
+
+    background:
+        var(--primary);
+
+    color:
+        white;
+
+}
+
+
+.btn-secondary {
+
+    background:
+        #f1f5f9;
+
+    color:
+        var(--text-muted);
+
+}
+
+
+.btn-danger {
+
+    background:
+        var(--danger);
+
+    color:
+        white;
+
+}
+
+
+.toast {
+
+    position:
+        fixed;
+
+    bottom:
+        30px;
+
+    left:
+        50%;
+
+    transform:
+
+        translateX(-50%)
+        translateY(100px);
+
+    background:
+        #0f172a;
+
+    color:
+        white;
+
+    padding:
+        12px 20px;
+
+    border-radius:
+        100px;
+
+    font-size:
+        12px;
+
+    font-weight:
+        700;
+
+    z-index:
+        10005;
+
+    opacity:
+        0;
+
+    transition:
+        0.3s;
+
+    text-align:
+        center;
+
+    max-width:
+        90%;
+
+}
+
+
+.toast.show {
+
+    transform:
+
+        translateX(-50%)
+        translateY(0);
+
+    opacity:
+        1;
+
+}
+
+
+</style>
+
+
+<script
+    src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js">
+</script>
+
+<script
+    src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js">
+</script>
+
+<script
+    src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js">
+</script>
+
+
+</head>
+
+
+<body>
+
+
+<div class="app-container">
+
+
+<header class="app-header">
+
+
+<button
+    class="back-btn"
+    onclick="exitPortal()"
+>
+
+
+<svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2.5"
+>
+
+
+<line
+    x1="19"
+    y1="12"
+    x2="5"
+    y2="12">
+</line>
+
+
+<polyline
+    points="12 19 5 12 12 5">
+</polyline>
+
+
+</svg>
+
+
+</button>
+
+
+<div class="header-title">
+
+AssetGuard
+
+<span>
+Settings
+</span>
+
+</div>
+
+
+<div
+    style="width:20px;">
+</div>
+
+
+</header>
+
+
+
+<main class="settings-content">
+
+
+<!-- =====================================================
+     BRAND PREVIEW
+===================================================== -->
+
+<div>
+
+
+<span class="section-label">
+
+Branding Visualizer
+
+</span>
+
+
+<div class="brand-preview-card">
+
+
+<div class="card-header-flex">
+
+
+<div class="card-identity">
+
+
+<h3 id="prevName">
+
+JCorp Kenya Inc
+
+</h3>
+
+
+<p id="prevTag">
+
+Transformation you need
+
+</p>
+
+
+</div>
+
+
+
+<div class="card-logo-slot">
+
+
+<img
+
+id="prevLogo"
+
+src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='42' height='42' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='1.5'><path d='M4.5 16.5c-1.5 1.26-2.5 3.19-2.5 5.5h20c0-2.31-1-4.24-2.5-5.5'/><circle cx='12' cy='8' r='5'/></svg>"
+
+alt="Logo"
+
+>
+
+
+</div>
+
+
+</div>
+
+
+<div class="preview-badge">
+
+✓
+
+Live Preview
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+<!-- =====================================================
+     CORPORATE SETTINGS
+===================================================== -->
+
+<div>
+
+
+<span class="section-label">
+
+Corporate Settings
+
+</span>
+
+
+<div class="input-group">
+
+
+<div class="form-field">
+
+
+<label>
+
+Business Identity Name
+
+</label>
+
+
+<input
+
+type="text"
+
+id="businessNameInput"
+
+placeholder="Enter Business Name"
+
+oninput="updatePreviewCard()"
+
+>
+
+
+</div>
+
+
+
+<div class="form-field">
+
+
+<label>
+
+Corporate Tagline / Address
+
+</label>
+
+
+<input
+
+type="text"
+
+id="taglineInput"
+
+placeholder="Enter Tagline/Address"
+
+oninput="updatePreviewCard()"
+
+>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+<!-- =====================================================
+     SALES PAYMENT SETTINGS
+===================================================== -->
+
+<div
+    class="collapsible-section"
+    id="salesSection"
+>
+
+
+<div
+
+class="section-toggle-header"
+
+onclick="toggleSalesConfig()"
+
+>
+
+
+<div class="toggle-title-wrap">
+
+
+<h3>
+
+Accept Customer Payments (STK Push)
+
+<span
+
+id="salesStatusBadge"
+
+class="status-badge badge-pending"
+
+>
+
+Optional
+
+</span>
+
+
+</h3>
+
+
+<p>
+
+Configure your own Paybill or Till.
+
+</p>
+
+
+</div>
+
+
+<div class="chevron-icon">
+
+▼
+
+</div>
+
+
+</div>
+
+
+
+<div class="collapsible-body">
+
+
+<div class="form-field">
+
+
+<label>
+
+Environment Mode
+
+</label>
+
+
+<select id="salesEnvironment">
+
+<option value="production">
+
+Production (Live)
+
+</option>
+
+
+<option value="sandbox">
+
+Sandbox (Testing)
+
+</option>
+
+
+</select>
+
+
+</div>
+
+
+
+<div class="form-field">
+
+
+<label>
+
+Account Type / Payment Mode
+
+</label>
+
+
+<select id="salesAccountType">
+
+
+<option value="Paybill">
+
+Paybill
+
+</option>
+
+
+<option value="Till">
+
+Till Number
+
+</option>
+
+
+</select>
+
+
+</div>
+
+
+
+<div class="form-field">
+
+
+<label>
+
+Business Shortcode / Till Number
+
+</label>
+
+
+<input
+
+type="tel"
+
+id="salesShortcode"
+
+class="mpesa-focus"
+
+placeholder="e.g. 257471"
+
+inputmode="numeric"
+
+pattern="[0-9]*"
+
+oninput="this.value=this.value.replace(/\D/g,''); handleShortcodeInput();"
+
+>
+
+
+</div>
+
+
+
+<div class="form-field">
+
+
+<label>
+
+Lipwa Na M-Pesa Online Passkey
+
+</label>
+
+
+<input
+
+type="password"
+
+id="salesPasskey"
+
+class="mpesa-focus"
+
+placeholder="Enter passkey"
+
+>
+
+
+</div>
+
+
+
+<div class="form-field">
+
+
+<label>
+
+Daraja Consumer Key
+
+</label>
+
+
+<input
+
+type="text"
+
+id="salesConsumerKey"
+
+placeholder="Enter Consumer Key"
+
+>
+
+
+</div>
+
+
+
+<div class="form-field">
+
+
+<label>
+
+Daraja Consumer Secret
+
+</label>
+
+
+<input
+
+type="password"
+
+id="salesConsumerSecret"
+
+placeholder="Enter Consumer Secret"
+
+>
+
+
+</div>
+
+
+
+<div class="skip-action-row">
+
+
+<span
+    style="
+        font-size:11px;
+        color:var(--text-muted);
+    "
+>
+
+Don't have automated payment keys yet?
+
+</span>
+
+
+<button
+
+class="skip-btn"
+
+onclick="skipSalesConfig(event)"
+
+>
+
+Skip Configuration
+
+</button>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+<!-- =====================================================
+     INTERNAL PASSCODE (STRICTLY 4 DIGITS)
+===================================================== -->
+
+<div>
+
+
+<span class="section-label">
+
+Internal Security Passcode
+
+</span>
+
+
+<div class="input-group">
+
+
+<p
+    style="
+        font-size:11px;
+        color:var(--text-muted);
+        line-height:1.6;
+    "
+>
+
+One internal 4-digit passcode unlocks protected AssetGuard areas such as sales, stock, ledgers, reports, CRM and dispatch.
+
+</p>
+
+
+
+<div
+
+id="passcodeStateRow"
+
+style="
+    font-size:11px;
+    font-weight:700;
+    color:var(--text-muted);
+"
+
+>
+
+Checking passcode status...
+
+</div>
+
+
+
+<!-- NORMAL PASSCODE CHANGE -->
+
+<div
+    id="normalPasscodeArea"
+>
+
+
+<div
+
+class="form-field"
+
+id="currentPasscodeField"
+
+>
+
+
+<label>
+
+Current Internal Passcode (4 Digits)
+
+</label>
+
+
+<input
+
+type="password"
+
+id="currentPasscode"
+
+placeholder="Enter 4-digit PIN"
+
+inputmode="numeric"
+
+pattern="[0-9]*"
+
+maxlength="4"
+
+oninput="this.value=this.value.replace(/\D/g,'').slice(0,4)"
+
+autocomplete="off"
+
+>
+
+
+</div>
+
+
+
+<div
+    class="form-field"
+    style="margin-top:12px;"
+>
+
+
+<label>
+
+New Internal Passcode (4 Digits)
+
+</label>
+
+
+<input
+
+type="password"
+
+id="newPasscode"
+
+placeholder="Enter 4 digits (e.g. 1234)"
+
+inputmode="numeric"
+
+pattern="[0-9]*"
+
+maxlength="4"
+
+oninput="this.value=this.value.replace(/\D/g,'').slice(0,4)"
+
+autocomplete="new-password"
+
+>
+
+
+</div>
+
+
+
+<div
+    class="form-field"
+    style="margin-top:12px;"
+>
+
+
+<label>
+
+Confirm New Internal Passcode
+
+</label>
+
+
+<input
+
+type="password"
+
+id="confirmPasscode"
+
+placeholder="Repeat 4-digit PIN"
+
+inputmode="numeric"
+
+pattern="[0-9]*"
+
+maxlength="4"
+
+oninput="this.value=this.value.replace(/\D/g,'').slice(0,4)"
+
+autocomplete="new-password"
+
+>
+
+
+</div>
+
+
+
+<!-- COMBINED SAVE & CANCEL BUTTONS -->
+
+<div
+    style="
+        display: flex;
+        gap: 10px;
+        margin-top: 14px;
+        align-items: center;
+    "
+>
+
+<button
+
+class="btn btn-secondary"
+
+onclick="exitPortal()"
+
+style="flex: unset; padding: 12px 16px;"
+
+>
+
+Cancel
+
+</button>
+
+
+
+<button
+
+class="btn btn-primary"
+
+id="saveAllBtn"
+
+onclick="saveAllChanges()"
+
+style="flex: 1;"
+
+>
+
+Save Changes
+
+</button>
+
+</div>
+
+
+</div>
+
+
+
+<!-- MODERN RESET PASSCODE TRIGGER -->
+
+<div
+    style="
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px dashed var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    "
+>
+    <div>
+        <div style="font-size: 12px; font-weight: 700; color: var(--dark);">Forgot Passcode?</div>
+        <div style="font-size: 11px; color: var(--text-muted);">Reset securely via login credentials</div>
+    </div>
+    
+    <button
+        class="btn btn-secondary"
+        onclick="openResetModal()"
+        style="flex: unset; padding: 10px 16px; font-size: 12px;"
+    >
+        Reset Password
+    </button>
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+<!-- =====================================================
+     LOGO
+===================================================== -->
+
+<div>
+
+
+<span class="section-label">
+
+Corporate Emblem
+
+</span>
+
+
+<div class="input-group">
+
+
+<div class="logo-upload-area">
+
+
+<input
+
+type="file"
+
+id="logoFileInput"
+
+accept="image/*"
+
+onchange="processLogoFile(this)"
+
+>
+
+
+<div class="upload-icon">
+
+⬆
+
+</div>
+
+
+<div class="upload-text">
+
+
+<b>
+
+Upload Corporate Logo
+
+</b>
+
+
+<p id="logoSubText">
+
+Select image from device storage
+
+</p>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</main>
+
+
+</div>
+
+
+
+<!-- =====================================================
+     MODAL: RESET PASSCODE WINDOW
+===================================================== -->
+
+<div
+    class="modal-overlay"
+    id="resetPasscodeModal"
+>
+
+<div class="modal-card">
+
+<div class="modal-header">
+
+<div class="modal-title">
+
+Reset Internal Passcode
+
+</div>
+
+<button
+    class="modal-close"
+    onclick="closeResetModal()"
+>
+    ✕
+</button>
+
+</div>
+
+
+<div
+    style="
+        font-size: 12px;
+        color: var(--text-muted);
+        line-height: 1.6;
+    "
+>
+    Verify your identity using your normal AssetGuard login password.
+</div>
+
+
+<div class="security-note">
+    Your normal AssetGuard login password is used only to verify that you own the currently signed-in account. It does not become your internal passcode.
+</div>
+
+
+<div class="form-field">
+
+<label>
+
+AssetGuard Account E-mail
+
+</label>
+
+
+<input
+
+type="email"
+
+id="recoveryEmail"
+
+placeholder="Enter your account e-mail"
+
+autocomplete="email"
+
+>
+
+
+</div>
+
+
+
+<div class="form-field">
+
+
+<label>
+
+AssetGuard Login Password
+
+</label>
+
+
+<input
+
+type="password"
+
+id="recoveryLoginPassword"
+
+placeholder="Enter normal login password"
+
+autocomplete="current-password"
+
+>
+
+
+</div>
+
+
+
+<div class="form-field">
+
+
+<label>
+
+New Internal Passcode (4 Digits)
+
+</label>
+
+
+<input
+
+type="password"
+
+id="recoveryNewPasscode"
+
+placeholder="Enter 4 digits"
+
+inputmode="numeric"
+
+pattern="[0-9]*"
+
+maxlength="4"
+
+oninput="this.value=this.value.replace(/\D/g,'').slice(0,4)"
+
+autocomplete="new-password"
+
+>
+
+
+</div>
+
+
+
+<div class="form-field">
+
+
+<label>
+
+Confirm New Internal Passcode
+
+</label>
+
+
+<input
+
+type="password"
+
+id="recoveryConfirmPasscode"
+
+placeholder="Repeat 4-digit PIN"
+
+inputmode="numeric"
+
+pattern="[0-9]*"
+
+maxlength="4"
+
+oninput="this.value=this.value.replace(/\D/g,'').slice(0,4)"
+
+autocomplete="new-password"
+
+>
+
+
+</div>
+
+
+
+<div
+    style="
+        display: flex;
+        gap: 10px;
+        margin-top: 6px;
+    "
+>
+
+<button
+
+class="btn btn-secondary"
+
+onclick="closeResetModal()"
+
+>
+
+Cancel
+
+</button>
+
+
+<button
+
+class="btn btn-danger"
+
+id="recoverPasscodeBtn"
+
+onclick="recoverPasscode()"
+
+>
+
+Verify & Reset Passcode
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<div
+
+id="toastBox"
+
+class="toast"
+
+>
+
+
+<span id="toastText">
+
+Settings Updated Successfully
+
+</span>
+
+
+</div>
+
+
+
+<script>
+
+
+// ============================================================
+// FIREBASE INITIALIZATION
+// ============================================================
+
+try {
+    if (!firebase.apps.length) {
+        firebase.initializeApp(AG_FIREBASE_CONFIG);
+    }
+} catch (e) {
+    console.warn("Firebase initialization warning:", e);
+}
+
+
+let rtdb = null;
+try {
+    rtdb = firebase.database();
+} catch (e) {
+    console.warn("Realtime Database warning:", e);
+}
+
+
+// ============================================================
+// ACTIVE USER
+// ============================================================
+
+let activeUID =
+    "global_terminal_user";
+
+
+// ============================================================
+// PAYMENT CONFIGURATION
+// ============================================================
+
+const MASTER_CONFIG = {
+
+    backendUrl:
+
+        "https://weathered-glade-c60b.assetguardinfo.workers.dev"
+
+};
+
+
+// ============================================================
+// DEFAULT SETTINGS
+// ============================================================
+
+let loadedSettings = {
+
+    businessName:
+
+        "JCorp Kenya Inc",
+
+    tagline:
+
+        "Transformation you need",
+
+    logoUrl:
+
+        "",
+
+    salesConfigSkipped:
+
+        true,
+
+    salesDaraja: {
+
+        environment:
+            "production",
+
+        accountType:
+            "Paybill",
+
+        shortcode:
+            "",
+
+        passkey:
+            "",
+
+        consumerKey:
+            "",
+
+        consumerSecret:
+            ""
+
+    }
+
+};
+
+
+// ============================================================
+// AUTHENTICATION
+// ============================================================
+
+try {
+    firebase.auth()
+    .onAuthStateChanged(
+
+        (user) => {
+
+            if (user) {
+
+                activeUID =
+                    user.uid;
+
+            }
+
+            else if (typeof AGUtils !== "undefined" && AGUtils.getActiveUID) {
+
+                activeUID =
+                    AGUtils.getActiveUID({
+
+                        fallback:
+
+                            "global_terminal_user",
+
+                        persist:
+
+                            true
+
+                    });
+
+            }
+
+
+            loadLocalSettings();
+
+
+            initPasscodeSection();
+
+        }
+
+    );
+} catch (e) {
+    loadLocalSettings();
+}
+
+
+// ============================================================
+// MODAL CONTROLS
+// ============================================================
+
+function openResetModal() {
+
+    document
+        .getElementById("resetPasscodeModal")
+        .classList
+        .add("active");
+
+}
+
+function closeResetModal() {
+
+    document
+        .getElementById("resetPasscodeModal")
+        .classList
+        .remove("active");
+
+}
+
+
+// ============================================================
+// SALES SECTION
+// ============================================================
+
+function toggleSalesConfig() {
+
+    document
+        .getElementById(
+            "salesSection"
+        )
+        .classList
+        .toggle(
+            "expanded"
+        );
+
+}
+
+
+async function skipSalesConfig(event) {
+
+    event.stopPropagation();
+
+
+    loadedSettings.salesConfigSkipped =
+        true;
+
+
+    document
+        .getElementById(
+            "salesShortcode"
+        )
+        .value =
+        "";
+
+
+    document
+        .getElementById(
+            "salesPasskey"
+        )
+        .value =
+        "";
+
+
+    document
+        .getElementById(
+            "salesConsumerKey"
+        )
+        .value =
+        "";
+
+
+    document
+        .getElementById(
+            "salesConsumerSecret"
+        )
+        .value =
+        "";
+
+
+    document
+        .getElementById(
+            "salesSection"
+        )
+        .classList
+        .remove(
+            "expanded"
+        );
+
+
+    updateSalesBadge();
+
+
+    await saveConfiguration(
+        true
+    );
+
+}
+
+
+function handleShortcodeInput() {
+
+    const shortcode =
+        document
+            .getElementById(
+                "salesShortcode"
+            )
+            .value
+            .trim();
+
+
+    if (shortcode !== "") {
+
+        loadedSettings.salesConfigSkipped =
+            false;
+
+    }
+
+
+    updateSalesBadge();
+
+}
+
+
+function updateSalesBadge() {
+
+    const badge =
+        document
+            .getElementById(
+                "salesStatusBadge"
+            );
+
+
+    const shortcode =
+        document
+            .getElementById(
+                "salesShortcode"
+            )
+            .value
+            .trim();
+
+
+    if (
+        loadedSettings
+            .salesConfigSkipped
+    ) {
+
+        badge.innerText =
+            "Skipped";
+
+        badge.className =
+            "status-badge badge-skipped";
+
+    }
+
+    else if (
+        shortcode !== ""
+    ) {
+
+        badge.innerText =
+            "Configured";
+
+        badge.className =
+            "status-badge badge-configured";
+
+    }
+
+    else {
+
+        badge.innerText =
+            "Optional";
+
+        badge.className =
+            "status-badge badge-pending";
+
+    }
+
+}
+
+
+// ============================================================
+// LOAD SETTINGS
+// ============================================================
+
+function loadLocalSettings() {
+
+    let parsed = null;
+    const cacheKey = (typeof AGUtils !== "undefined" && AGUtils.uidKey)
+        ? AGUtils.uidKey("ag_profile_cache", activeUID)
+        : "ag_profile_cache_" + activeUID;
+
+    try {
+        if (typeof AGUtils !== "undefined" && AGUtils.readJSON) {
+            parsed = AGUtils.readJSON(cacheKey, null);
+        } else {
+            const raw = localStorage.getItem(cacheKey);
+            parsed = raw ? JSON.parse(raw) : null;
+        }
+    } catch (e) {
+        console.error("Error reading cache:", e);
+    }
+
+
+    if (parsed) {
+
+        loadedSettings = {
+
+            ...loadedSettings,
+
+            ...parsed
+
+        };
+
+
+        if (
+            !loadedSettings.salesDaraja
+        ) {
+
+            loadedSettings.salesDaraja = {
+
+                environment:
+                    "production",
+
+                accountType:
+                    "Paybill",
+
+                shortcode:
+                    "",
+
+                passkey:
+                    "",
+
+                consumerKey:
+                    "",
+
+                consumerSecret:
+                    ""
+
+            };
+
+        }
+
+    }
+
+    else {
+
+        loadedSettings.salesConfigSkipped =
+            true;
+
+    }
+
+
+    document
+        .getElementById(
+            "businessNameInput"
+        )
+        .value =
+
+        loadedSettings.businessName ||
+        "";
+
+
+    document
+        .getElementById(
+            "taglineInput"
+        )
+        .value =
+
+        loadedSettings.tagline ||
+        "";
+
+
+    document
+        .getElementById(
+            "salesEnvironment"
+        )
+        .value =
+
+        loadedSettings
+            .salesDaraja
+            .environment ||
+
+        "production";
+
+
+    document
+        .getElementById(
+            "salesAccountType"
+        )
+        .value =
+
+        loadedSettings
+            .salesDaraja
+            .accountType ||
+
+        "Paybill";
+
+
+    document
+        .getElementById(
+            "salesShortcode"
+        )
+        .value =
+
+        loadedSettings
+            .salesDaraja
+            .shortcode ||
+
+        "";
+
+
+    document
+        .getElementById(
+            "salesPasskey"
+        )
+        .value =
+
+        loadedSettings
+            .salesDaraja
+            .passkey ||
+
+        "";
+
+
+    document
+        .getElementById(
+            "salesConsumerKey"
+        )
+        .value =
+
+        loadedSettings
+            .salesDaraja
+            .consumerKey ||
+
+        "";
+
+
+    document
+        .getElementById(
+            "salesConsumerSecret"
+        )
+        .value =
+
+        loadedSettings
+            .salesDaraja
+            .consumerSecret ||
+
+        "";
+
+
+    updatePreviewCard();
+
+
+    updateSalesBadge();
+
+}
+
+
+// ============================================================
+// PREVIEW
+// ============================================================
+
+function updatePreviewCard() {
+
+    document
+        .getElementById(
+            "prevName"
+        )
+        .innerText =
+
+        document
+            .getElementById(
+                "businessNameInput"
+            )
+            .value ||
+
+        "JCorp Kenya Inc";
+
+
+    document
+        .getElementById(
+            "prevTag"
+        )
+        .innerText =
+
+        document
+            .getElementById(
+                "taglineInput"
+            )
+            .value ||
+
+        "Transformation you need";
+
+
+    const logo =
+        document
+            .getElementById(
+                "prevLogo"
+            );
+
+
+    if (
+
+        loadedSettings.logoUrl &&
+
+        loadedSettings.logoUrl !== ""
+
+    ) {
+
+        logo.src =
+            loadedSettings.logoUrl;
+
+        document.getElementById("logoSubText").innerText = "Image selected";
+
+    }
+
+}
+
+
+// ============================================================
+// LOGO (UPDATED WITH TEXT & SELECTION TOAST)
+// ============================================================
+
+function processLogoFile(uploader) {
+
+    const file =
+        uploader.files[0];
+
+
+    if (!file) {
+
+        return;
+
+    }
+
+
+    const reader =
+        new FileReader();
+
+
+    reader.onload =
+        function(event) {
+
+            loadedSettings.logoUrl =
+                event.target.result;
+
+
+            updatePreviewCard();
+
+            document.getElementById("logoSubText").innerText = "Image selected";
+
+            triggerToast("Image selected");
+
+        };
+
+
+    reader.readAsDataURL(
+        file
+    );
+
+}
+
+
+// ============================================================
+// SAVE SETTINGS (ROBUST SAFEGUARDED SAVE)
+// ============================================================
+
+async function saveConfiguration(
+    isSkipAction = false
+) {
+
+    try {
+        loadedSettings.businessName =
+
+            document
+                .getElementById(
+                    "businessNameInput"
+                )
+                .value;
+
+
+        loadedSettings.tagline =
+
+            document
+                .getElementById(
+                    "taglineInput"
+                )
+                .value;
+
+
+        const shortcode =
+
+            document
+                .getElementById(
+                    "salesShortcode"
+                )
+                .value
+                .trim();
+
+
+        if (
+
+            !isSkipAction &&
+
+            shortcode !== ""
+
+        ) {
+
+            loadedSettings.salesConfigSkipped =
+                false;
+
+        }
+
+
+        loadedSettings.salesDaraja = {
+
+            backendUrl:
+
+                MASTER_CONFIG.backendUrl,
+
+
+            environment:
+
+                document
+                    .getElementById(
+                        "salesEnvironment"
+                    )
+                    .value,
+
+
+            accountType:
+
+                document
+                    .getElementById(
+                        "salesAccountType"
+                    )
+                    .value,
+
+
+            shortcode:
+
+
+                shortcode,
+
+
+            passkey:
+
+                document
+                    .getElementById(
+                        "salesPasskey"
+                    )
+                    .value
+                    .trim(),
+
+
+            consumerKey:
+
+                document
+                    .getElementById(
+                        "salesConsumerKey"
+                    )
+                    .value
+                    .trim(),
+
+
+            consumerSecret:
+
+                document
+                    .getElementById(
+                        "salesConsumerSecret"
+                    )
+                    .value
+                    .trim()
+
+        };
+
+
+        const cacheKey = (typeof AGUtils !== "undefined" && AGUtils.uidKey)
+            ? AGUtils.uidKey("ag_profile_cache", activeUID)
+            : "ag_profile_cache_" + activeUID;
+
+        if (typeof AGUtils !== "undefined" && AGUtils.writeJSON) {
+            AGUtils.writeJSON(cacheKey, loadedSettings);
+        } else {
+            localStorage.setItem(cacheKey, JSON.stringify(loadedSettings));
+        }
+
+
+        updateSalesBadge();
+
+
+        let cloudSaved =
+            true;
+
+
+        try {
+
+            if (rtdb) {
+                await rtdb
+                    .ref(
+
+                        `user_settings/${activeUID}`
+
+                    )
+                    .set({
+
+                        ...loadedSettings,
+
+                        updatedAt:
+                            Date.now()
+
+                    });
+
+
+                const statusRef =
+
+                    rtdb.ref(
+
+                        `user_statuses/${activeUID}`
+
+                    );
+
+
+                const statusSnapshot =
+
+                    await statusRef.once(
+                        "value"
+                    );
+
+
+                if (
+                    !statusSnapshot.exists()
+                ) {
+
+                    await statusRef.set(
+                        "Active"
+                    );
+
+                }
+
+
+                await rtdb
+                    .ref(
+                        "user_activity_logs"
+                    )
+                    .push({
+
+                        uid:
+                            activeUID,
+
+                        category:
+                            "SETTINGS",
+
+                        description:
+
+                            isSkipAction
+
+                                ?
+
+                                "POS Payment Setup Skipped"
+
+                                :
+
+                                "Corporate business and payment settings updated",
+
+
+                        timestamp:
+                            Date.now(),
+
+
+                        device:
+
+                            navigator
+                                .userAgent
+                                .substring(
+                                    0,
+                                    50
+                                )
+
+                    });
+            } else {
+                cloudSaved = false;
+            }
+
+        }
+
+        catch (error) {
+
+            cloudSaved =
+                false;
+
+            if (
+                globalThis.AGErrors
+            ) {
+
+                AGErrors.report(
+
+                    "settings cloud synchronization",
+
+                    error
+
+                );
+
+            }
+
+        }
+
+        if (!isSkipAction) {
+            triggerToast(
+
+                cloudSaved
+
+                    ?
+
+                    "Settings saved successfully"
+
+                    :
+
+                    "Saved locally successfully"
+
+            );
+        }
+
+    } catch (err) {
+        console.error("Save error:", err);
+        triggerToast("Saved locally");
+    }
+
+}
+
+
+// ============================================================
+// PASSCODE API LOADER
+// ============================================================
+
+async function passcodeApi() {
+
+    if (
+        globalThis.AGPasscode
+    ) {
+
+        return globalThis.AGPasscode;
+
+    }
+
+
+    await new Promise(
+
+        (resolve) => {
+
+            setTimeout(
+
+                resolve,
+
+                250
+
+            );
+
+        }
+
+    );
+
+
+    if (
+        !globalThis.AGPasscode
+    ) {
+
+        throw new Error(
+
+            "Security module is still loading. Try again."
+
+        );
+
+    }
+
+
+    return globalThis.AGPasscode;
+
+}
+
+
+// ============================================================
+// INITIALIZE PASSCODE SECTION
+// ============================================================
+
+async function initPasscodeSection() {
+
+
+    const stateRow =
+
+        document
+            .getElementById(
+                "passcodeStateRow"
+            );
+
+
+    const currentField =
+
+        document
+            .getElementById(
+                "currentPasscodeField"
+            );
+
+
+    try {
+
+
+        const api =
+            await passcodeApi();
+
+
+        const configured =
+            await api.isConfigured();
+
+
+        const account =
+            await api.getCurrentAccount();
+
+
+        const recoveryEmail =
+
+            document
+                .getElementById(
+                    "recoveryEmail"
+                );
+
+
+        recoveryEmail.value =
+            account.email ||
+            "";
+
+
+        currentField.style.display =
+
+            configured
+
+                ?
+
+                "flex"
+
+                :
+
+                "none";
+
+
+        if (configured) {
+
+
+            stateRow.style.color =
+                "var(--success)";
+
+
+            stateRow.innerText =
+
+                "Internal 4-digit passcode is active. You can change or reset it below.";
+
+
+        }
+
+        else {
+
+
+            stateRow.style.color =
+                "var(--warning)";
+
+
+            stateRow.innerText =
+
+                "No internal passcode is configured yet. Create a 4-digit PIN below.";
+
+
+        }
+
+
+    }
+
+    catch (error) {
+
+
+        currentField.style.display =
+            "flex";
+
+
+        stateRow.style.color =
+                "var(--danger)";
+
+
+        stateRow.innerText =
+
+            error.message ||
+
+            "Internal passcode status unavailable.";
+
+
+    }
+
+}
+
+
+// ============================================================
+// MASTER SAVE ALL CHANGES HANDLER
+// ============================================================
+
+async function saveAllChanges() {
+
+    const button = document.getElementById("saveAllBtn");
+    button.disabled = true;
+    const originalText = button.innerText;
+    button.innerText = "Saving...";
+
+    try {
+        // 1. Save standard configuration and settings
+        await saveConfiguration(false);
+
+        // 2. Check if user attempted to change/set passcode
+        const newPasscode = document.getElementById("newPasscode").value.trim();
+        const confirmation = document.getElementById("confirmPasscode").value.trim();
+        const currentPasscode = document.getElementById("currentPasscode").value.trim();
+
+        if (newPasscode !== "" || confirmation !== "" || currentPasscode !== "") {
+            if (newPasscode.length !== 4) {
+                triggerToast("Passcode must be exactly 4 digits");
+                button.disabled = false;
+                button.innerText = originalText;
+                return;
+            }
+
+            if (newPasscode !== confirmation) {
+                triggerToast("New passcodes do not match");
+                button.disabled = false;
+                button.innerText = originalText;
+                return;
+            }
+
+            const api = await passcodeApi();
+            await api.setPasscode(newPasscode, { currentPasscode });
+
+            document.getElementById("currentPasscode").value = "";
+            document.getElementById("newPasscode").value = "";
+            document.getElementById("confirmPasscode").value = "";
+
+            await initPasscodeSection();
+            triggerToast("All changes & passcode updated successfully");
+        }
+    }
+    catch (error) {
+        triggerToast(error.message || "Save failed");
+    }
+    finally {
+        button.disabled = false;
+        button.innerText = originalText;
+    }
+
+}
+
+
+// ============================================================
+// QUOTA FREE PASSCODE RECOVERY (STRICTLY 4 DIGITS VALIDATION)
+// ============================================================
+
+async function recoverPasscode() {
+
+
+    const button =
+
+        document
+            .getElementById(
+                "recoverPasscodeBtn"
+            );
+
+
+    const email =
+
+        document
+            .getElementById(
+                "recoveryEmail"
+            )
+            .value
+            .trim();
+
+
+    const loginPassword =
+
+        document
+            .getElementById(
+                "recoveryLoginPassword"
+            )
+            .value;
+
+
+    const newPasscode =
+
+        document
+            .getElementById(
+                "recoveryNewPasscode"
+            )
+            .value
+            .trim();
+
+
+    const confirmation =
+
+        document
+            .getElementById(
+                "recoveryConfirmPasscode"
+            )
+            .value
+            .trim();
+
+
+    if (newPasscode.length !== 4) {
+
+        triggerToast(
+            "New passcode must be exactly 4 digits"
+        );
+
+        return;
+
+    }
+
+
+    if (
+
+        newPasscode !==
+        confirmation
+
+    ) {
+
+        triggerToast(
+
+            "New internal passcodes do not match."
+
+        );
+
+        return;
+
+    }
+
+
+    if (!loginPassword) {
+
+        triggerToast(
+
+            "Enter your AssetGuard login password."
+
+        );
+
+        return;
+
+    }
+
+
+    button.disabled =
+        true;
+
+
+    const originalText =
+        button.innerText;
+
+
+    button.innerText =
+        "Verifying Account...";
+
+
+    try {
+
+
+        const api =
+            await passcodeApi();
+
+
+        await api.recoverWithLoginPassword({
+
+            email:
+
+                email,
+
+
+            loginPassword:
+
+                loginPassword,
+
+
+            newPasscode:
+
+                newPasscode
+
+        });
+
+
+        document
+            .getElementById(
+                "recoveryLoginPassword"
+            )
+            .value =
+            "";
+
+
+        document
+            .getElementById(
+                "recoveryNewPasscode"
+            )
+            .value =
+            "";
+
+
+        document
+            .getElementById(
+                "recoveryConfirmPasscode"
+            )
+            .value =
+            "";
+
+
+        document
+            .getElementById(
+                "currentPasscode"
+            )
+            .value =
+            "";
+
+
+        document
+            .getElementById(
+                "newPasscode"
+            )
+            .value =
+            "";
+
+
+        document
+            .getElementById(
+                "confirmPasscode"
+            )
+            .value =
+            "";
+
+
+        closeResetModal();
+
+
+        triggerToast(
+
+            "Identity verified. 4-digit passcode reset successfully."
+
+        );
+
+
+        await initPasscodeSection();
+
+
+    }
+
+    catch (error) {
+
+
+        triggerToast(
+
+            error.message ||
+
+            "Account verification failed."
+
+        );
+
+
+    }
+
+    finally {
+
+
+        button.disabled =
+            false;
+
+
+        button.innerText =
+            originalText;
+
+
+    }
+
+}
+
+
+// ============================================================
+// TOAST
+// ============================================================
+
+function triggerToast(message) {
+
+
+    const box =
+
+        document
+            .getElementById(
+                "toastBox"
+            );
+
+
+    document
+        .getElementById(
+            "toastText"
+        )
+        .innerText =
+        message;
+
+
+    box.classList.add(
+        "show"
+    );
+
+
+    setTimeout(
+
+        () => {
+
+            box.classList.remove(
+                "show"
+            );
+
+        },
+
+        3500
+
+    );
+
+}
+
+
+// ============================================================
+// EXIT SETTINGS (ROBUST SAFEGUARDED CANCEL)
+// ============================================================
+
+function exitPortal() {
+
+    try {
+
+        if (
+
+            window.AppInventor &&
+
+            typeof
+                window.AppInventor
+                .setWebViewString
+
+            ===
+
+            "function"
+
+        ) {
+
+
+            window.AppInventor
+                .setWebViewString(
+
+                    JSON.stringify({
+
+                        action:
+                            "navigate_back",
+
+                        uid:
+                            activeUID
+
+                    })
+
+                );
+
+
+        }
+
+    }
+
+    catch (error) {
+
+        console.error("AppInventor bridge error:", error);
+
+    }
+
+
+    window.location.href =
+
+        `dashboard.html?uid=${encodeURIComponent(activeUID || "global_terminal_user")}`;
+
+}
+
+
+</script>
+
+
+</body>
+
+</html>

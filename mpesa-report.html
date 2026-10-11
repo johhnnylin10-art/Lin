@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="error-utils.js"></script>
+<script src="ag-utils.js"></script>
+<script src="ag-context-guard.js"></script>
+<script type="module" src="auth-guard.js"></script>
+    <meta charset="utf-8">
+    <title>M-Pesa Revenue - AssetGuard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        /* Styles remain identical for consistent UI */
+        :root { --mpesa-green:#40c057; --mpesa-dark:#1a1d21; --border:#e9ecef; --text-muted:#6c757d; --danger:#ef4444; --pending: #f59e0b; }
+        body { font-family: 'Outfit', sans-serif; background: #f4f7f6; margin: 0; padding: 0; color: var(--mpesa-dark); -webkit-tap-highlight-color: transparent; }
+        .sticky-wrapper { position: sticky; top: 0; z-index: 1000; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(12px); border-bottom: 3px solid var(--mpesa-green); box-shadow: 0 4px 15px rgba(0,0,0,0.06); }
+        .header-main { padding: 10px 18px; display: flex; justify-content: center; align-items: center; position: relative; min-height: 40px; }
+        .brand-name { color: var(--mpesa-green); font-weight: 800; font-size: 14px; letter-spacing: 1px; }
+        .revenue-display { position: absolute; right: 18px; text-align: right; display: none; }
+        .revenue-display.active { display: block; }
+        .revenue-display small { font-size: 8px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; }
+        .revenue-display span { font-size: 18px; font-weight: 800; color: var(--mpesa-dark); }
+        .search-row { padding: 0 18px 10px 18px; display: flex; justify-content: center; }
+        .search-box { width: 100%; max-width: 400px; }
+        .search-box input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border); box-sizing: border-box; font-family: inherit; outline: none; font-size: 14px; background: #f8fafc; text-align: center; }
+        .filter-row { padding: 8px 18px; display: flex; justify-content: center; gap: 10px; background: #fafafa; border-top: 1px solid #eee; }
+        select { width: 120px; padding: 8px; border-radius: 8px; border: 1px solid var(--border); font-family: inherit; font-size: 12px; background: #fff; font-weight: 700; outline: none; }
+        .main-content { padding: 12px; padding-bottom: 120px; }
+        .transaction-list { display: flex; flex-direction: column; gap: 10px; }
+        .entry { background: #fff; border-radius: 16px; padding: 18px; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.03); border-left: 5px solid var(--mpesa-green); }
+        .entry.is-pending { border-left-color: var(--pending); border-left-style: dashed; background: #fffcf5; }
+        .no-data { padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px; font-weight: 600; }
+        .ref-no { font-family: 'Roboto Mono', monospace; font-size: 10px; font-weight: 700; color: var(--mpesa-green); background: #f0fff4; padding: 2px 6px; border-radius: 4px; }
+        .pending-tag { font-size: 9px; background: var(--pending); color: white; padding: 2px 6px; border-radius: 4px; font-weight: 800; }
+        .entry-date { font-size: 10px; color: var(--text-muted); font-weight: 600; float: right; }
+        .customer-name { font-size: 15px; font-weight: 800; text-transform: uppercase; color: var(--mpesa-dark); display: block; margin-top: 10px; }
+        .customer-phone { font-size: 13px; color: var(--mpesa-green); font-weight: 700; font-family: 'Roboto Mono', monospace; display: block; }
+        .items-breakdown { margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 8px; }
+        .item-line { display: grid; grid-template-columns: 1fr 40px 80px; font-size: 11px; padding: 3px 0; color: #475569; }
+        .item-line span:last-child { text-align: right; font-weight: 700; color: var(--mpesa-dark); }
+        .total-row { display: flex; justify-content: space-between; margin-top: 10px; padding-top: 8px; border-top: 1px solid #eee; align-items: center; }
+        .total-row b { font-size: 16px; color: var(--mpesa-green); font-weight: 800; }
+        .footer-fixed { position: fixed; bottom: 0; left: 0; right: 0; background: var(--mpesa-dark); color: #fff; padding: 15px 20px; display: none; justify-content: space-between; align-items: center; border-radius: 20px 20px 0 0; z-index: 1100; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); }
+        .footer-fixed.active { display: flex; }
+        .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter: blur(10px); justify-content:center; align-items:center; z-index:2000; padding: 15px; }
+        .modal-content { background:#fff; width:100%; max-width:340px; border-radius:28px; padding: 30px; box-sizing: border-box; }
+        .edit-input { width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 14px; margin-bottom: 12px; font-family: inherit; outline: none; background: #f8fafc; box-sizing: border-box; }
+        .pin-field { width: 100%; text-align: center; font-size: 24px; letter-spacing: 8px; padding: 12px; border: 2px solid var(--mpesa-green); border-radius: 14px; margin-bottom: 15px; box-sizing: border-box; outline: none; }
+        .btn { border:none; padding:16px; border-radius:16px; font-size: 14px; font-weight:800; cursor:pointer; width: 100%; }
+        .btn-save { background: var(--mpesa-dark); color: #fff; margin-bottom: 10px; }
+        .btn-del { background: #fee2e2; color: var(--danger); margin-bottom: 10px; }
+        .btn-cancel { background: #f1f5f9; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+
+<div id="manageModal" class="modal">
+    <div class="modal-content">
+        <h3 style="margin:0 0 5px 0; font-size: 18px;">Update Record</h3>
+        <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 20px;">Secure Admin Access Only.</p>
+        <input type="text" id="edit-cust-name" class="edit-input" placeholder="Customer Name">
+        <input type="text" id="edit-cust-phone" class="edit-input" placeholder="M-Pesa Number">
+        <input type="password" id="authPin" class="pin-field" maxlength="32" placeholder="••••" oninput="validatePin()">
+        <div id="auth-btns" style="display: none;">
+            <button id="btn-save-changes" class="btn btn-save">APPLY CHANGES</button>
+            <button onclick="openConfirmModal()" class="btn btn-del">DELETE TRANSACTION</button>
+        </div>
+        <button onclick="closeModals()" class="btn btn-cancel" style="margin-top:5px;">CLOSE</button>
+    </div>
+</div>
+
+<div id="confirmModal" class="modal">
+    <div class="modal-content" style="text-align: center;">
+        <h3 style="margin:0 0 10px 0;">Delete Record?</h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 25px;">Permanently remove from cloud and local storage.</p>
+        <button id="btn-final-del" class="btn btn-save" style="background:var(--danger); margin-bottom:10px;">DELETE PERMANENTLY</button>
+        <button onclick="closeConfirmModal()" class="btn btn-cancel">KEEP RECORD</button>
+    </div>
+</div>
+
+<div class="sticky-wrapper">
+    <div class="header-main">
+        <div class="brand-name">M-PESA PORTAL</div>
+        <div class="revenue-display" id="header-rev-box">
+            <small>Total Revenue</small>
+            <span id="stat-gross">KES 0.00</span>
+        </div>
+    </div>
+    <div class="search-row"><div class="search-box"><input type="text" id="searchInput" placeholder="Search Customer, Number or Ref..." oninput="renderSales()"></div></div>
+    <div class="filter-row">
+        <select id="monthFilter" onchange="renderSales()">
+            <option value="all">Any Month</option>
+            <option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option><option value="3">Apr</option>
+            <option value="4">May</option><option value="5">Jun</option><option value="6">Jul</option><option value="7">Aug</option>
+            <option value="8">Sep</option><option value="9">Oct</option><option value="10">Nov</option><option value="11">Dec</option>
+        </select>
+        <select id="yearFilter" onchange="renderSales()"><option value="2026">2026</option><option value="2025">2025</option></select>
+    </div>
+</div>
+
+<div class="main-content">
+    <div class="transaction-list" id="sales-container"></div>
+</div>
+
+<div class="footer-fixed" id="footer-bar">
+    <div><small style="opacity:0.7; font-size:8px; font-weight:800;">Volume</small><br><span id="stat-count" style="font-weight:800; font-size: 16px;">0</span></div>
+    <div style="text-align:right"><small style="opacity:0.7; font-size:8px; font-weight:800;">Total M-Pesa</small><br><span id="grand-total" style="font-size:18px; font-weight:800; color:var(--mpesa-green)">KES 0.00</span></div>
+</div>
+
+<script type="module">
+import { getDb } from "./ag-firebase.js";
+import { ref, onValue, remove, update } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+import AGPasscode from "./ag-passcode.js";
+
+const db = getDb();
+
+// --- USER ISOLATION ---
+const currentUID = AGUtils.getActiveUID();
+if (!currentUID) {
+    document.body.innerHTML = "<h2 style='text-align:center; padding-top:50px;'>Authentication Required.</h2>";
+}
+
+const salesPath = AGUtils.userPath(currentUID, "sales");
+const queueKey = AGUtils.uidKey("ag_sales_queue", currentUID);
+const cacheKey = AGUtils.uidKey("ag_mpesa_cache", currentUID);
+
+let cloudRecords = [];
+let combinedStore = [];
+let activeId = null;
+
+const refreshUnifiedData = () => {
+    // Pull the pending queue for THIS specific user
+    const localQueue = AGUtils.readJSON(queueKey, []);
+    const pendingMpesa = localQueue
+        .filter(q => q.payment === "M-Pesa")
+        .map(q => ({
+            id: q.saleId,
+            ...q,
+            isPending: true,
+            grandTotal: q.items ? q.items.reduce((sum, i) => sum + parseFloat(i.total || 0), 0) : (parseFloat(q.total) || 0)
+        }));
+
+    combinedStore = AGUtils.mergePendingWithCloud(cloudRecords, pendingMpesa);
+    AGUtils.writeJSON(cacheKey, combinedStore);
+    renderSales();
+};
+
+// Listen to the isolated user sales path
+onValue(ref(db, salesPath), snap => {
+    const cloudData = snap.val() || {};
+    cloudRecords = Object.entries(cloudData)
+        .filter(([_, v]) => v.payment === "M-Pesa")
+        .map(([id, v]) => ({ 
+            id, ...v, 
+            isPending: false, 
+            grandTotal: v.items ? v.items.reduce((sum, i) => sum + parseFloat(i.total || 0), 0) : (parseFloat(v.total) || 0) 
+        }));
+    refreshUnifiedData();
+}, error => AGErrors.report("M-Pesa sales live data", error));
+
+window.renderSales = () => {
+    const container = document.getElementById('sales-container');
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const selMonth = document.getElementById('monthFilter').value;
+    const selYear = document.getElementById('yearFilter').value;
+    
+    container.innerHTML = "";
+    let gross = 0, count = 0;
+
+    combinedStore.forEach(s => {
+        const date = new Date(s.timestamp);
+        const amt = parseFloat(s.grandTotal || 0);
+        const matchSearch = s.customer.toLowerCase().includes(search) || (s.mpesa && String(s.mpesa).includes(search)) || s.id.includes(search);
+        const matchDate = (selYear === "all" || date.getFullYear().toString() === selYear) && (selMonth === "all" || date.getMonth().toString() === selMonth);
+
+        if (matchSearch && matchDate) {
+            count++; gross += amt;
+            const itemHTML = s.items?.map(i => `
+                <div class="item-line"><span>${i.product}</span><span>x${i.quantity}</span><span>${AGUtils.formatAmount(i.total)}</span></div>
+            `).join('') || "";
+
+            container.insertAdjacentHTML('beforeend', `
+                <div class="entry ${s.isPending ? 'is-pending' : ''}">
+                    <span class="ref-no">${s.id.slice(-8).toUpperCase()}</span>
+                    ${s.isPending ? '<span class="pending-tag">PENDING SYNC</span>' : ''}
+                    <span class="entry-date">${date.toLocaleDateString('en-GB')}</span>
+                    <span class="customer-name">${s.customer}</span>
+                    <span class="customer-phone">${s.mpesa || '07XXXXXXXX'}</span>
+                    <div class="items-breakdown">${itemHTML}</div>
+                    <div class="total-row"><span>${AGUtils.formatCurrency(amt)}</span><b>M-PESA</b></div>
+                    ${!s.isPending ? `<button style="position:absolute; right:12px; top:55px; border:none; background:none; font-size:20px; opacity:0.15;" onclick="openManager('${s.id}')">⚙️</button>` : ''}
+                </div>
+            `);
+        }
+    });
+
+    if (count === 0) container.innerHTML = '<div class="no-data">No active M-Pesa records for this period.</div>';
+    document.getElementById('stat-gross').innerText = AGUtils.formatCurrency(gross);
+    document.getElementById('stat-count').innerText = count;
+    document.getElementById('grand-total').innerText = AGUtils.formatCurrency(gross);
+    document.getElementById('header-rev-box').classList.toggle('active', gross > 0);
+    document.getElementById('footer-bar').classList.toggle('active', gross > 0);
+};
+
+window.validatePin = async () => {
+    const pin = document.getElementById('authPin').value;
+    const unlocked = pin.length >= AGPasscode.MIN_LENGTH && (await AGPasscode.verify(pin)).ok;
+    document.getElementById('auth-btns').style.display = unlocked ? 'block' : 'none';
+};
+
+window.openManager = id => {
+    activeId = id;
+    const s = combinedStore.find(x => x.id === id);
+    document.getElementById('edit-cust-name').value = s.customer;
+    document.getElementById('edit-cust-phone').value = s.mpesa || "";
+    document.getElementById('authPin').value = "";
+    validatePin();
+    document.getElementById('manageModal').style.display = 'flex';
+};
+
+window.openConfirmModal = () => document.getElementById('confirmModal').style.display = 'flex';
+window.closeConfirmModal = () => document.getElementById('confirmModal').style.display = 'none';
+
+document.getElementById('btn-save-changes').onclick = () => {
+    update(ref(db, `${salesPath}/${activeId}`), { 
+        customer: document.getElementById('edit-cust-name').value, 
+        mpesa: document.getElementById('edit-cust-phone').value 
+    }).catch(error => AGErrors.report("M-Pesa contact update", error));
+    closeModals();
+};
+
+document.getElementById('btn-final-del').onclick = () => {
+    remove(ref(db, `${salesPath}/${activeId}`))
+        .catch(error => AGErrors.report("M-Pesa contact deletion", error));
+    closeConfirmModal(); closeModals();
+};
+
+window.closeModals = () => {
+    document.getElementById('manageModal').style.display = 'none';
+    document.getElementById('confirmModal').style.display = 'none';
+};
+
+window.addEventListener('storage', (e) => {
+    if(e.key === queueKey) refreshUnifiedData();
+});
+
+// Initial month filter setup
+document.getElementById('monthFilter').value = new Date().getMonth();
+const cached = localStorage.getItem(cacheKey);
+if(cached) { combinedStore = JSON.parse(cached); renderSales(); }
+</script>
+</body>
+</html>

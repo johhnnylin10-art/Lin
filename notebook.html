@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="error-utils.js"></script>
+<script src="ag-utils.js"></script>
+<script src="ag-context-guard.js"></script>
+<script type="module" src="auth-guard.js"></script>
+    <meta charset="utf-8">
+    <title>Notebook - AssetGuard Ultimate</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        /* Styles remain consistent for UX */
+        :root { --primary:#0072CE; --dark:#001A35; --bg:#f8fafc; --accent:#f59e0b; --danger:#ef4444; --success:#10b981; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); margin: 0; color: var(--dark); -webkit-tap-highlight-color: transparent; }
+        .sticky-header { position: sticky; top: 0; background: var(--bg); z-index: 1000; padding: 10px 15px 5px 15px; box-shadow: 0 8px 12px -10px rgba(0,0,0,0.1); }
+        .top-flex { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 10px; }
+        h2 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
+        #note-count { background: var(--primary); color: white; padding: 2px 8px; border-radius: 8px; font-size: 11px; margin-left: 5px; }
+        .security-bar { background: var(--dark); padding: 8px 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; transition: 0.3s; }
+        .pin-input { width: 60px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff; padding: 4px; text-align: center; outline: none; font-size: 12px; font-weight: 800; }
+        .input-card { background: #fff; padding: 12px; border-radius: 15px; border: 1px solid #e2e8f0; margin-bottom: 10px; }
+        textarea { width: 100%; min-height: 45px; border: none; font-family: inherit; resize: none; font-size: 14px; outline: none; margin-bottom: 8px; color: var(--dark); }
+        .tools { display: flex; gap: 8px; align-items: center; }
+        input[type="datetime-local"] { border: 1px solid #f1f5f9; background: #f8fafc; border-radius: 8px; padding: 6px; font-size: 11px; font-weight: 600; outline: none; flex: 1; }
+        .btn-save { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 800; font-size: 13px; cursor: pointer; }
+        .content { padding: 5px 15px 100px 15px; }
+        .note-card { background: #fff; padding: 15px; border-radius: 15px; border-left: 5px solid var(--primary); margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); border: 1px solid #f1f5f9; animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .note-card.reminder { border-left-color: var(--accent); }
+        .note-card p { margin: 0 0 10px 0; font-size: 14px; line-height: 1.5; white-space: pre-wrap; color: var(--dark); }
+        .meta { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f8fafc; padding-top: 10px; }
+        .date { font-size: 10px; font-weight: 800; color: #94a3b8; }
+        .admin-actions { display: none; gap: 5px; }
+        .unlocked .admin-actions { display: flex; }
+        .btn-act { background: #f1f5f9; border: none; padding: 6px 10px; border-radius: 6px; font-size: 10px; font-weight: 800; color: var(--dark); cursor: pointer; }
+        .btn-del { color: var(--danger); }
+        footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 8px; font-weight: 800; color: #94a3b8; background: rgba(255,255,255,0.9); backdrop-filter: blur(5px); padding: 12px 0; border-top: 1px solid #f1f5f9; z-index: 1000; }
+    </style>
+</head>
+<body id="appBody">
+
+<div class="sticky-header">
+    <div class="top-flex">
+        <h2>Notebook <span id="note-count">0</span></h2>
+    </div>
+
+    <div class="security-bar" id="lockBar">
+        <span style="color:white; font-size:10px; font-weight:800; letter-spacing:1px;" id="lockLabel">LOCKED</span>
+        <input type="password" id="masterPin" class="pin-input" maxlength="32" placeholder="••••" oninput="checkLock()">
+    </div>
+
+    <div class="input-card">
+        <textarea id="noteText" placeholder="Write a note or order..." oninput="autoExpand(this)"></textarea>
+        <div class="tools">
+            <input type="datetime-local" id="reminderTime">
+            <button class="btn-save" id="submitBtn" onclick="saveNote()">Save</button>
+        </div>
+    </div>
+</div>
+
+<div class="content" id="notes-list"></div>
+
+<footer>&copy; 2026 ASSETGUARD LTD. JCORP LTD PARTNERSHIP.</footer>
+
+<script type="module">
+    import { getDb } from "./ag-firebase.js";
+    import { ref, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+    import AGPasscode from "./ag-passcode.js";
+
+    const db = getDb();
+    
+    // --- USER ISOLATION ---
+    const currentUID = AGUtils.getActiveUID();
+    if (!currentUID) {
+        document.body.innerHTML = "<h2 style='text-align:center; padding-top:50px;'>Authentication Required.</h2>";
+    }
+    
+    const userNotesPath = AGUtils.userPath(currentUID, "admin_diary");
+    const notesRef = ref(db, userNotesPath);
+    let editingId = null;
+    let localNotes = [];
+
+    // --- PER-USER OFFLINE STORAGE (IndexedDB) ---
+    // We add the UID to the database name so local cache is also isolated
+    const idbRequest = indexedDB.open(`AssetGuard_Notes_${currentUID}`, 1);
+    idbRequest.onupgradeneeded = e => e.target.result.createObjectStore("notes", { keyPath: "id" });
+    
+    const mirrorSave = (data) => {
+        if (!idbRequest.result) return;
+        const tx = idbRequest.result.transaction("notes", "readwrite");
+        const store = tx.objectStore("notes");
+        store.clear();
+        Object.entries(data).forEach(([id, val]) => store.put({ id, ...val }));
+    };
+
+    idbRequest.onsuccess = () => {
+        const tx = idbRequest.result.transaction("notes", "readonly");
+        tx.objectStore("notes").getAll().onsuccess = e => {
+            if(e.target.result.length > 0) renderNotes(e.target.result);
+        };
+    };
+
+    window.autoExpand = (textarea) => {
+        textarea.style.height = '45px';
+        textarea.style.height = textarea.scrollHeight + 'px';
+    };
+
+    window.checkLock = async () => {
+        const pin = document.getElementById('masterPin').value;
+        const body = document.getElementById('appBody');
+        const label = document.getElementById('lockLabel');
+        const bar = document.getElementById('lockBar');
+
+        if(pin.length >= AGPasscode.MIN_LENGTH && (await AGPasscode.verify(pin)).ok) {
+            body.classList.add('unlocked');
+            bar.style.background = "#10b981";
+            label.innerText = "UNLOCKED";
+        } else {
+            body.classList.remove('unlocked');
+            bar.style.background = "#001A35";
+            label.innerText = "LOCKED";
+        }
+    };
+
+    window.saveNote = async () => {
+        const text = document.getElementById('noteText').value;
+        const rTime = document.getElementById('reminderTime').value;
+        if(!text.trim()) return;
+
+        const tempId = editingId || "temp_" + Date.now();
+        const tempNote = {
+            id: tempId,
+            content: text,
+            reminder: rTime || null,
+            timestamp: editingId ? (localNotes.find(n => n.id === editingId)?.timestamp || new Date().toISOString()) : new Date().toISOString()
+        };
+
+        // UI Optimistic Update
+        if (!editingId) {
+            localNotes.unshift(tempNote);
+        } else {
+            const idx = localNotes.findIndex(n => n.id === editingId);
+            if(idx !== -1) localNotes[idx] = tempNote;
+        }
+        
+        renderNotes(localNotes);
+        
+        // Reset Form
+        const box = document.getElementById('noteText');
+        box.value = '';
+        box.style.height = '45px';
+        document.getElementById('reminderTime').value = '';
+        document.getElementById('submitBtn').innerText = "Save";
+
+        try {
+            if (editingId) {
+                await update(ref(db, `${userNotesPath}/${editingId}`), { 
+                    content: text, 
+                    reminder: rTime || null 
+                });
+                editingId = null;
+            } else {
+                await push(notesRef, { 
+                    content: text, 
+                    reminder: rTime || null, 
+                    timestamp: tempNote.timestamp 
+                });
+            }
+        } catch (e) {
+            if (!AGErrors.isOffline(e)) AGErrors.report("notebook cloud save", e);
+            else console.log("Offline: Note saved locally.");
+        }
+    };
+
+    window.triggerEdit = (id) => {
+        const note = localNotes.find(n => n.id === id);
+        if(!note) return;
+        editingId = id;
+        const box = document.getElementById('noteText');
+        box.value = note.content;
+        document.getElementById('reminderTime').value = note.reminder || "";
+        document.getElementById('submitBtn').innerText = "Update";
+        autoExpand(box);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.deleteNote = (id) => {
+        if(confirm("Delete this note?")) {
+            remove(ref(db, `${userNotesPath}/${id}`))
+                .catch(error => AGErrors.report("notebook deletion", error));
+        }
+    };
+
+    function renderNotes(data) {
+        // Ensure we handle both Firebase object formats and IndexedDB array formats
+        localNotes = Array.isArray(data) ? data : Object.entries(data).map(([id, val]) => ({ id, ...val }));
+        localNotes.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+        
+        const list = document.getElementById('notes-list');
+        document.getElementById('note-count').innerText = localNotes.length;
+        
+        list.innerHTML = localNotes.map(n => {
+            const dateStr = new Date(n.timestamp).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'2-digit' });
+            return `
+                <div class="note-card ${n.reminder ? 'reminder' : ''}">
+                    <p>${n.content}</p>
+                    <div class="meta">
+                        <span class="date">${dateStr}</span>
+                        <div class="admin-actions">
+                            <button class="btn-act" onclick="triggerEdit('${n.id}')">EDIT</button>
+                            <button class="btn-act btn-del" onclick="deleteNote('${n.id}')">DEL</button>
+                        </div>
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    // Listen for changes on the user-specific path
+    onValue(notesRef, (snap) => {
+        const data = snap.val();
+        if (data) {
+            mirrorSave(data);
+            renderNotes(data);
+        } else {
+            renderNotes([]);
+        }
+    }, error => AGErrors.report("notebook live data", error));
+</script>
+</body>
+</html>

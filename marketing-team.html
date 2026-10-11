@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="error-utils.js"></script>
+<script src="ag-utils.js"></script>
+<script src="ag-config.js"></script>
+<script src="ag-context-guard.js"></script>
+<script type="module" src="auth-guard.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>RouteStock Pro — Direct Dispatches & Live Tracking</title>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
+<style>
+:root{
+--navy:#0b1220;
+--blue:#2563eb;
+--blue2:#3b82f6;
+--bg:#f3f6fa;
+--card:#fff;
+--text:#172033;
+--muted:#718096;
+--line:#e4e9f0;
+--green:#16a34a;
+--amber:#d97706;
+--red:#dc2626;
+--shadow:0 8px 28px rgba(15,23,42,.08);
+--radius:18px;
+}
+
+*{ box-sizing:border-box; margin:0; padding:0; }
+html,body{ width:100%; min-height:100%; font-family:'Segoe UI',Roboto,system-ui,sans-serif; background:var(--bg); color:var(--text); }
+body{ overflow-x:hidden; }
+button,input,textarea,select{ font:inherit; }
+button{ cursor:pointer; -webkit-tap-highlight-color:transparent; }
+
+.app{ width:100%; min-height:100vh; }
+.main{ width:100%; max-width:1200px; margin:auto; padding:14px; }
+.page{ display:none; }
+.page.active{ display:block; }
+
+.topbar{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
+.page-title h2{ font-size:22px; letter-spacing:-.5px; }
+.page-title p{ font-size:12px; color:var(--muted); margin-top:4px; }
+.top-actions{ display:flex; gap:8px; align-items:center; }
+
+.btn{ border:0; border-radius:11px; padding:12px 15px; font-weight:800; font-size:13px; min-height:44px; display:inline-flex; align-items:center; justify-content:center; text-decoration:none; width:100%; }
+.btn.primary{ background:var(--blue); color:white; }
+.btn.secondary{ background:white; border:1px solid var(--line); color:var(--text); width:auto; }
+.btn.danger{ background:#fee2e2; color:var(--red); width:auto; }
+.btn.warning{ background:#fef3c7; color:var(--amber); width:auto; font-size:11px; padding:8px 10px; min-height:36px; }
+.btn:disabled{ background:#cbd5e1; color:#64748b; cursor:not-allowed; transform:none !important; opacity:0.6; }
+.btn:active{ transform:scale(.98); }
+
+.card{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; margin-bottom:14px; }
+.card-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:15px; }
+.card-title{ font-size:17px; font-weight:850; }
+.card-sub{ font-size:11px; color:var(--muted); margin-top:4px; line-height:1.45; }
+
+.form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.field{ margin-bottom:2px; }
+.field.full{ grid-column:1/-1; }
+.field label{ display:block; font-size:11px; font-weight:850; color:#526176; margin-bottom:6px; }
+.field input, .field textarea, .field select{ width:100%; border:1px solid var(--line); border-radius:11px; background:#fff; padding:12px; outline:none; font-size:14px; color:var(--text); }
+.field textarea{ min-height:82px; resize:vertical; }
+.field input:focus, .field textarea:focus, .field select:focus{ border-color:var(--blue); box-shadow:0 0 0 3px #dbeafe; }
+.field input:disabled, .field textarea:disabled, .field select:disabled{ background:#f1f5f9; color:#94a3b8; cursor:not-allowed; }
+
+/* TOGGLE SWITCH STYLES */
+.switch { position: relative; display: inline-block; width: 36px; height: 20px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; inset: 0; background-color: #cbd5e1; transition: .3s; border-radius: 20px; }
+.slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--blue); }
+input:checked + .slider:before { transform: translateX(16px); }
+
+/* LIVE TRACKING MODULE */
+.live-tracker-box { background: #0f172a; color: #fff; border-radius: 14px; padding: 16px; border: 1px solid #1e293b; }
+.live-tracker-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.live-status-indicator { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 850; padding: 5px 10px; border-radius: 20px; background: rgba(22, 163, 74, 0.2); color: #4ade80; }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse-dot 1.5s infinite; }
+@keyframes pulse-dot { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
+.live-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+.live-metric-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; padding: 10px; text-align: center; }
+.live-metric-card small { display: block; font-size: 9px; color: #94a3b8; font-weight: 800; }
+.live-metric-card strong { display: block; font-size: 13px; color: #fff; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* CREW ROWS */
+.items{ border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+.agent-row{ display:grid; grid-template-columns:minmax(0,1.5fr) 1fr 38px; gap:7px; padding:10px; border-bottom:1px solid var(--line); align-items:center; }
+.agent-row:last-child{ border-bottom:0; }
+.agent-row input, .agent-row select{ width:100%; min-width:0; padding:10px 8px; border:1px solid var(--line); border-radius:9px; outline:none; font-size:13px; background:#fff; }
+.remove{ border:0; background:#fee2e2; color:var(--red); width:36px; height:36px; border-radius:9px; font-weight:900; font-size:18px; }
+.add-item{ border:0; background:#eff6ff; color:var(--blue); border-radius:10px; padding:9px 12px; font-size:12px; font-weight:850; width:auto; }
+
+.ledger-tools{ display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center; }
+.filter{ border:1px solid var(--line); background:#fff; border-radius:9px; padding:9px 13px; font-size:11px; font-weight:800; display:inline-flex; align-items:center; gap:6px; }
+.filter.active{ background:var(--blue); color:white; border-color:var(--blue); }
+
+.ledger-container{ display:flex; flex-direction:column; gap:12px; }
+.ledger-card{ background:white; border:1px solid var(--line); border-radius:14px; padding:14px; box-shadow:0 2px 8px rgba(0,0,0,.03); }
+.ledger-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--line); }
+.ledger-id{ font-weight:900; font-size:14px; }
+.ledger-date{ font-size:11px; color:var(--muted); font-weight:700; }
+.ledger-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px; margin-bottom:10px; }
+.ledger-grid-item small{ display:block; font-size:9px; color:var(--muted); font-weight:800; }
+.ledger-grid-item span{ font-weight:750; }
+.ledger-footer{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding-top:8px; border-top:1px solid var(--line); }
+.badge{ display:inline-flex; padding:4px 8px; border-radius:20px; font-size:9px; font-weight:900; }
+.badge.active{ background:#ecfdf5; color:var(--green); }
+.badge.settled{ background:#f1f5f9; color:var(--muted); }
+.badge.addition{ background:#eff6ff; color:var(--blue); }
+.badge.pending{ background:#fef3c7; color:var(--amber); }
+.action{ border:1px solid var(--line); background:white; padding:7px 12px; border-radius:8px; font-size:11px; font-weight:800; }
+.empty{ text-align:center; padding:35px; color:var(--muted); font-size:13px; background:white; border:1px solid var(--line); border-radius:14px; }
+
+.dispatch-banner{ background:linear-gradient(135deg,#0b1220,#172554); color:white; border-radius:15px; padding:14px; margin-bottom:13px; display:none; }
+.dispatch-banner.show{ display:block; }
+.dispatch-banner small{ display:block; color:#94a3b8; font-size:10px; font-weight:800; }
+.dispatch-banner strong{ display:block; font-size:16px; margin-top:3px; }
+.dispatch-banner span{ display:block; font-size:11px; color:#cbd5e1; margin-top:3px; }
+
+.drawer-bg{ position:fixed; inset:0; background:rgba(5,12,25,.55); backdrop-filter:blur(5px); z-index:100; display:none; }
+.drawer{ position:absolute; right:0; top:0; height:100%; width:min(760px,96vw); background:white; padding:20px; overflow:auto; box-shadow:-20px 0 60px rgba(0,0,0,.2); }
+.drawer-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:18px; border-bottom:1px solid var(--line); padding-bottom:12px; }
+.drawer-section{ background:#f8fafc; border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:14px; }
+.drawer-section-title{ font-size:11px; font-weight:850; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
+.agent-list-item{ display:flex; justify-content:space-between; align-items:center; background:white; border:1px solid var(--line); padding:10px 12px; border-radius:10px; margin-bottom:6px; font-size:13px; gap:8px; }
+.detail-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-bottom:14px; }
+.detail{ background:#f8fafc; border:1px solid var(--line); border-radius:13px; padding:13px; min-width:0; }
+.detail small{ display:block; font-size:10px; font-weight:800; color:#758198; }
+.detail strong{ display:block; font-size:15px; margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+.toast{ position:fixed; left:14px; right:14px; bottom:16px; background:#0b1220; color:white; padding:14px 16px; border-radius:12px; box-shadow:0 15px 40px rgba(0,0,0,.25); z-index:300; display:none; font-size:12px; font-weight:750; text-align:center; }
+.toast.error{ background:#991b1b; }
+.toast.success{ background:#166534; }
+.toast.warning{ background:#d97706; }
+</style>
+
+<script>
+if (!localStorage.getItem("routeStockUser")) {
+    localStorage.setItem("routeStockUser", JSON.stringify({
+        name: "John Karanja",
+        role: "Driver",
+        phone: "+254713100424",
+        vehicle: ""
+    }));
+}
+</script>
+</head>
+
+<body>
+
+<div class="app">
+<main class="main">
+
+<!-- ENTRY PAGE -->
+<section id="entryPage" class="page active">
+<div class="topbar">
+<div class="page-title">
+<h2>Route Dispatch Portal</h2>
+<p>Direct Dispatches & Live Telemetry.</p>
+</div>
+<div class="top-actions">
+<button class="btn secondary" onclick="showPage('ledgerPage')">View Ledger</button>
+</div>
+</div>
+
+<div id="currentDispatchBanner" class="dispatch-banner">
+<small>ACTIVE FIREBASE DISPATCH & CLOUD TELEMETRY</small>
+<strong id="bannerDispatch">—</strong>
+<span id="bannerRoute">—</span>
+</div>
+
+<!-- LIVE TRACKING MODULE -->
+<div class="card" id="liveTrackingCard">
+<div class="card-head">
+<div>
+<div class="card-title">Live Tracking Engine</div>
+<div class="card-sub">GPS telemetry is live and monitored continuously.</div>
+</div>
+</div>
+<div class="live-tracker-box" id="liveTrackerBox">
+<div class="live-tracker-header">
+<span style="font-size:12px; font-weight:850; color:#94a3b8;">DISPATCH STATUS</span>
+<div id="liveStatusBadge" class="live-status-indicator">
+<span class="live-dot"></span>
+<span id="liveStatusText">GPS Telemetry Active</span>
+</div>
+</div>
+<div class="live-metrics">
+<div class="live-metric-card"><small>LATITUDE</small><strong id="liveLat">-0.3031</strong></div>
+<div class="live-metric-card"><small>LONGITUDE</small><strong id="liveLng">36.0800</strong></div>
+<div class="live-metric-card"><small>VELOCITY</small><strong id="liveSpeed">0 km/h</strong></div>
+</div>
+<a href="live-tracking.html" id="openLiveTrackingBtn" class="btn primary" style="margin-top: 10px; width: 100%; font-size: 12px; padding: 10px;">Open Full Live-Tracking Page ↗</a>
+</div>
+</div>
+
+<!-- CREW -->
+<div class="card" id="crewCard">
+<div class="card-head">
+<div>
+<div class="card-title">Sales Crew & Agents</div>
+<div class="card-sub">Your primary profile autofills. Click "+ Add Member" to add crew members. All added members must be filled.</div>
+</div>
+<button id="btnAddAgent" class="add-item" onclick="addAgent()">+ Add Member</button>
+</div>
+<div class="items" id="agentsContainer"></div>
+</div>
+
+<!-- VEHICLE & DETAILS -->
+<div class="card" id="vehicleCard">
+<div class="card-head">
+<div>
+<div class="card-title">Vehicle & Dispatch Details</div>
+<div class="card-sub"></div>
+</div>
+</div>
+
+<div class="form-grid">
+<div class="field full">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <label style="margin-bottom:0;">Car Registration Number</label>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:11px; color:var(--muted); font-weight:800;">Skip Car Reg</span>
+            <label class="switch">
+                <input type="checkbox" id="skipCarToggle" onchange="toggleSkipCar(this)">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+    <input id="carRegistration" type="text" placeholder="car number plate or leave blank">
+</div>
+<div class="field"><label>Dispatch Date</label><input id="date" type="date" disabled></div>
+<div class="field"><label>Manager Contact / Phone</label><input id="managerPhone" type="tel" value="+254713100424"></div>
+<div class="field full"><label>Notes</label><textarea id="notes" placeholder="Optional notes" style="min-height:50px;"></textarea></div>
+</div>
+</div>
+
+<!-- SUBMIT DISPATCH -->
+<div class="card" id="submitCard">
+<div style="display:flex; flex-direction:column; gap:10px;">
+<button id="btnSubmitDispatch" class="btn primary" onclick="submitDispatch()">
+ Submit Dispatch Request
+</button>
+</div>
+</div>
+</section>
+
+<!-- LEDGER PAGE -->
+<section id="ledgerPage" class="page">
+<div class="topbar">
+<div class="page-title">
+<h2>Cloud Dispatch Ledger</h2>
+<p>Synchronized history of active and settled dispatches.</p>
+</div>
+<div class="top-actions">
+<button class="btn secondary" onclick="showPage('entryPage')">← Back</button>
+</div>
+</div>
+
+<div class="card" style="background:transparent;border:0;box-shadow:none;padding:0;">
+<div class="ledger-tools">
+<button class="filter active" onclick="filterLedger('all',this)">All</button>
+<button class="filter" onclick="filterLedger('Active',this)">Active</button>
+<button class="filter" onclick="filterLedger('Settled',this)">Settled</button>
+</div>
+<div id="ledgerContainer" class="ledger-container"></div>
+</div>
+</section>
+
+</main>
+</div>
+
+<!-- DRAWER -->
+<div class="drawer-bg" id="drawerBg" onclick="closeDrawer(event)">
+<div class="drawer" id="drawer">
+    <div class="drawer-head">
+        <button class="btn secondary" onclick="hideDrawer()" style="font-size:12px;padding:8px 12px;min-height:36px;">← Back</button>
+        <button class="remove" onclick="hideDrawer()" style="width:36px;height:36px;">×</button>
+    </div>
+    <div id="drawerContent"></div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+if (!firebase.apps.length) {
+    firebase.initializeApp(AG_FIREBASE_CONFIG);
+}
+const rtdb = firebase.database();
+const auth = firebase.auth();
+
+let dispatches = [];
+let adminRequests = {};
+let activeGeoWatchId = null;
+let currentDispatchId = null;
+
+// Direct-route protection: Fixed Area users must not open this page manually.
+(function enforceMarketingTeamAccess() {
+    const role = String(localStorage.getItem("ag_user_role") || "").toLowerCase();
+    if (role === "fixed_area") {
+        window.location.replace("dashboard.html?authError=marketing_restricted");
+    }
+})();
+
+window.addEventListener("DOMContentLoaded", () => {
+    loadUserProfile();
+    startGlobalGPSMonitoring();
+});
+
+function loadUserProfile() {
+    const saved = JSON.parse(localStorage.getItem("routeStockUser") || "{}");
+    if (saved.phone) {
+        const phoneField = document.getElementById("managerPhone");
+        if (phoneField) phoneField.value = saved.phone;
+    }
+    
+    const vehicleField = document.getElementById("carRegistration");
+    if (vehicleField) {
+        vehicleField.value = (saved.vehicle && saved.vehicle.trim() !== "") ? saved.vehicle : "";
+    }
+
+    const container = document.getElementById("agentsContainer");
+    container.innerHTML = "";
+    addAgent(saved, false);
+}
+
+rtdb.ref("dispatches").on("value", (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+        dispatches = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+        dispatches.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    } else {
+        dispatches = [];
+    }
+    renderLedger();
+    updateDispatchBanner();
+}, error => AGErrors.report("dispatches live data", error, message => toast(`Live dispatches could not be loaded: ${message}`, "error")));
+
+rtdb.ref("adminRequests").on("value", (snapshot) => {
+    adminRequests = snapshot.val() || {};
+    renderLedger();
+}, error => AGErrors.report("admin requests live data", error, message => toast(`Live admin requests could not be loaded: ${message}`, "error")));
+
+function esc(s) { return AGUtils.escapeHtml(s); }
+
+function toast(message, type="") {
+    AGUtils.showToast(message, { type, duration: 4000, elementId: "toast" });
+}
+
+function showPage(id) {
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+    window.scrollTo({top:0, behavior:"smooth"});
+    if(id === "ledgerPage") { renderLedger(); }
+}
+
+function addAgent(data={}, isAddition = true) {
+    const container = document.getElementById("agentsContainer");
+
+    const row = document.createElement("div");
+    row.className = "agent-row";
+    row.dataset.addition = isAddition ? "true" : "false";
+
+    let removeBtnHtml = isAddition ? `<button class="remove" onclick="this.parentElement.remove()">×</button>` : `<span style="font-size:10px;font-weight:800;color:var(--muted);text-align:center;">Primary</span>`;
+
+    row.innerHTML = `
+        <input class="ip-agent-name" placeholder="Agent Full Name" value="${esc(data.name||"")}" ${!isAddition ? 'readonly style="background:#f8fafc;"' : ''}>
+        <select class="ip-agent-role" ${!isAddition ? 'disabled style="background:#f8fafc;"' : ''}>
+            <option value="Driver" ${data.role==="Driver"?"selected":""}>Driver</option>
+            <option value="Lead Sales" ${data.role==="Lead Sales"?"selected":""}>Lead Sales</option>
+            <option value="Assistant" ${data.role==="Assistant"?"selected":""}>Assistant</option>
+        </select>
+        ${removeBtnHtml}
+    `;
+    container.appendChild(row);
+}
+
+function toggleSkipCar(checkbox) {
+    const vehicleInput = document.getElementById("carRegistration");
+    if (checkbox.checked) {
+        vehicleInput.value = "N/A (Skipped)";
+        vehicleInput.disabled = true;
+        vehicleInput.style.borderColor = "";
+        toast("Car registration skipped via toggle.", "success");
+    } else {
+        vehicleInput.value = "";
+        vehicleInput.disabled = false;
+        toast("Car registration enabled.", "success");
+    }
+}
+
+function submitDispatch() {
+    const skipToggle = document.getElementById("skipCarToggle");
+    const vehicleInput = document.getElementById("carRegistration");
+    
+    // Validate Car Registration if not skipped
+    if (!skipToggle.checked && vehicleInput.value.trim() === "") {
+        vehicleInput.focus();
+        vehicleInput.style.borderColor = "var(--amber)";
+        vehicleInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        toast("Car registration cannot be empty unless skipped using the toggle switch.", "warning");
+        return;
+    }
+
+    const vehicle = skipToggle.checked ? "N/A (Skipped)" : (vehicleInput.value.trim() !== "" ? vehicleInput.value.trim() : "N/A");
+
+    // Validate Crew Members: ensure no crew member is empty or unfilled
+    const agentRows = [...document.querySelectorAll(".agent-row")];
+    if (!agentRows.length) {
+        toast("Please add at least one sales crew member or driver.", "error");
+        return;
+    }
+
+    const agents = [];
+    for (let i = 0; i < agentRows.length; i++) {
+        const row = agentRows[i];
+        const nameInput = row.querySelector(".ip-agent-name");
+        const nameVal = nameInput.value.trim();
+        
+        if (!nameVal) {
+            nameInput.focus();
+            nameInput.style.borderColor = "var(--red)";
+            nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            toast(`Crew member #${i + 1} name cannot be left empty. Please fill it out.`, "error");
+            return;
+        }
+        nameInput.style.borderColor = "";
+
+        agents.push({
+            name: nameVal,
+            role: row.querySelector(".ip-agent-role").value,
+            isCustomAddition: row.dataset.addition === "true"
+        });
+    }
+
+    const dateInput = document.getElementById("date").value;
+    const now = new Date();
+    const date = dateInput || now.toISOString().slice(0,10);
+    const createdAt = now.getTime();
+    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    const phone = document.getElementById("managerPhone").value.trim();
+    const notes = document.getElementById("notes").value.trim();
+
+    const dispatchId = "RS-" + Date.now().toString().slice(-8);
+
+    const payload = {
+        id: dispatchId,
+        agents, route: "Direct Route", date, createdAt, timeString, vehicle, phone, notes,
+        status: "Active",
+        lastLocation: null
+    };
+
+    currentDispatchId = dispatchId;
+
+    rtdb.ref(`dispatches/${dispatchId}`).set(payload).then(() => {
+        toast("Dispatch successfully created and active!", "success");
+        updateDispatchBanner();
+        showPage('ledgerPage');
+    }).catch(error => AGErrors.report("dispatch creation", error, message => toast(`Dispatch creation failed: ${message}`, "error")));
+}
+
+function startGlobalGPSMonitoring() {
+    if (!("geolocation" in navigator)) {
+        toast("Geolocation is not supported by your browser.", "error");
+        return;
+    }
+
+    if (activeGeoWatchId !== null) {
+        navigator.geolocation.clearWatch(activeGeoWatchId);
+    }
+
+    const successCallback = (p) => {
+        const lat = p.coords.latitude;
+        const lng = p.coords.longitude;
+        const speedKmh = ((p.coords.speed || 0) * 3.6).toFixed(1);
+
+        document.getElementById("liveLat").textContent = lat.toFixed(5);
+        document.getElementById("liveLng").textContent = lng.toFixed(5);
+        document.getElementById("liveSpeed").textContent = speedKmh + " km/h";
+
+        if (currentDispatchId) {
+            rtdb.ref(`dispatches/${currentDispatchId}/lastLocation`).set({
+                lat, lng, speed: speedKmh, ts: Date.now()
+            }).catch(error => AGErrors.report("dispatch location update", error));
+        }
+    };
+
+    const errorCallback = (err) => {
+        console.error("GPS Error / Turned off:", err);
+    };
+
+    navigator.geolocation.getCurrentPosition(successCallback, errorCallback, {
+        enableHighAccuracy: true, timeout: 10000, maximumAge: 0
+    });
+
+    activeGeoWatchId = navigator.geolocation.watchPosition(successCallback, errorCallback, {
+        enableHighAccuracy: true, maximumAge: 0, timeout: 5000
+    });
+}
+
+function updateDispatchBanner() {
+    const d = dispatches.find(x => x.id === currentDispatchId || x.status === "Active");
+    const banner = document.getElementById("currentDispatchBanner");
+    if(!d) { 
+        banner.classList.remove("show"); 
+        return; 
+    }
+    banner.classList.add("show");
+    const crewStr = Array.isArray(d.agents) ? d.agents.map(a=>a.name).join(", ") : "Crew";
+    document.getElementById("bannerDispatch").textContent = d.id + " · Crew: " + crewStr;
+    document.getElementById("bannerRoute").textContent = (d.vehicle || "N/A") + " · Status: " + d.status;
+}
+
+let currentFilter = "all";
+
+function renderLedger() {
+    const container = document.getElementById("ledgerContainer");
+    let rows = dispatches;
+    if(currentFilter !== "all") {
+        rows = dispatches.filter(d => d.status === currentFilter);
+    }
+    if(!rows.length) {
+        container.innerHTML = `<div class="empty">No dispatch records found for filter: ${currentFilter}.</div>`;
+        return;
+    }
+    container.innerHTML = rows.map(d => {
+        const crewSummary = Array.isArray(d.agents) ? d.agents.map(a => `${a.name} (${a.role})`).join(", ") : "Crew";
+        const isActive = (d.status === "Active");
+        let badgeClass = isActive ? "active" : "settled";
+
+        const pendingReq = adminRequests[d.id];
+        if (pendingReq && pendingReq.status === 'Pending') {
+            badgeClass = "pending";
+        }
+
+        let loc = "-0.3031, 36.0800";
+        if (d.lastLocation) {
+            loc = `${d.lastLocation.lat.toFixed(4)}, ${d.lastLocation.lng.toFixed(4)}`;
+        }
+        const vehicleDisplay = d.vehicle ? d.vehicle : "N/A";
+        const statusBadgeText = (pendingReq && pendingReq.status === 'Pending') ? ` Pending ${pendingReq.action}` : (isActive ? "🟢 GPS Telemetry Live" : "Settled");
+
+        return `
+            <div class="ledger-card">
+                <div class="ledger-header">
+                    <div>
+                        <div class="ledger-id">${esc(d.id)}</div>
+                        <div class="ledger-date">${esc(d.date)} ${esc(d.timeString ? 'at '+d.timeString : '')} · Contact: ${esc(d.phone||"—")}</div>
+                    </div>
+                    <span class="badge ${badgeClass}">${pendingReq && pendingReq.status === 'Pending' ? ('PENDING ' + pendingReq.action.toUpperCase()) : esc(d.status).toUpperCase()}</span>
+                </div>
+                <div class="ledger-grid">
+                    <div class="ledger-grid-item"><small>CREW / AGENTS</small><span style="font-weight:850">${esc(crewSummary)}</span></div>
+                    <div class="ledger-grid-item"><small>GPS TELEMETRY</small><span style="color:var(--blue)">${esc(loc)}</span></div>
+                    <div class="ledger-grid-item" style="grid-column: 1/-1;"><small>CAR REGISTRATION & CONTACT</small><span>${esc(vehicleDisplay)} (${esc(d.phone||"—")})</span></div>
+                </div>
+                <div class="ledger-footer">
+                    <span class="badge ${badgeClass}">${statusBadgeText}</span>
+                    <button class="action" onclick="openDispatch('${d.id}')">Manage / Review</button>
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
+function filterLedger(filter, btn) {
+    currentFilter = filter;
+    document.querySelectorAll(".filter").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    renderLedger();
+}
+
+function openDispatch(id) {
+    const d = dispatches.find(x => x.id === id);
+    if(!d) return;
+    
+    let lastLocStr = "No GPS data recorded yet";
+    if (d.lastLocation) {
+        lastLocStr = `Lat: ${d.lastLocation.lat.toFixed(5)}, Lng: ${d.lastLocation.lng.toFixed(5)} — Speed: ${d.lastLocation.speed || '0.0'} km/h`;
+    }
+
+    const agentsArr = Array.isArray(d.agents) ? d.agents : [{name: "Driver", role: "Driver", isCustomAddition: false}];
+    let crewListHtml = agentsArr.map((a, idx) => `
+        <div class="agent-list-item">
+            <div>
+                <strong>${esc(a.name)}</strong> <span style="font-size:11px;color:var(--muted)">(${esc(a.role)})</span>
+                ${a.isCustomAddition ? '<br><span class="badge addition">Custom Addition</span>' : '<br><span class="badge settled">Primary User</span>'}
+            </div>
+            ${a.isCustomAddition ? `<button class="btn warning" onclick="requestAdminEditAgent(${idx}, '${esc(a.name)}')">Request Admin Edit</button>` : `<span style="font-size:10px;color:var(--muted)">Locked</span>`}
+        </div>
+    `).join("");
+
+    let isActive = (d.status === "Active");
+    let badgeClass = isActive ? "active" : "settled";
+
+    const pendingReq = adminRequests[d.id];
+    if (pendingReq && pendingReq.status === 'Pending') {
+        badgeClass = "pending";
+    }
+
+    let actionButton = isActive ? 
+        `<button class="btn secondary" style="flex:1" onclick="updateDispatchStatus('${d.id}', 'Settled')"> Settle Dispatch</button>` :
+        `<button class="btn primary" style="flex:1" onclick="updateDispatchStatus('${d.id}', 'Active')">🟢 Reactivate Dispatch</button>`;
+
+    const timeDisplay = d.timeString ? `at ${d.timeString}` : "";
+    const vehicleDisplay = d.vehicle ? d.vehicle : "N/A";
+
+    let pendingSectionHtml = "";
+    if (pendingReq && pendingReq.status === 'Pending') {
+        pendingSectionHtml = `
+        <div class="drawer-section" style="background:#fffbeb; border-color:#fde68a;">
+            <div class="drawer-section-title" style="color:#d97706;"><span> Pending Admin ${esc(pendingReq.action)} Request</span></div>
+            <p style="font-size:11px; color:#78350f; margin-bottom:4px;"><b>From (Current State):</b> ${esc(pendingReq.fromText)}</p>
+            <p style="font-size:11px; color:#78350f;"><b>To (Requested Changes):</b> ${esc(pendingReq.toText)}</p>
+        </div>`;
+    }
+
+    document.getElementById("drawerContent").innerHTML = `
+        <div style="margin-bottom:15px;display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+                <h2 style="font-size:20px;letter-spacing:-.5px;">Dispatch ${esc(d.id)}</h2>
+                <p style="font-size:11px;color:var(--muted);margin-top:4px">${esc(d.date)} ${esc(timeDisplay)} · Car Reg: <b>${esc(vehicleDisplay)}</b></p>
+                <p style="font-size:11px;color:var(--muted);margin-top:2px">Contact: <b>${esc(d.phone||"—")}</b></p>
+            </div>
+            <span class="badge ${badgeClass}" style="font-size:11px;padding:6px 12px;">${pendingReq && pendingReq.status === 'Pending' ? ('PENDING ' + pendingReq.action.toUpperCase()) : esc(d.status).toUpperCase()}</span>
+        </div>
+
+        ${pendingSectionHtml}
+
+        <div class="detail-grid">
+            <div class="detail"><small>LOCATION TELEMETRY</small><strong style="font-size:11px;color:var(--blue)">${esc(lastLocStr)}</strong></div>
+            <div class="detail"><small>STATUS</small><strong style="font-size:13px">${esc(d.status)}</strong></div>
+        </div>
+
+        <div class="drawer-section">
+            <div class="drawer-section-title"><span>Assigned Crew & Additions</span><span class="badge settled">${agentsArr.length} Member(s)</span></div>
+            <div style="display:flex;flex-direction:column;gap:6px;">${crewListHtml}</div>
+        </div>
+
+        <div class="drawer-section">
+            <div class="drawer-section-title"><span>Remarks</span></div>
+            <p style="font-size:12px;color:var(--text);line-height:1.5;">${esc(d.notes || "No remarks recorded.")}</p>
+        </div>
+
+        <div class="drawer-section" id="editRequestContainer" style="display:none;">
+            <div class="drawer-section-title"><span>Request Edit Details (Field Changes Only)</span></div>
+            <div class="field full" style="margin-bottom:10px;">
+                <label>Specify Exact Change</label>
+                <input id="editFieldInput" type="text" placeholder="e.g., Change to KAU 528F" style="width:100%; padding:10px; border:1px solid var(--line); border-radius:9px; outline:none; font-size:13px;">
+            </div>
+            <button class="btn primary" style="font-size:12px; padding:10px;" onclick="submitEditRequest('${d.id}')">Submit Edit Request to Admin</button>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:20px">
+            ${actionButton}
+            <div style="display:flex;gap:8px;">
+                <button class="btn warning" style="flex:1;" onclick="toggleEditRequestForm()"> Request Edit</button>
+                <button class="btn danger" style="flex:1;" onclick="submitDeleteRequest('${d.id}')"> Request Delete</button>
+            </div>
+        </div>
+    `;
+    document.getElementById("drawerBg").style.display = "block";
+}
+
+function toggleEditRequestForm() {
+    const area = document.getElementById("editRequestContainer");
+    if (area) {
+        area.style.display = area.style.display === "none" ? "block" : "none";
+    }
+}
+
+function submitEditRequest(dispatchId) {
+    const changeInput = document.getElementById("editFieldInput").value.trim();
+    if (!changeInput) {
+        toast("Please enter what is being changed (e.g. Change to KAU 528F).", "error");
+        return;
+    }
+
+    const d = dispatches.find(x => x.id === dispatchId);
+    if (!d) return;
+
+    const fromSummary = `Vehicle: ${d.vehicle || 'N/A'}`;
+    const toSummary = `${changeInput}`;
+
+    rtdb.ref(`adminRequests/${dispatchId}`).set({
+        dispatchId: dispatchId,
+        action: 'Edit',
+        fromText: fromSummary,
+        toText: toSummary,
+        requestedAt: Date.now(),
+        status: 'Pending'
+    }).then(() => {
+        toast("Edit request submitted as Pending.", "success");
+        hideDrawer();
+    }).catch(err => {
+        toast("Failed to submit edit request: " + err.message, "error");
+    });
+}
+
+function submitDeleteRequest(dispatchId) {
+    if (!confirm("Are you sure you want to request deletion of this dispatch?")) return;
+
+    const d = dispatches.find(x => x.id === dispatchId);
+    if (!d) return;
+
+    const fromSummary = `Dispatch ID: ${dispatchId}`;
+    const toSummary = 'Complete Deletion';
+
+    rtdb.ref(`adminRequests/${dispatchId}`).set({
+        dispatchId: dispatchId,
+        action: 'Delete',
+        fromText: fromSummary,
+        toText: toSummary,
+        requestedAt: Date.now(),
+        status: 'Pending'
+    }).then(() => {
+        toast("Delete request submitted as Pending.", "success");
+        hideDrawer();
+    }).catch(err => {
+        toast("Failed to submit delete request: " + err.message, "error");
+    });
+}
+
+function requestAdminEditAgent(index, name) {
+    toast(`Edit request sent to admin for crew member: "${name}".`, "success");
+}
+
+function updateDispatchStatus(id, newStatus) {
+    rtdb.ref(`dispatches/${id}`).update({ status: newStatus }).then(() => {
+        toast(`Dispatch updated to ${newStatus}!`, "success");
+        hideDrawer();
+        renderLedger();
+    }).catch(error => AGErrors.report("dispatch status update", error, message => toast(`Dispatch update failed: ${message}`, "error")));
+}
+
+function hideDrawer() { document.getElementById("drawerBg").style.display = "none"; }
+function closeDrawer(e) { if(e.target === document.getElementById("drawerBg")) { hideDrawer(); } }
+
+document.getElementById("date").value = new Date().toISOString().slice(0,10);
+</script>
+
+</body>
+</html>
