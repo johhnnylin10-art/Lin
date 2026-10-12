@@ -369,6 +369,26 @@ iframe { width: 100%; height: 100%; border: none; display: none; }
     border: 1px solid rgba(255,255,255,0.1);
 }
 .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+.field-location-panel { grid-column: 1 / -1; background: linear-gradient(135deg, #0b1b37, #142a4e); border: 1px solid rgba(148, 163, 184, .25); border-radius: 18px; padding: 22px; color: #f8fafc; }
+.field-location-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 18px; }
+.field-location-kicker { color: #7dd3fc; font-size: 10px; font-weight: 800; letter-spacing: .12em; }
+.field-location-header h2 { margin: 5px 0 6px; font-size: 20px; }
+.field-location-header p { margin: 0; color: #bfcee0; font-size: 12px; line-height: 1.5; max-width: 700px; }
+.field-location-share-status { display: inline-flex; flex: 0 0 auto; align-items: center; border: 1px solid rgba(148, 163, 184, .35); border-radius: 999px; padding: 8px 12px; color: #cbd5e1; background: rgba(15, 23, 42, .5); font-size: 11px; font-weight: 700; }
+.field-location-share-status.is-active { color: #bbf7d0; border-color: rgba(34, 197, 94, .5); background: rgba(22, 101, 52, .3); }
+.field-location-list { display: grid; gap: 9px; }
+.field-location-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 13px 15px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(148, 163, 184, .15); border-radius: 12px; }
+.field-location-row strong { color: #fff; font-size: 13px; }
+.field-location-role { margin-left: 8px; color: #9db2cc; font-size: 11px; }
+.field-location-meta { display: flex; flex-wrap: wrap; gap: 5px 14px; margin-top: 5px; color: #b6c7db; font-size: 11px; }
+.field-location-actions { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+.field-location-badge { color: #fde68a; font-size: 10px; font-weight: 800; letter-spacing: .06em; }
+.field-location-badge.is-live { color: #86efac; }
+.field-location-actions a { color: #7dd3fc; font-size: 11px; font-weight: 700; text-decoration: none; }
+.field-location-actions a:hover { text-decoration: underline; }
+.field-location-empty { color: #bfcee0; padding: 14px; border: 1px dashed rgba(148, 163, 184, .35); border-radius: 12px; font-size: 12px; line-height: 1.5; }
+@media (max-width: 700px) { .field-location-header, .field-location-row { flex-direction: column; align-items: stretch; } .field-location-actions { justify-content: space-between; } }
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -475,7 +495,7 @@ iframe { width: 100%; height: 100%; border: none; display: none; }
         <div class="label">Operations</div>
         <div class="nav-link" onclick="loadPage('sales')">Sales Terminal</div>
         <div class="nav-link" onclick="loadPage('purchases')">Purchases</div>
-        <div id="marketingTeamNav" class="nav-link" onclick="loadPage('marketing-team')">Marketing team</div>
+        
         
         <div class="label">Relationships</div>
         <div class="nav-link" onclick="loadPage('crm')" style="color:#4ade80;">Customer Registry</div>
@@ -510,6 +530,20 @@ iframe { width: 100%; height: 100%; border: none; display: none; }
                     <a href="#" onclick="loadPage('sales'); return false;" class="btn btn-primary" style="max-width: 200px;">Launch Terminal</a>
                 </div>
             </div>
+
+<section id="fieldLocationPanel" class="field-location-panel col-12" style="display:none" aria-live="polite">
+                <div class="field-location-header">
+                    <div>
+                        <div class="field-location-kicker">MARKETING TEAM · LIVE GPS</div>
+                        <h2>Field team locations</h2>
+                        <p>Marketing members’ precise locations are visible to Marketing Team accounts while they are signed in and sharing. Fixed Area accounts are not tracked.</p>
+                    </div>
+                    <span id="fieldLocationShareStatus" class="field-location-share-status">Checking GPS…</span>
+                </div>
+                <div id="fieldLocationList" class="field-location-list">
+                    <div class="field-location-empty">Loading team locations…</div>
+                </div>
+            </section>
 
             <div class="stats-hub-card col-6">
                 <div class="stats-hub-title">Local IndexedDB Sync Engine</div>
@@ -700,8 +734,130 @@ document.addEventListener('copy', (e) => {
     }
 });
 
-auth.onAuthStateChanged((user) => {
+let fieldLocationViewerUid = null;
+let fieldLocationFeedRef = null;
+let fieldLocationFeedHandler = null;
+let fieldLocationCache = {};
+
+function setFieldLocationShareStatus(text, active) {
+    const status = document.getElementById("fieldLocationShareStatus");
+    if (!status) return;
+    status.textContent = text;
+    status.classList.toggle("is-active", !!active);
+}
+
+function renderFieldLocationList(locations) {
+    const list = document.getElementById("fieldLocationList");
+    if (!list) return;
+    list.replaceChildren();
+    const entries = Object.values(locations || {}).filter((item) => item && item.uid);
+    entries.sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+    if (!entries.length) {
+        const empty = document.createElement("div");
+        empty.className = "field-location-empty";
+        empty.textContent = "No marketing locations yet. Team members appear here after signing in, accepting GPS sharing, and allowing browser location access.";
+        list.appendChild(empty);
+        return;
+    }
+    const now = Date.now();
+    let viewerRecordFound = false;
+    entries.forEach((item) => {
+        const lat = Number(item.lat);
+        const lng = Number(item.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+        const updatedAt = Number(item.updatedAt || 0);
+        const live = item.sharing === true && updatedAt > 0 && now - updatedAt < 90000;
+        if (item.uid === fieldLocationViewerUid) {
+            viewerRecordFound = true;
+            if (localStorage.getItem("ag_gps_consent_uid") !== fieldLocationViewerUid) {
+                setFieldLocationShareStatus("GPS sharing is off. Sign in again and accept the location-sharing notice.", false);
+            } else {
+                setFieldLocationShareStatus(live ? "Your live location is shared with Marketing Team accounts" : "Your location is not updating. Check GPS and browser permission.", live);
+            }
+        }
+        const row = document.createElement("article");
+        row.className = "field-location-row";
+        const details = document.createElement("div");
+        const name = document.createElement("strong");
+        name.textContent = String(item.fullName || item.uid);
+        const meta = document.createElement("div");
+        meta.className = "field-location-meta";
+        const coords = document.createElement("span");
+        coords.textContent = lat.toFixed(6) + ", " + lng.toFixed(6) + " · ±" + Math.round(Number(item.accuracy || 0)) + " m";
+        const when = document.createElement("span");
+        when.textContent = updatedAt ? (live ? "Updated " : "Last seen ") + new Date(updatedAt).toLocaleString() : "No timestamp";
+        meta.append(coords, when);
+        details.append(name);
+        if (item.teamRole) {
+            const role = document.createElement("span");
+            role.className = "field-location-role";
+            role.textContent = String(item.teamRole);
+            details.append(role);
+        }
+        details.append(meta);
+        const actions = document.createElement("div");
+        actions.className = "field-location-actions";
+        const badge = document.createElement("span");
+        badge.className = "field-location-badge" + (live ? " is-live" : "");
+        badge.textContent = live ? "LIVE" : "LAST KNOWN";
+        const mapLink = document.createElement("a");
+        mapLink.href = "https://www.google.com/maps?q=" + encodeURIComponent(lat + "," + lng);
+        mapLink.target = "_blank";
+        mapLink.rel = "noopener noreferrer";
+        mapLink.textContent = "Open map ↗";
+        actions.append(badge, mapLink);
+        row.append(details, actions);
+        list.appendChild(row);
+    });
+    if (fieldLocationViewerUid && !viewerRecordFound && localStorage.getItem("ag_gps_consent_uid") === fieldLocationViewerUid) {
+        setFieldLocationShareStatus("Waiting for device GPS permission/location…", false);
+    }
+}
+
+function detachFieldLocationFeed() {
+    if (fieldLocationFeedRef && fieldLocationFeedHandler) fieldLocationFeedRef.off("value", fieldLocationFeedHandler);
+    fieldLocationFeedRef = null;
+    fieldLocationFeedHandler = null;
+}
+
+function attachFieldLocationFeed() {
+    detachFieldLocationFeed();
+    fieldLocationFeedRef = rtdb.ref("field_locations");
+    fieldLocationFeedHandler = (snapshot) => {
+        fieldLocationCache = snapshot.val() || {};
+        renderFieldLocationList(fieldLocationCache);
+    };
+    fieldLocationFeedRef.on("value", fieldLocationFeedHandler, (error) => {
+        AGErrors.report("marketing field locations", error);
+        setFieldLocationShareStatus("Team locations could not be loaded", false);
+    });
+}
+
+function showMarketingLocations(profile, user) {
+    const panel = document.getElementById("fieldLocationPanel");
+    if (!panel) return;
+    const role = String(profile.role || "fixed_area").toLowerCase();
+    if (role !== "marketing_team") {
+        panel.style.display = "none";
+        fieldLocationViewerUid = null;
+        detachFieldLocationFeed();
+        return;
+    }
+    fieldLocationViewerUid = user.uid;
+    panel.style.display = "block";
+    if (localStorage.getItem("ag_gps_consent_uid") !== user.uid) {
+        setFieldLocationShareStatus("GPS sharing is off. Sign in again and accept the location-sharing notice to enable it.", false);
+    } else {
+        setFieldLocationShareStatus("Waiting for device GPS permission/location…", false);
+    }
+    attachFieldLocationFeed();
+}
+
+setInterval(() => renderFieldLocationList(fieldLocationCache), 30000);
+
+auth.onAuthStateChanged(async (user) => {
     if (!user) {
+        detachFieldLocationFeed();
         window.location.replace("index.html");
         return;
     }
@@ -710,6 +866,16 @@ auth.onAuthStateChanged((user) => {
     document.documentElement.classList.remove('auth-pending');
     document.documentElement.classList.add('auth-ready');
     document.getElementById('auth-loading-screen')?.remove();
+
+    try {
+        const profileSnapshot = await rtdb.ref("users/" + user.uid).once("value");
+        const profile = profileSnapshot.val() || {};
+        localStorage.setItem("ag_user_role", String(profile.role || "fixed_area").toLowerCase());
+        showMarketingLocations(profile, user);
+    } catch (error) {
+        AGErrors.report("load location-sharing role", error);
+        setFieldLocationShareStatus("Could not verify your account role; GPS sharing is off", false);
+    }
 });
 
 window.addEventListener('click', (e) => {
@@ -1818,8 +1984,10 @@ window.customLogoutTrigger = () => {
     document.getElementById('modalText').innerText = "Are you sure you want to log out?";
     document.getElementById('overlay').classList.add('active');
     modal.classList.add('active');
-    document.getElementById('modalConfirmBtn').onclick = () => {
+    document.getElementById('modalConfirmBtn').onclick = async () => {
         logUserActivity('SECURITY', 'User logged out');
+        if (typeof window.AGStopLocationSharing === "function") await window.AGStopLocationSharing(true);
+        localStorage.removeItem("ag_gps_consent_uid");
         localStorage.removeItem("ag_active_uid");
         localStorage.removeItem("ag_session_active");
         auth.signOut().then(() => { window.location.href = "index.html"; })
