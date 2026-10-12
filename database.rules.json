@@ -90,6 +90,14 @@
       }
     },
 
+    "field_locations": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'marketing_team'",
+      "$uid": {
+        ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'marketing_team'",
+        ".write": "auth != null && auth.uid == $uid && root.child('users').child(auth.uid).child('role').val() == 'marketing_team'",
+        ".validate": "newData.hasChildren(['uid', 'fullName', 'teamRole', 'lat', 'lng', 'accuracy', 'updatedAt', 'sharing']) && newData.child('uid').val() == auth.uid && newData.child('lat').isNumber() && newData.child('lat').val() >= -90 && newData.child('lat').val() <= 90 && newData.child('lng').isNumber() && newData.child('lng').val() >= -180 && newData.child('lng').val() <= 180 && newData.child('accuracy').isNumber() && newData.child('updatedAt').isNumber() && newData.child('sharing').isBoolean()"
+      }
+    },
     "dispatches": {
       ".read": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || root.child('users').child(auth.uid).child('role').val() == 'marketing_team')",
       ".write": "auth != null && (auth.token.email == 'forexlin254@gmail.com' || root.child('users').child(auth.uid).child('role').val() == 'marketing_team')"

@@ -76,3 +76,35 @@ describe("expense cloud persistence", () => {
     expect(entryPage).toContain("Some expenses are only stored in this browser.");
   });
 });
+
+
+describe("field location sharing", () => {
+  const dashboard = readFileSync(path.join(repoRoot, "dashboard.html"), "utf8");
+  const login = readFileSync(path.join(repoRoot, "login.html"), "utf8");
+  const authGuard = readFileSync(path.join(repoRoot, "auth-guard.js"), "utf8");
+  const locations = rules.field_locations;
+
+  it("limits live location reads and writes to marketing accounts and each user's own record", () => {
+    expect(locations[".read"]).toContain("role').val() == 'marketing_team'");
+    expect(locations.$uid[".read"]).toContain("role').val() == 'marketing_team'");
+    expect(locations.$uid[".write"]).toContain("auth.uid == $uid");
+    expect(locations.$uid[".write"]).toContain("role').val() == 'marketing_team'");
+    expect(locations.$uid[".validate"]).toContain("newData.child('uid').val() == auth.uid");
+  });
+
+  it("shares location from the common auth guard across standalone pages and the dashboard", () => {
+    expect(authGuard).toContain("navigator.geolocation.watchPosition");
+    expect(authGuard).toContain("window.parent !== window");
+    expect(authGuard).toContain('localStorage.getItem("ag_gps_consent_uid") !== user.uid');
+    expect(authGuard).toContain('profile.role !== "marketing_team"');
+    expect(dashboard).toContain('id="fieldLocationPanel"');
+    expect(dashboard).toContain('rtdb.ref("field_locations")');
+    expect(dashboard).not.toContain('id="marketingTeamNav"');
+  });
+
+  it("requires clear GPS-sharing consent for marketing sign-in only", () => {
+    expect(login).toContain("Share live location while signed in");
+    expect(login).toContain('localStorage.setItem("ag_gps_consent_uid", user.uid)');
+    expect(login).toContain('localStorage.removeItem("ag_gps_consent_uid")');
+  });
+});
