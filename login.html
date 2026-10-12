@@ -46,10 +46,9 @@ button.action-btn:disabled { background: #94a3b8; cursor: not-allowed; }
 .marketing-extra-box small { display: block; font-size: 10px; font-weight: 800; color: #0284c7; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .05em; }
 .auto-date-badge { font-size: 0.75rem; color: #0284c7; font-weight: 700; margin-bottom: 4px; display: block; text-align: right; }
 
-.gps-checkbox-container { display: flex; flex-wrap: wrap; align-items: center; background: #f1f5f9; padding: 10px 12px; border-radius: 10px; margin: 8px 0; border: 1px solid #cbd5e1; cursor: pointer; display: none; }
+.gps-checkbox-container { display: flex; align-items: center; background: #f1f5f9; padding: 10px 12px; border-radius: 10px; margin: 8px 0; border: 1px solid #cbd5e1; cursor: pointer; display: none; }
 .gps-checkbox-container input { width: auto; margin: 0 10px 0 0; accent-color: #2c5364; height: 16px; width: 16px; cursor: pointer; }
 .gps-checkbox-container label { font-size: 0.8rem; font-weight: 700; color: #334155; cursor: pointer; }
-.gps-checkbox-container .gps-consent-copy { flex-basis: 100%; margin-left: 26px; color: #475569; font-size: 0.68rem; line-height: 1.4; }
 </style>
 </head>
 <body>
@@ -82,7 +81,7 @@ button.action-btn:disabled { background: #94a3b8; cursor: not-allowed; }
 
         <div id="l_gpsContainer" class="gps-checkbox-container" onclick="document.getElementById('l_acceptGps').click()">
           <input type="checkbox" id="l_acceptGps" onclick="event.stopPropagation()">
-          <label for="l_acceptGps"> Share live location while signed in (Marketing Team only)</label><small class="gps-consent-copy">Your precise location is saved in Firebase. Marketing Team accounts see live updates while the app is open; the last saved point remains visible as LAST KNOWN after sharing stops. Sign out to stop updates. Fixed Area accounts are not tracked.</small>
+          <label for="l_acceptGps"> Accept & Turn On GPS</label>
         </div>
 
         <button class="action-btn" id="loginBtn" onclick="doLogin()">Sign In</button>
@@ -332,12 +331,6 @@ async function doLogin() {
       timestamp: Date.now(),
       device: navigator.userAgent
     });
-
-    if (role === "marketing_team" && lat !== null) {
-      localStorage.setItem("ag_gps_consent_uid", user.uid);
-    } else {
-      localStorage.removeItem("ag_gps_consent_uid");
-    }
 
     window.location.href = DASHBOARD_URL;
 

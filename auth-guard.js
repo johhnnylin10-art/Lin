@@ -1,6 +1,5 @@
 // Authentication guard and shared 10-minute inactivity timeout for AssetGuard pages
-import { getFirebaseApp, getDb } from "./ag-firebase.js";
-import { get, ref, set, update } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+import { getFirebaseApp } from "./ag-firebase.js";
 import { getAuth, onAuthStateChanged, isSignInWithEmailLink, signInWithEmailLink, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
 const IDLE_LIMIT_MS = 10 * 60 * 1000;
@@ -23,124 +22,6 @@ let activeUserId = null;
 let stopIdleProtection = null;
 let authNotice = null;
 let authNoticeText = null;
-
-let gpsWatchId = null;
-let gpsWatchUid = null;
-let gpsHasRecord = false;
-let locationUserForPage = null;
-
-function setMarketingGpsNotice(text, active) {
-  if (window.parent !== window) return;
-  let badge = document.getElementById("ag-gps-share-indicator");
-  if (!text) {
-    if (badge) badge.remove();
-    return;
-  }
-  if (!badge) {
-    badge = document.createElement("div");
-    badge.id = "ag-gps-share-indicator";
-    badge.setAttribute("role", "status");
-    badge.setAttribute("aria-live", "polite");
-    badge.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:2147483000;max-width:min(360px,calc(100vw - 32px));padding:10px 14px;border-radius:999px;font:700 11px/1.4 system-ui,sans-serif;box-shadow:0 8px 28px rgba(2,6,23,.25);";
-    document.body.appendChild(badge);
-  }
-  badge.textContent = text;
-  badge.style.color = active ? "#dcfce7" : "#f8fafc";
-  badge.style.background = active ? "#166534" : "#334155";
-}
-
-async function stopMarketingLocationSharing(markStopped) {
-  const uid = gpsWatchUid;
-  if (gpsWatchId !== null && navigator.geolocation) navigator.geolocation.clearWatch(gpsWatchId);
-  gpsWatchId = null;
-  gpsWatchUid = null;
-  if (markStopped && uid && gpsHasRecord) {
-    try {
-      await update(ref(getDb(), "field_locations/" + uid), { sharing: false, stoppedAt: Date.now() });
-    } catch (error) {
-      if (typeof AGErrors !== "undefined") AGErrors.report("stop GPS sharing", error);
-    }
-  }
-  gpsHasRecord = false;
-  if (markStopped) setMarketingGpsNotice("Location sharing stopped", false);
-}
-
-window.AGStopLocationSharing = (markStopped = true) => stopMarketingLocationSharing(markStopped);
-
-async function startMarketingLocationSharing(user) {
-  if (window.parent !== window) return;
-  if (gpsWatchUid === user.uid && gpsWatchId !== null) return;
-  if (gpsWatchId !== null && navigator.geolocation) navigator.geolocation.clearWatch(gpsWatchId);
-  gpsWatchId = null;
-  gpsWatchUid = null;
-  gpsHasRecord = false;
-  const db = getDb();
-  const profileSnapshot = await get(ref(db, "users/" + user.uid));
-  const profile = profileSnapshot.val() || {};
-  if (auth.currentUser?.uid !== user.uid || profile.role !== "marketing_team") {
-    setMarketingGpsNotice("", false);
-    return;
-  }
-  if (!navigator.geolocation) {
-    setMarketingGpsNotice("GPS is unavailable in this browser", false);
-    return;
-  }
-  if (localStorage.getItem("ag_gps_consent_uid") !== user.uid) {
-    setMarketingGpsNotice("GPS sharing is off. Sign in again and accept the location-sharing notice.", false);
-    return;
-  }
-
-  setMarketingGpsNotice("Waiting for device GPS permission/location…", false);
-  gpsWatchUid = user.uid;
-  let lastWriteAt = 0;
-  const locationRef = ref(db, "field_locations/" + user.uid);
-  gpsWatchId = navigator.geolocation.watchPosition((position) => {
-    const now = Date.now();
-    if (now - lastWriteAt < 5000) return;
-    lastWriteAt = now;
-    const coords = position.coords;
-    const record = {
-      uid: user.uid,
-      fullName: String(profile.fullName || (user.email || "Marketing member").split("@")[0]).slice(0, 100),
-      teamRole: String(profile.teamRole || "Marketing").slice(0, 80),
-      lat: coords.latitude,
-      lng: coords.longitude,
-      accuracy: coords.accuracy,
-      updatedAt: now,
-      sharing: true
-    };
-    set(locationRef, record).then(() => {
-      gpsHasRecord = true;
-      setMarketingGpsNotice("Live location sharing · Marketing Team", true);
-    }).catch((error) => {
-      setMarketingGpsNotice("Location could not be saved. Check your connection.", false);
-      if (typeof AGErrors !== "undefined") AGErrors.report("marketing GPS update", error);
-    });
-  }, (error) => {
-    setMarketingGpsNotice(error && error.code === error.PERMISSION_DENIED ? "GPS permission is off. Allow browser location access to resume sharing." : "Waiting for a fresh GPS location…", false);
-    if (error && error.code === error.PERMISSION_DENIED && gpsHasRecord) {
-      update(locationRef, { sharing: false, stoppedAt: Date.now() }).catch((writeError) => {
-        if (typeof AGErrors !== "undefined") AGErrors.report("GPS permission status", writeError);
-      });
-    }
-    if (typeof AGErrors !== "undefined") AGErrors.report("browser GPS watch", error);
-  }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
-}
-
-window.addEventListener("pagehide", () => {
-  if (gpsWatchId !== null && navigator.geolocation) {
-    navigator.geolocation.clearWatch(gpsWatchId);
-    gpsWatchId = null;
-  }
-});
-window.addEventListener("pageshow", () => {
-  if (locationUserForPage && auth.currentUser?.uid === locationUserForPage.uid) {
-    startMarketingLocationSharing(locationUserForPage).catch((error) => {
-      if (typeof AGErrors !== "undefined") AGErrors.report("resume GPS sharing", error);
-    });
-  }
-});
-
 
 function showAuthNotice(message) {
   if (!authNotice) {
@@ -193,9 +74,9 @@ function startIdleProtection(user) {
     try { localStorage.removeItem(activityKey); } catch (_) {}
     sessionStorage.removeItem("ag_auth_verified");
     showAuthNotice("You were signed out after more than 10 minutes of inactivity.");
-    Promise.race([stopMarketingLocationSharing(true), new Promise(resolve => window.setTimeout(resolve, 1500))])
-      .then(() => signOut(auth))
-      .catch(error => { if (typeof AGErrors !== "undefined") AGErrors.report("idle sign-out", error); });
+    signOut(auth).catch(error => {
+      if (typeof AGErrors !== "undefined") AGErrors.report("idle sign-out", error);
+    });
   };
 
   if (lastActivity && Date.now() - lastActivity >= IDLE_LIMIT_MS) {
@@ -276,22 +157,15 @@ async function completeInternalResetLink() {
 
 await completeInternalResetLink();
 
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, (user) => {
   authResolved = true;
   if (user) {
     if (!startIdleProtection(user)) return;
-    locationUserForPage = user;
-    startMarketingLocationSharing(user).catch((error) => {
-      if (typeof AGErrors !== "undefined") AGErrors.report("start GPS sharing", error);
-    });
     sessionStorage.setItem("ag_auth_verified", "1");
     clearAuthNotice();
     document.documentElement.style.visibility = "";
     notifyPageReady();
   } else {
-    locationUserForPage = null;
-    setMarketingGpsNotice("", false);
-    await stopMarketingLocationSharing(false);
     if (stopIdleProtection) stopIdleProtection();
     if (activeUserId) {
       try { localStorage.removeItem("ag_last_activity_" + activeUserId); } catch (_) {}
